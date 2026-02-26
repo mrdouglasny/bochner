@@ -98,26 +98,123 @@ lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
   · apply Complex.ext <;> simp [him]
   · exact hre
 
-/-! ## Phase 1.5: Gaussian positive definiteness
+/-- The double sum ∑ᵢ ∑ⱼ conj(aᵢ) * aⱼ equals normSq(∑ₖ aₖ). -/
+private lemma sum_star_mul_eq_normSq {m : ℕ} (a : Fin m → ℂ) :
+    ∑ i, ∑ j, starRingEnd ℂ (a i) * a j = ↑(Complex.normSq (∑ k, a k)) := by
+  have h : (↑(Complex.normSq (∑ k, a k)) : ℂ) =
+      (starRingEnd ℂ) (∑ k, a k) * ∑ k, a k := by
+    rw [starRingEnd_apply, star_def, Complex.normSq_eq_conj_mul_self]
+  rw [h, map_sum, Finset.sum_mul_sum]
 
-The Gaussian exp(-ε‖x‖²) is PD, proved via its Fourier representation as
-an integral of characters against a nonneg density. The same technique
-proves that φ(x)·exp(-ε‖x‖²) is PD when φ is PD. -/
+/-! ## Phase 1.5: Characteristic functions are positive definite
+
+The "forward" direction of Bochner: the characteristic function of any
+finite measure is positive definite. This gives us PD of the Gaussian
+as a corollary: exp(-ε‖x‖²) is the charFun of a Gaussian measure. -/
+
+/-- Forward Bochner: the characteristic function of any finite measure is PD.
+
+    Proof: charFun(μ)(t) = ∫ exp(i⟨x,t⟩) dμ(x). So
+    ∑ᵢⱼ c̄ᵢcⱼ charFun(tᵢ-tⱼ) = ∫ |∑ₖ cₖ exp(i⟨x,tₖ⟩)|² dμ(x) ≥ 0.
+
+    The key steps are: (1) swap finite sum and integral, (2) recognize
+    the integrand as a norm squared. -/
+lemma isPositiveDefinite_charFun (μ : Measure V) [IsFiniteMeasure μ] :
+    IsPositiveDefinite (fun t : V => charFun μ t) where
+  hermitian t := by
+    rw [starRingEnd_apply, star_def]
+    exact charFun_neg t
+  nonneg m t c := by
+    -- Step 1: Unfold charFun
+    simp only [charFun_apply]
+    -- Step 2: Show the .re of the sum equals ∫ normSq(∑ₖ cₖ e^{-i⟨x,tₖ⟩}) dμ ≥ 0
+    suffices h : (∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j *
+        ∫ x, cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ).re =
+        ∫ x, Complex.normSq (∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I)) ∂μ by
+      rw [h]
+      exact integral_nonneg (fun x => Complex.normSq_nonneg _)
+    -- Integrability of exponentials on a finite measure (norm ≤ 1)
+    have hexp_int : ∀ v : V, Integrable (fun x : V =>
+        cexp (↑⟪x, v⟫_ℝ * I)) μ :=
+      fun v => (memLp_top_of_bound (by fun_prop : Continuous _).aestronglyMeasurable 1
+        (ae_of_all _ fun x => by simp [Complex.norm_exp_ofReal_mul_I])).integrable le_top
+    -- Integrability of each summand c̄ᵢcⱼ·exp
+    have hterm_int : ∀ i j, Integrable (fun x : V =>
+        (starRingEnd ℂ) (c i) * c j * cexp (↑⟪x, t i - t j⟫_ℝ * I)) μ :=
+      fun i j => (hexp_int (t i - t j)).const_mul _
+    -- Step A: Complex equality: ∑ᵢ∑ⱼ c̄ᵢcⱼ ∫ exp = ∫ ↑(normSq(∑ cₖexp))
+    have hcomplex : ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j *
+        ∫ x, cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ =
+        ∫ x, ↑(normSq (∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I))) ∂μ := by
+      -- Pull constants into integrals and merge sums
+      calc ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j *
+              ∫ x, cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ
+          = ∑ i, ∑ j, ∫ x, (starRingEnd ℂ) (c i) * c j *
+              cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+            congr 1; ext i; congr 1; ext j; exact (integral_const_mul _ _).symm
+        _ = ∑ i, ∫ x, ∑ j, (starRingEnd ℂ) (c i) * c j *
+              cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+            congr 1; ext i
+            exact (integral_finset_sum _ (fun j _ => hterm_int i j)).symm
+        _ = ∫ x, ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j *
+              cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+            exact (integral_finset_sum _ (fun i _ =>
+              integrable_finset_sum _ (fun j _ => hterm_int i j))).symm
+        _ = ∫ x, ↑(normSq (∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I))) ∂μ := by
+            congr 1; ext x
+            -- Algebraic identity: ∑ᵢ∑ⱼ c̄ᵢcⱼe^{i⟨x,tᵢ-tⱼ⟩} = ↑(normSq(∑ cₖe^{-i⟨x,tₖ⟩}))
+            -- Use sum_star_mul_eq_normSq with aₖ = cₖ * exp(-i⟨x,tₖ⟩)
+            rw [← sum_star_mul_eq_normSq]
+            congr 1; ext i; congr 1; ext j
+            -- Goal: c̄ᵢ * cⱼ * exp(⟨x,tᵢ-tⱼ⟩*I) = conj(cᵢ*exp(-⟨x,tᵢ⟩*I)) * (cⱼ*exp(-⟨x,tⱼ⟩*I))
+            rw [map_mul, mul_mul_mul_comm]
+            congr 1
+            -- conj(exp(-⟨x,tᵢ⟩*I)) * exp(-⟨x,tⱼ⟩*I) = exp(⟨x,tᵢ-tⱼ⟩*I)
+            -- conj(exp(-r*I)) = exp(r*I)
+            rw [starRingEnd_apply, star_def, ← Complex.exp_conj]
+            simp only [Complex.conj_ofReal, Complex.conj_I, map_mul, mul_neg]
+            -- exp(⟨x,tᵢ⟩*I) * exp(-⟨x,tⱼ⟩*I) = exp((⟨x,tᵢ⟩-⟨x,tⱼ⟩)*I)
+            rw [← Complex.exp_add]
+            congr 1
+            rw [inner_sub_right]; push_cast; ring
+    -- Step B: .re of the complex integral = real integral
+    rw [hcomplex]
+    have hnorm_int : Integrable (fun x : V =>
+        (↑(normSq (∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I))) : ℂ)) μ := by
+      apply Integrable.ofReal
+      exact (memLp_top_of_bound
+        ((Complex.continuous_normSq.comp (by fun_prop : Continuous _)).aestronglyMeasurable)
+        ((∑ k, ‖c k‖) ^ 2)
+        (ae_of_all _ fun x => by
+          simp only [Function.comp_def, Real.norm_eq_abs,
+            abs_of_nonneg (Complex.normSq_nonneg _)]
+          rw [Complex.normSq_eq_norm_sq]
+          gcongr
+          calc ‖∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I)‖
+              ≤ ∑ k, ‖c k * cexp (↑(-⟪x, t k⟫_ℝ) * I)‖ := norm_sum_le _ _
+            _ = ∑ k, ‖c k‖ := by
+                congr 1; ext k; rw [norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one]
+          )).integrable le_top
+    -- Move .re inside the integral using reCLM
+    -- reCLM.integral_comp_comm gives: ∫ reCLM(f x) = reCLM(∫ f x)
+    -- Since reCLM ↑(normSq z) = normSq z and reCLM(∫ ...) = (∫ ...).re,
+    -- this gives ∫ normSq ... = (∫ ↑(normSq ...) ∂μ).re
+    have hre_swap := Complex.reCLM.integral_comp_comm hnorm_int
+    -- hre_swap : ∫ reCLM ↑(normSq ...) = reCLM (∫ ↑(normSq ...))
+    -- LHS simplifies: reCLM ↑r = r, so LHS = ∫ normSq ...
+    -- RHS is reCLM applied to integral, which = (integral).re
+    change ∫ x, Complex.re (↑(normSq (∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I)))) ∂μ =
+        Complex.re (∫ x, ↑(normSq (∑ k, c k * cexp (↑(-⟪x, t k⟫_ℝ) * I))) ∂μ) at hre_swap
+    simp only [Complex.ofReal_re] at hre_swap
+    exact hre_swap.symm
 
 /-- The Gaussian function x ↦ exp(-ε‖x‖²) is positive definite.
 
-    Proof: Write exp(-ε‖x‖²) = 𝓕⁻(𝓕 exp(-ε‖·‖²))(x) by Fourier inversion.
-    The FT is a nonneg Gaussian density g. Then
-    ∑ᵢⱼ c̄ᵢcⱼ exp(-ε‖xᵢ-xⱼ‖²) = ∫ g(ξ) |∑ₖ cₖ exp(2πi⟨xₖ,ξ⟩)|² dξ ≥ 0. -/
+    Proved by showing it is the characteristic function of a centered
+    Gaussian measure with variance 1/(2ε). -/
 lemma isPositiveDefinite_gaussian (ε : ℝ) (hε : 0 < ε) :
-    IsPositiveDefinite (fun x : V => cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))) where
-  hermitian x := by
-    simp only [norm_neg]
-    rw [starRingEnd_apply, star_def, ← Complex.exp_conj]
-    congr 1
-    simp [Complex.conj_ofReal]
-  nonneg m x c := by
-    sorry
+    IsPositiveDefinite (fun x : V => cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))) := by
+  sorry
 
 /-! ## Phase 2: Gaussian regularization
 
