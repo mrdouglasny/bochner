@@ -157,15 +157,3 @@ lemma mul (hpd : IsPositiveDefinite φ) {ψ : α → ℂ} (hψ : IsPositiveDefin
   sorry
 
 end IsPositiveDefinite
-
-/-- The Gaussian function x ↦ exp(-ε‖x‖²) is positive definite on any
-    inner product space.
-
-    Proof idea: exp(-ε‖x-y‖²) = exp(-ε‖x‖²)·exp(-ε‖y‖²)·exp(2ε⟨x,y⟩).
-    The matrix exp(2ε⟨xᵢ,xⱼ⟩) is PSD because exp preserves PSD (the power
-    series has nonneg coefficients and ⟨xᵢ,xⱼ⟩ is a Gram matrix).
-    Alternatively: it's the Fourier transform of a Gaussian measure. -/
-lemma isPositiveDefinite_gaussian {V : Type*} [NormedAddCommGroup V]
-    [InnerProductSpace ℝ V] (ε : ℝ) (hε : 0 < ε) :
-    IsPositiveDefinite (fun x : V => cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))) := by
-  sorry

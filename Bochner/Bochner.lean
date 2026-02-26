@@ -98,6 +98,27 @@ lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
   · apply Complex.ext <;> simp [him]
   · exact hre
 
+/-! ## Phase 1.5: Gaussian positive definiteness
+
+The Gaussian exp(-ε‖x‖²) is PD, proved via its Fourier representation as
+an integral of characters against a nonneg density. The same technique
+proves that φ(x)·exp(-ε‖x‖²) is PD when φ is PD. -/
+
+/-- The Gaussian function x ↦ exp(-ε‖x‖²) is positive definite.
+
+    Proof: Write exp(-ε‖x‖²) = 𝓕⁻(𝓕 exp(-ε‖·‖²))(x) by Fourier inversion.
+    The FT is a nonneg Gaussian density g. Then
+    ∑ᵢⱼ c̄ᵢcⱼ exp(-ε‖xᵢ-xⱼ‖²) = ∫ g(ξ) |∑ₖ cₖ exp(2πi⟨xₖ,ξ⟩)|² dξ ≥ 0. -/
+lemma isPositiveDefinite_gaussian (ε : ℝ) (hε : 0 < ε) :
+    IsPositiveDefinite (fun x : V => cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))) where
+  hermitian x := by
+    simp only [norm_neg]
+    rw [starRingEnd_apply, star_def, ← Complex.exp_conj]
+    congr 1
+    simp [Complex.conj_ofReal]
+  nonneg m x c := by
+    sorry
+
 /-! ## Phase 2: Gaussian regularization
 
 φ_ε(x) = φ(x) · exp(-ε‖x‖²) is PD (Schur) and L¹ (bounded × Gaussian). -/
@@ -106,11 +127,27 @@ lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
 noncomputable def gaussianRegularize (φ : V → ℂ) (ε : ℝ) : V → ℂ :=
   fun x => φ x * cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))
 
-/-- φ_ε is positive definite (Schur product of PD functions). -/
+/-- φ_ε is positive definite (Schur product of PD functions).
+
+    Direct proof via the Fourier representation of the Gaussian, avoiding
+    the general Schur product theorem.
+
+    exp(-ε‖xᵢ-xⱼ‖²) = ∫ exp(2πi⟨ξ,xᵢ-xⱼ⟩) g(ξ) dξ  where g ≥ 0
+
+    So ∑ᵢⱼ c̄ᵢcⱼ φ(xᵢ-xⱼ) exp(-ε‖xᵢ-xⱼ‖²)
+      = ∫ g(ξ) [∑ᵢⱼ (cᵢ e^{2πi⟨xᵢ,ξ⟩})* (cⱼ e^{2πi⟨xⱼ,ξ⟩}) φ(xᵢ-xⱼ)] dξ
+
+    The inner sum has .re ≥ 0 by PD of φ, and g ≥ 0, so the integral ≥ 0. -/
 lemma gaussianRegularize_pd (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
     (ε : ℝ) (hε : 0 < ε) :
-    IsPositiveDefinite (gaussianRegularize φ ε) := by
-  sorry
+    IsPositiveDefinite (gaussianRegularize φ ε) where
+  hermitian x := by
+    simp only [gaussianRegularize, norm_neg]
+    rw [hpd.hermitian x, starRingEnd_apply, star_def, map_mul, ← Complex.exp_conj]
+    congr 1
+    simp [Complex.conj_ofReal]
+  nonneg m x c := by
+    sorry
 
 /-- φ_ε is integrable (φ is bounded by φ(0), times Gaussian decay). -/
 lemma gaussianRegularize_integrable (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
