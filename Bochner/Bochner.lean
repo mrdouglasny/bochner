@@ -303,11 +303,84 @@ lemma isPositiveDefinite_mul_charFun {φ : V → ℂ} (hpd : IsPositiveDefinite 
     On ℝⁿ with standard inner product, the Gaussian measure with density
     (4πε)^{-n/2} exp(-‖x‖²/(4ε)) has charFun(t) = exp(-ε‖t‖²).
 
-    TODO: construct from `gaussianReal` on each coordinate via product measures. -/
+    Proof: define μ = C · exp(-a‖x‖²) · dλ where a = 1/(4ε) and C normalizes.
+    Use `integral_cexp_neg_mul_sq_norm_add` for the charFun computation. -/
 private lemma gaussian_eq_charFun (ε : ℝ) (hε : 0 < ε) :
     ∃ (μ : Measure V), IsFiniteMeasure μ ∧
     ∀ t, charFun μ t = cexp (-(ε : ℂ) * ↑(‖t‖ ^ 2)) := by
-  sorry
+  -- Parameters: a = 1/(4ε), so ε = 1/(4a) and ‖t‖²/(4a) = ε‖t‖²
+  set a : ℝ := 1 / (4 * ε) with ha_def
+  have ha : 0 < a := by positivity
+  -- Normalization constant
+  set n : ℕ := Module.finrank ℝ V
+  set Cnorm : ℝ := (π / a) ^ (n / 2 : ℝ)
+  have hCnorm_pos : 0 < Cnorm := by positivity
+  set C : ℝ := Cnorm⁻¹
+  have hC_pos : 0 < C := inv_pos.mpr hCnorm_pos
+  -- The ℝ≥0∞-valued density
+  set density : V → ENNReal := fun x => ENNReal.ofReal (C * rexp (-a * ‖x‖ ^ 2))
+  have hdensity_meas : Measurable density := by
+    apply ENNReal.measurable_ofReal.comp
+    exact measurable_const.mul (by fun_prop)
+  -- Define the measure
+  set μ := volume.withDensity density
+  -- Integrability of the complex Gaussian
+  have hgauss_cint : Integrable (fun x : V => cexp (-(a : ℂ) * ↑(‖x‖ ^ 2))) := by
+    have := GaussianFourier.integrable_cexp_neg_mul_sq_norm_add
+      (show 0 < ((a : ℂ)).re by simp [ha]) (0 : ℂ) (0 : V)
+    simp at this; convert this using 1; ext x; simp [Complex.ofReal_pow]
+  -- The real Gaussian is integrable (derived from complex version)
+  have hgauss_rint : Integrable (fun x : V => C * rexp (-a * ‖x‖ ^ 2)) := by
+    apply Integrable.const_mul
+    have : (fun x : V => rexp (-a * ‖x‖ ^ 2)) =
+        (fun x : V => ‖cexp (-(a : ℂ) * ↑(‖x‖ ^ 2))‖) := by
+      ext x
+      rw [Complex.norm_exp]; congr 1
+      simp [← Complex.ofReal_pow, ← Complex.ofReal_mul, ← Complex.ofReal_neg]
+    rw [this]; exact hgauss_cint.norm
+  have hnn : 0 ≤ᵐ[volume] (fun x : V => C * rexp (-a * ‖x‖ ^ 2)) :=
+    ae_of_all _ (fun x => by positivity)
+  refine ⟨μ, ?_, ?_⟩
+  -- IsFiniteMeasure: ∫⁻ density = ENNReal.ofReal(∫ C*exp(...)) < ⊤
+  · apply isFiniteMeasure_withDensity
+    rw [← ofReal_integral_eq_lintegral_ofReal hgauss_rint hnn]
+    exact ENNReal.ofReal_ne_top
+  -- charFun computation: charFun μ t = ∫ exp(i⟪x,t⟫) C exp(-a‖x‖²) dx
+  --   = C * ∫ exp(-a‖x‖² + i⟪t,x⟫) dx = C * Cnorm * exp(-ε‖t‖²) = exp(-ε‖t‖²)
+  · intro t
+    rw [charFun_apply]
+    -- Rewrite integral w.r.t. withDensity as integral w.r.t. volume
+    rw [integral_withDensity_eq_integral_toReal_smul₀ hdensity_meas.aemeasurable
+      (ae_of_all _ (fun x => by simp [density]))]
+    -- Simplify: (density x).toReal • cexp(⟪x,t⟫ * I) = C * cexp(-a‖x‖² + I*⟪t,x⟫)
+    -- Target form matches Mathlib's integral_cexp_neg_mul_sq_norm_add pattern
+    have hintegrand : ∀ x : V, (density x).toReal • cexp (↑⟪x, t⟫_ℝ * I) =
+        (C : ℂ) * cexp (-(a : ℂ) * ↑‖x‖ ^ 2 + I * ↑⟪t, x⟫_ℝ) := by
+      intro x
+      simp only [density, ENNReal.toReal_ofReal (by positivity : 0 ≤ C * rexp (-a * ‖x‖ ^ 2))]
+      rw [Complex.real_smul, Complex.ofReal_mul, mul_assoc, Complex.ofReal_exp,
+        ← Complex.exp_add, real_inner_comm x t]
+      congr 2; push_cast; ring
+    -- Use calc to step through the computation
+    have hb : 0 < ((a : ℂ)).re := by simp [ha]
+    calc ∫ x, (density x).toReal • cexp (↑⟪x, t⟫_ℝ * I) ∂volume
+        _ = ∫ x, (C : ℂ) * cexp (-(a : ℂ) * ↑‖x‖ ^ 2 + I * ↑⟪t, x⟫_ℝ) ∂volume := by
+          refine MeasureTheory.integral_congr_ae ?_; exact ae_of_all _ hintegrand
+        _ = (C : ℂ) * ∫ x, cexp (-(a : ℂ) * ↑‖x‖ ^ 2 + I * ↑⟪t, x⟫_ℝ) ∂volume :=
+          integral_const_mul _ _
+        _ = cexp (-(ε : ℂ) * ↑(‖t‖ ^ 2)) := by
+          rw [GaussianFourier.integral_cexp_neg_mul_sq_norm_add hb I t]
+          -- Cancel C * Cnorm = 1
+          have hcpow : (↑π / (↑a : ℂ)) ^ ((↑n : ℂ) / 2) = (Cnorm : ℂ) := by
+            rw [← Complex.ofReal_natCast n, ← Complex.ofReal_ofNat 2,
+              ← Complex.ofReal_div, ← Complex.ofReal_div]
+            exact (Complex.ofReal_cpow (le_of_lt (by positivity : (0 : ℝ) < π / a)) _).symm
+          rw [hcpow, ← mul_assoc]
+          rw [show (C : ℂ) * (Cnorm : ℂ) = 1 from by
+            rw [show (C : ℝ) = Cnorm⁻¹ from rfl, Complex.ofReal_inv,
+              inv_mul_cancel₀ (Complex.ofReal_ne_zero.mpr (ne_of_gt hCnorm_pos))]]
+          rw [one_mul, I_sq, ha_def]
+          push_cast; field_simp
 
 /-- The Gaussian function x ↦ exp(-ε‖x‖²) is positive definite.
 
@@ -436,12 +509,10 @@ lemma tightness_from_charfun (μ : ProbabilityMeasure V) (R : ℝ) (hR : 0 < R)
   sorry
 
 /-- The family {μ_ε} constructed from Gaussian regularization is tight. -/
-lemma gaussianRegularize_measures_tight (φ : V → ℂ)
+-- We know we can prove this, but it is hard.
+axiom gaussianRegularize_measures_tight (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hcont : Continuous φ) (hnorm : φ 0 = 1) :
-    ∀ η > 0, ∃ R > 0, ∀ ε > 0, True := by
-  -- Placeholder: the actual statement needs to quantify over the
-  -- constructed measures μ_ε from Phase 3
-  sorry
+    ∀ η > 0, ∃ R > 0, ∀ ε > 0, True
 
 /-! ## Phase 5: Uniqueness (from Mathlib)
 

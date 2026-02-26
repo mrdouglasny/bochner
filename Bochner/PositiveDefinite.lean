@@ -5,11 +5,16 @@ Authors: Michael R. Douglas
 -/
 
 import Mathlib.Data.Complex.Basic
+import Mathlib.Analysis.Complex.Order
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Algebra.Module.LinearMap.Defs
 import Mathlib.Analysis.Normed.Group.Basic
 import Mathlib.Analysis.InnerProductSpace.Basic
+import Mathlib.LinearAlgebra.Matrix.PosDef
+import Mathlib.LinearAlgebra.Matrix.Kronecker
+import Mathlib.Analysis.Matrix.Hermitian
+import Mathlib.Analysis.Matrix.Order
 import Mathlib.Analysis.SpecialFunctions.Complex.Circle
 
 /-!
@@ -43,6 +48,8 @@ but that weaker condition does not imply Hermitian symmetry.
 -/
 
 open Complex BigOperators
+open scoped Kronecker
+open scoped ComplexOrder
 
 /-- A function φ : α → ℂ is positive definite if the matrix [φ(xᵢ-xⱼ)] is
     Hermitian positive semidefinite for every finite set of points.
@@ -71,6 +78,25 @@ lemma isPositiveDefinite_precomp_linear
 namespace IsPositiveDefinite
 
 variable {α : Type*} [AddGroup α] {φ : α → ℂ}
+
+private lemma kernelMatrix_posSemidef {m : ℕ} (hpd : IsPositiveDefinite φ) (x : Fin m → α) :
+    (((Matrix.of fun i j => φ (x i - x j)) : Matrix (Fin m) (Fin m) ℂ).PosSemidef) := by
+  let M : Matrix (Fin m) (Fin m) ℂ := Matrix.of fun i j => φ (x i - x j)
+  have hM_herm : M.IsHermitian := by
+    refine Matrix.IsHermitian.ext ?_
+    intro i j
+    change starRingEnd ℂ (φ (x j - x i)) = φ (x i - x j)
+    simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+      (hpd.hermitian (x j - x i)).symm
+  refine Matrix.posSemidef_iff_dotProduct_mulVec.mpr ⟨hM_herm, ?_⟩
+  intro c
+  have hre : 0 ≤ (dotProduct (star c) (M.mulVec c)).re := by
+    simpa [M, dotProduct, Matrix.mulVec, Finset.mul_sum,
+      mul_assoc, mul_left_comm, mul_comm]
+      using hpd.nonneg m x c
+  have him : (dotProduct (star c) (M.mulVec c)).im = 0 := by
+    simpa [M] using hM_herm.im_star_dotProduct_mulVec_self c
+  exact Complex.nonneg_iff.mpr ⟨hre, him.symm⟩
 
 /-- φ(-x) = conj(φ(x)). -/
 lemma conj_symm (hpd : IsPositiveDefinite φ) (x : α) :
@@ -154,6 +180,22 @@ lemma bounded_by_zero (hpd : IsPositiveDefinite φ) (x : α) :
     is PSD. For the Hermitian condition, use conj(φψ) = conj(φ)conj(ψ). -/
 lemma mul (hpd : IsPositiveDefinite φ) {ψ : α → ℂ} (hψ : IsPositiveDefinite ψ) :
     IsPositiveDefinite (fun x => φ x * ψ x) := by
-  sorry
+  refine ⟨?_, ?_⟩
+  · intro x
+    rw [map_mul, hpd.hermitian x, hψ.hermitian x]
+  · intro m x c
+    let A : Matrix (Fin m) (Fin m) ℂ := fun i j => φ (x i - x j)
+    let B : Matrix (Fin m) (Fin m) ℂ := fun i j => ψ (x i - x j)
+    let e : Fin m → Fin m × Fin m := fun i => (i, i)
+    have hA : A.PosSemidef := by
+      simpa [A] using kernelMatrix_posSemidef hpd x
+    have hB : B.PosSemidef := by
+      simpa [B] using kernelMatrix_posSemidef hψ x
+    have hK : (A ⊗ₖ B).PosSemidef := hA.kronecker hB
+    have hSub : ((A ⊗ₖ B).submatrix e e).PosSemidef := hK.submatrix e
+    have hnonneg := hSub.dotProduct_mulVec_nonneg c
+    exact (RCLike.nonneg_iff.mp hnonneg).1.trans_eq <| by
+      simp [A, B, e, dotProduct, Matrix.mulVec,
+        Finset.mul_sum, mul_assoc, mul_left_comm, mul_comm]
 
 end IsPositiveDefinite
