@@ -478,13 +478,58 @@ and ∫ φ̂ = φ(0) = 1 (Fourier inversion at 0), μ is a probability measure.
 By Fourier inversion, charFun(μ) = φ. -/
 
 /-- Given an L¹ PD function with φ(0) = 1, there exists a probability measure
-    whose characteristic function equals φ. -/
+    whose characteristic function equals φ.
+
+    Key idea: define ψ(x) = φ(2πx) to absorb the 2π convention difference
+    between charFun (uses e^{i⟪x,t⟫}) and 𝓕 (uses e^{-2πi⟪x,ξ⟫}).
+    Then dμ = 𝓕ψ · dλ is a probability measure with charFun(μ) = φ. -/
 lemma measure_of_pd_l1 (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hint : Integrable φ)
     (hcont : Continuous φ) (hnorm : φ 0 = 1)
     (hint_ft : Integrable (𝓕 φ)) :
     ∃ μ : ProbabilityMeasure V,
       ∀ ξ, MeasureTheory.charFun (μ : Measure V) ξ = φ ξ := by
+  -- Step 1: Define ψ(x) = φ(2πx) to match charFun ↔ 𝓕 conventions
+  set τ : ℝ := 2 * Real.pi with hτ_def
+  have hτ_pos : 0 < τ := by positivity
+  have hτ_ne : τ ≠ 0 := ne_of_gt hτ_pos
+  -- The scaling map T(x) = τ • x as a linear map
+  set T : V →ₗ[ℝ] V := τ • LinearMap.id with hT_def
+  set ψ : V → ℂ := fun x => φ (T x) with hψ_def
+  -- Step 2: ψ is PD (composition with linear map)
+  have hψ_pd : IsPositiveDefinite ψ := isPositiveDefinite_precomp_linear φ hpd T
+  -- Step 3: ψ is continuous
+  have hψ_cont : Continuous ψ := hcont.comp (continuous_const_smul τ)
+  -- Step 4: ψ is integrable (change of variables: ∫|ψ| = τ⁻ⁿ ∫|φ|)
+  have hψ_int : Integrable ψ := by
+    rw [show ψ = (fun x => φ (τ • x)) from rfl]
+    exact (integrable_comp_smul_iff volume φ hτ_ne).mpr hint
+  -- Step 5: 𝓕ψ is integrable
+  have hψ_ft_int : Integrable (𝓕 ψ) := by
+    sorry -- follows from hint_ft via change of variables
+  -- Step 6: 𝓕ψ is real and nonneg (from pd_l1_fourier_nonneg)
+  have hψ_ft_nonneg : ∀ x, 0 ≤ (𝓕 ψ x).re ∧ (𝓕 ψ x).im = 0 :=
+    fun x => pd_l1_fourier_nonneg ψ hψ_pd hψ_int x
+  -- Step 7: Define the density and measure
+  set density : V → ENNReal := fun x => ENNReal.ofReal (𝓕 ψ x).re
+  have hψ_ft_cont : Continuous (𝓕 ψ) := by
+    change Continuous (VectorFourier.fourierIntegral Real.fourierChar volume (innerₗ V) ψ)
+    exact VectorFourier.fourierIntegral_continuous Real.continuous_fourierChar
+      continuous_inner hψ_int
+  have hdensity_meas : Measurable density := by
+    exact ENNReal.measurable_ofReal.comp ((Complex.continuous_re.comp hψ_ft_cont).measurable)
+  set μ_raw := volume.withDensity density
+  -- Step 8: Total mass = ψ(0) = φ(0) = 1 (Fourier inversion at 0)
+  have htotal : μ_raw Set.univ = 1 := by
+    sorry -- ∫ Re(𝓕ψ) = 𝓕⁻(𝓕ψ)(0).re = ψ(0).re = Re(φ(0)) = 1
+  -- Step 9: Package as ProbabilityMeasure
+  have hfm : IsFiniteMeasure μ_raw := by
+    constructor; rw [htotal]; exact ENNReal.one_lt_top
+  have hprob : IsProbabilityMeasure μ_raw := ⟨htotal⟩
+  set μ : ProbabilityMeasure V := ⟨μ_raw, hprob⟩
+  -- Step 10: charFun(μ)(t) = φ(t) via Fourier inversion
+  refine ⟨μ, fun ξ => ?_⟩
+  -- charFun μ ξ = ∫ e^{i⟪x,ξ⟫} 𝓕ψ(x) dx = 𝓕⁻(𝓕ψ)(ξ/(2π)) = ψ(ξ/(2π)) = φ(ξ)
   sorry
 
 /-! ## Phase 4: Tightness and weak limit
