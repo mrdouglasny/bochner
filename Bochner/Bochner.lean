@@ -116,7 +116,21 @@ lemma gaussianRegularize_pd (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
 lemma gaussianRegularize_integrable (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
     (hcont : Continuous φ) (ε : ℝ) (hε : 0 < ε) :
     Integrable (gaussianRegularize φ ε) := by
-  sorry
+  -- The Gaussian exp(-ε‖x‖²) is integrable
+  have hgauss : Integrable (fun x : V => cexp (-(↑ε : ℂ) * ↑(‖x‖ ^ 2))) := by
+    have := GaussianFourier.integrable_cexp_neg_mul_sq_norm_add
+      (show 0 < (↑ε : ℂ).re by simp [hε]) (0 : ℂ) (0 : V)
+    simp at this
+    convert this using 1; ext x; simp [Complex.ofReal_pow]
+  -- φ is bounded: ‖φ(x)‖ ≤ (φ 0).re
+  -- So ‖φ(x) * exp(-ε‖x‖²)‖ = ‖φ(x)‖ * ‖exp(-ε‖x‖²)‖ ≤ (φ 0).re * ‖exp(-ε‖x‖²)‖
+  -- The bound function (φ 0).re * ‖exp(-ε‖x‖²)‖ is integrable
+  refine (hgauss.norm.const_mul (φ 0).re).mono
+    ((hcont.mul (by fun_prop : Continuous (fun x : V => cexp (-(↑ε : ℂ) * ↑(‖x‖ ^ 2))))).aestronglyMeasurable)
+    (ae_of_all _ fun x => ?_)
+  simp only [gaussianRegularize, norm_mul, Real.norm_eq_abs, abs_of_nonneg hpd.eval_zero_nonneg,
+    abs_of_nonneg (norm_nonneg _)]
+  exact mul_le_mul_of_nonneg_right (hpd.bounded_by_zero x) (norm_nonneg _)
 
 /-- φ_ε(0) = φ(0). -/
 lemma gaussianRegularize_zero (φ : V → ℂ) (ε : ℝ) :
@@ -126,7 +140,15 @@ lemma gaussianRegularize_zero (φ : V → ℂ) (ε : ℝ) :
 /-- φ_ε → φ pointwise as ε → 0⁺. -/
 lemma gaussianRegularize_tendsto (φ : V → ℂ) (x : V) :
     Tendsto (fun ε => gaussianRegularize φ ε x) (𝓝[>] 0) (𝓝 (φ x)) := by
-  sorry
+  simp only [gaussianRegularize]
+  suffices h : Tendsto (fun ε : ℝ => cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))) (𝓝[>] 0) (𝓝 1) by
+    conv_rhs => rw [show φ x = φ x * 1 from (mul_one _).symm]
+    exact Filter.Tendsto.mul tendsto_const_nhds h
+  have h0 : cexp (-(0 : ℂ) * ↑(‖x‖ ^ 2)) = 1 := by simp
+  rw [← h0]
+  apply Filter.Tendsto.cexp
+  apply Filter.Tendsto.mul _ tendsto_const_nhds
+  exact Filter.Tendsto.neg (tendsto_nhdsWithin_of_tendsto_nhds Complex.continuous_ofReal.continuousAt)
 
 /-! ## Phase 3: Construct probability measures from L¹ PD functions
 
