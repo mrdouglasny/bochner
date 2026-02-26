@@ -208,13 +208,117 @@ lemma isPositiveDefinite_charFun (μ : Measure V) [IsFiniteMeasure μ] :
     simp only [Complex.ofReal_re] at hre_swap
     exact hre_swap.symm
 
+/-- Pointwise product of a PD function and the characteristic function of a
+    finite measure is PD. This is a "continuous Schur product" — the same
+    algebraic trick as `isPositiveDefinite_charFun` but with modified
+    coefficients d_k(x) = c_k · exp(-i⟨x, t_k⟩) absorbed into the PD condition. -/
+lemma isPositiveDefinite_mul_charFun {φ : V → ℂ} (hpd : IsPositiveDefinite φ)
+    (μ : Measure V) [IsFiniteMeasure μ] :
+    IsPositiveDefinite (fun t => φ t * charFun μ t) where
+  hermitian t := by
+    show φ (-t) * charFun μ (-t) = (starRingEnd ℂ) (φ t * charFun μ t)
+    rw [map_mul, ← hpd.hermitian t]
+    congr 1
+    rw [starRingEnd_apply, star_def]
+    exact charFun_neg t
+  nonneg m t c := by
+    simp only [charFun_apply]
+    -- Integrability of exponentials on a finite measure (norm ≤ 1)
+    have hexp_int : ∀ v : V, Integrable (fun x : V =>
+        cexp (↑⟪x, v⟫_ℝ * I)) μ :=
+      fun v => (memLp_top_of_bound (by fun_prop : Continuous _).aestronglyMeasurable 1
+        (ae_of_all _ fun x => by simp [Complex.norm_exp_ofReal_mul_I])).integrable le_top
+    -- Integrability of each summand c̄ᵢcⱼφ(dᵢⱼ)·exp
+    have hterm_int : ∀ i j, Integrable (fun x : V =>
+        (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+        cexp (↑⟪x, t i - t j⟫_ℝ * I)) μ :=
+      fun i j => (hexp_int (t i - t j)).const_mul _
+    -- Step A: Swap double sum and integral
+    have hswap : ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j *
+        (φ (t i - t j) * ∫ x, cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ) =
+        ∫ x, ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+        cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+      calc ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j *
+              (φ (t i - t j) * ∫ x, cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ)
+          = ∑ i, ∑ j, ∫ x, (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+              cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+            congr 1; ext i; congr 1; ext j
+            rw [← mul_assoc]; exact (integral_const_mul (L := ℂ) _ _).symm
+        _ = ∑ i, ∫ x, ∑ j, (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+              cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+            congr 1; ext i
+            exact (integral_finset_sum _ (fun j _ => hterm_int i j)).symm
+        _ = ∫ x, ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+              cexp (↑⟪x, t i - t j⟫_ℝ * I) ∂μ := by
+            exact (integral_finset_sum _ (fun i _ =>
+              integrable_finset_sum _ (fun j _ => hterm_int i j))).symm
+    -- Step B: Algebraic identity — absorb exponentials into modified coefficients
+    -- For each x: c̄ᵢcⱼφ(dᵢⱼ)e^{i⟨x,dᵢⱼ⟩} = conj(cᵢe^{-i⟨x,tᵢ⟩})(cⱼe^{-i⟨x,tⱼ⟩})φ(dᵢⱼ)
+    -- Exponential splitting: exp(i⟨x,tᵢ-tⱼ⟩) = conj(exp(-i⟨x,tᵢ⟩)) * exp(-i⟨x,tⱼ⟩)
+    have hexp_split : ∀ (x : V) (i j : Fin m),
+        cexp (↑⟪x, t i - t j⟫_ℝ * I) =
+        (starRingEnd ℂ) (cexp (-(↑⟪x, t i⟫_ℝ) * I)) * cexp (-(↑⟪x, t j⟫_ℝ) * I) := by
+      intro x i j
+      rw [← Complex.exp_conj, ← Complex.exp_add]
+      congr 1
+      have : (starRingEnd ℂ) (-(↑⟪x, t i⟫_ℝ : ℂ) * I) = ↑⟪x, t i⟫_ℝ * I := by
+        rw [map_mul, map_neg, Complex.conj_ofReal, Complex.conj_I]; ring
+      rw [this, inner_sub_right]; push_cast; ring
+    have halg : ∀ x : V,
+        ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+        cexp (↑⟪x, t i - t j⟫_ℝ * I) =
+        ∑ i, ∑ j, (starRingEnd ℂ) (c i * cexp (-(↑⟪x, t i⟫_ℝ) * I)) *
+        (c j * cexp (-(↑⟪x, t j⟫_ℝ) * I)) * φ (t i - t j) := by
+      intro x; congr 1; ext i; congr 1; ext j
+      rw [hexp_split, map_mul]; ring
+    -- Step C: Combine and take .re inside integral
+    rw [hswap]
+    simp_rw [halg]
+    -- Goal: 0 ≤ (∫ x, ∑ᵢⱼ conj(c'ᵢ(x)) c'ⱼ(x) φ(dᵢⱼ) ∂μ).re
+    -- The integrand .re ≥ 0 by PD of φ with modified coefficients
+    -- First, show the integrand is integrable
+    have hint_sum : Integrable (fun x : V =>
+        ∑ i, ∑ j, (starRingEnd ℂ) (c i * cexp (-(↑⟪x, t i⟫_ℝ) * I)) *
+        (c j * cexp (-(↑⟪x, t j⟫_ℝ) * I)) * φ (t i - t j)) μ := by
+      -- This equals the original sum (by halg), which is integrable
+      rw [show (fun x => ∑ i, ∑ j, (starRingEnd ℂ) (c i * cexp (-(↑⟪x, t i⟫_ℝ) * I)) *
+        (c j * cexp (-(↑⟪x, t j⟫_ℝ) * I)) * φ (t i - t j)) =
+        (fun x => ∑ i, ∑ j, (starRingEnd ℂ) (c i) * c j * φ (t i - t j) *
+        cexp (↑⟪x, t i - t j⟫_ℝ * I)) from funext (fun x => (halg x).symm)]
+      exact integrable_finset_sum _ (fun i _ =>
+        integrable_finset_sum _ (fun j _ => hterm_int i j))
+    -- Pull .re inside the integral using reCLM
+    have hre_swap := Complex.reCLM.integral_comp_comm hint_sum
+    change ∫ x, Complex.re (∑ i, ∑ j, (starRingEnd ℂ) (c i * cexp (-(↑⟪x, t i⟫_ℝ) * I)) *
+        (c j * cexp (-(↑⟪x, t j⟫_ℝ) * I)) * φ (t i - t j)) ∂μ =
+        Complex.re (∫ x, ∑ i, ∑ j, (starRingEnd ℂ) (c i * cexp (-(↑⟪x, t i⟫_ℝ) * I)) *
+        (c j * cexp (-(↑⟪x, t j⟫_ℝ) * I)) * φ (t i - t j) ∂μ) at hre_swap
+    rw [← hre_swap]
+    exact integral_nonneg (fun x =>
+      hpd.nonneg m t (fun k => c k * cexp (-(↑⟪x, t k⟫_ℝ) * I)))
+
+/-- There exists a centered Gaussian measure whose characteristic function is
+    exp(-ε‖t‖²). This is the forward direction of Bochner for Gaussian measures.
+
+    On ℝⁿ with standard inner product, the Gaussian measure with density
+    (4πε)^{-n/2} exp(-‖x‖²/(4ε)) has charFun(t) = exp(-ε‖t‖²).
+
+    TODO: construct from `gaussianReal` on each coordinate via product measures. -/
+private lemma gaussian_eq_charFun (ε : ℝ) (hε : 0 < ε) :
+    ∃ (μ : Measure V), IsFiniteMeasure μ ∧
+    ∀ t, charFun μ t = cexp (-(ε : ℂ) * ↑(‖t‖ ^ 2)) := by
+  sorry
+
 /-- The Gaussian function x ↦ exp(-ε‖x‖²) is positive definite.
 
     Proved by showing it is the characteristic function of a centered
     Gaussian measure with variance 1/(2ε). -/
 lemma isPositiveDefinite_gaussian (ε : ℝ) (hε : 0 < ε) :
     IsPositiveDefinite (fun x : V => cexp (-(ε : ℂ) * ↑(‖x‖ ^ 2))) := by
-  sorry
+  obtain ⟨μ, hfin, hcharFun⟩ := gaussian_eq_charFun (V := V) ε hε
+  haveI := hfin
+  have hpd := isPositiveDefinite_charFun μ
+  convert hpd using 1; ext t; exact (hcharFun t).symm
 
 /-! ## Phase 2: Gaussian regularization
 
@@ -244,7 +348,17 @@ lemma gaussianRegularize_pd (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
     congr 1
     simp [Complex.conj_ofReal]
   nonneg m x c := by
-    sorry
+    -- gaussianRegularize φ ε = fun t => φ t * cexp(...)
+    -- By gaussian_eq_charFun, cexp(-ε‖t‖²) = charFun μ t for some Gaussian μ
+    -- So gaussianRegularize φ ε t = φ t * charFun μ t
+    -- and isPositiveDefinite_mul_charFun gives the result
+    obtain ⟨μ, hfin, hcharFun⟩ := gaussian_eq_charFun (V := V) ε hε
+    haveI := hfin
+    have hmul := isPositiveDefinite_mul_charFun hpd μ
+    have heq : ∀ t, gaussianRegularize φ ε t = φ t * charFun μ t := by
+      intro t; simp only [gaussianRegularize]; rw [← hcharFun t]
+    simp_rw [heq]
+    exact hmul.nonneg m x c
 
 /-- φ_ε is integrable (φ is bounded by φ(0), times Gaussian decay). -/
 lemma gaussianRegularize_integrable (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
