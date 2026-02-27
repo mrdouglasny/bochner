@@ -123,8 +123,7 @@ private lemma pd_two (hpd : IsPositiveDefinite φ) (a b : α) (c₀ c₁ : ℂ) 
     0 ≤ (starRingEnd ℂ c₀ * c₀ * φ (a - a) + starRingEnd ℂ c₀ * c₁ * φ (a - b) +
      (starRingEnd ℂ c₁ * c₀ * φ (b - a) + starRingEnd ℂ c₁ * c₁ * φ (b - b))).re := by
   have h := hpd.nonneg 2 ![a, b] ![c₀, c₁]
-  simp only [Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one,
-    Matrix.head_cons] at h
+  simp only [Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one] at h
   exact h
 
 /-- ‖φ(x)‖ ≤ φ(0).re for all x. (Cauchy-Schwarz on the 2×2 PD matrix.) -/

@@ -49,6 +49,7 @@ variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
 
 /-! ### Helper: exp(2πi⟨·,ξ⟩) is positive definite -/
 
+omit [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
 /-- The exponential character x ↦ exp(2πi⟨x,ξ⟩) is positive definite.
     The PD sum equals |∑ cₖ exp(2πi⟨xₖ,ξ⟩)|². -/
 private lemma isPositiveDefinite_exp_inner (ξ : V) :
@@ -161,6 +162,7 @@ private lemma measurable_overlapRatio (R : ℝ) : Measurable (overlapRatio R : V
     simp_rw [← hfib]
     exact (measurable_measure_prodMk_left hE (ν := volume)).ennreal_toReal
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
 /-- Ball containment: closedBall 0 (R - ‖v‖) ⊆ closedBall 0 R ∩ closedBall v R. -/
 private lemma closedBall_sub_norm_subset (v : V) (R : ℝ) :
     Metric.closedBall (0 : V) (R - ‖v‖) ⊆
@@ -258,30 +260,115 @@ private lemma inner_integral_sub (ψ : V → ℂ) (x : V) (R : ℝ) :
   rw [h1]
   exact integral_add_left_eq_self ((Metric.closedBall x R).indicator ψ) x
 
-/-- Fubini identity: the averaged double integral equals ∫ ψ · overlapRatio.
-    Proof strategy: After the inner integral substitution (Haar invariance), we have
-    ∫ x in B, ∫ v in closedBall x R, ψ(v). Using indicator functions and Fubini
-    (integral_integral_swap), swap the order of integration. The key observation is
-    v ∈ closedBall x R ↔ x ∈ closedBall v R (by dist_comm), so the inner integral
-    over x becomes vol(B ∩ closedBall v R). Dividing by vol(B) gives overlapRatio.
-    See Folland, *A Course in Abstract Harmonic Analysis*, §4.2. -/
-axiom fejer_avg_eq_integral_ax :
-    ∀ (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
-      [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
-      (ψ : V → ℂ), Continuous ψ → Integrable ψ →
-      ∀ (R : ℝ), 0 < R →
-      (volume (Metric.closedBall (0 : V) R)).toReal⁻¹ •
-        ∫ x in Metric.closedBall (0 : V) R,
-          ∫ y in Metric.closedBall (0 : V) R, ψ (x - y) =
-      ∫ v, (@overlapRatio V _ _ _ _ _ R v : ℂ) * ψ v
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
+/-- Indicator equivalence: for x ∈ B and the intersection set B ∩ closedBall v R,
+    the nested indicators agree. Uses dist_comm to convert v ∈ closedBall x R
+    to x ∈ closedBall v R. -/
+private lemma indicator_closedBall_inter (ψ : V → ℂ) (R : ℝ) (x v : V) :
+    (Metric.closedBall (0 : V) R).indicator
+      (fun x => (Metric.closedBall x R).indicator ψ v) x =
+    (Metric.closedBall (0 : V) R ∩ Metric.closedBall v R).indicator
+      (fun _ => ψ v) x := by
+  simp only [Set.indicator, Metric.mem_closedBall, Set.mem_inter_iff, dist_comm v x]
+  split_ifs <;> first | rfl | (exfalso; tauto)
 
+/-- The integrand (B ∩ closedBall v R).indicator is integrable on V × V.
+    Rewrite as indicator of the compact product set S = {(x,v) | x ∈ B, dist x v ≤ R}
+    applied to the continuous function ψ ∘ snd. -/
+private lemma integrable_indicator_prod (ψ : V → ℂ) (hcont : Continuous ψ)
+    (_hint : Integrable ψ) (R : ℝ) :
+    Integrable (Function.uncurry fun x v =>
+      (Metric.closedBall (0 : V) R ∩ Metric.closedBall v R).indicator
+        (fun _ => ψ v) x)
+      (Measure.prod volume volume) := by
+  -- Rewrite as indicator on product set S = {(x,v) | x ∈ B, dist x v ≤ R}
+  set S := {p : V × V | p.1 ∈ Metric.closedBall (0 : V) R ∧ dist p.1 p.2 ≤ R}
+  have hfeq : (Function.uncurry fun x v =>
+      (Metric.closedBall (0 : V) R ∩ Metric.closedBall v R).indicator
+        (fun _ => ψ v) x) = S.indicator (ψ ∘ Prod.snd) := by
+    ext ⟨x, v⟩
+    simp only [Function.uncurry, Set.indicator,
+      Metric.mem_closedBall, Set.mem_inter_iff, Function.comp, dist_zero_right, S,
+      Set.mem_setOf_eq]
+  rw [hfeq]
+  have hS_closed : IsClosed S :=
+    (Metric.isClosed_closedBall.preimage continuous_fst).inter
+      (isClosed_le (Continuous.dist continuous_fst continuous_snd) continuous_const)
+  have hS_bdd : Bornology.IsBounded S := by
+    apply Metric.isBounded_closedBall (x := (0 : V × V)) (r := |R| + |R|) |>.subset
+    intro ⟨x, v⟩ ⟨hx, hdist⟩
+    simp only [Metric.mem_closedBall, dist_zero_right] at hx
+    simp only [Metric.mem_closedBall, Prod.dist_eq] at hdist ⊢
+    simp only [Prod.fst_zero, Prod.snd_zero, dist_zero_right]
+    apply max_le
+    · linarith [le_abs_self R, abs_nonneg R]
+    · have hv : ‖v‖ ≤ ‖x‖ + ‖v - x‖ := norm_le_insert' v x
+      rw [← dist_eq_norm, dist_comm] at hv
+      linarith [le_abs_self R]
+  exact ((hcont.comp continuous_snd).continuousOn.integrableOn_compact
+    (Metric.isCompact_of_isClosed_isBounded hS_closed hS_bdd)).integrable_indicator
+    hS_closed.measurableSet
+
+set_option maxHeartbeats 1600000 in
+/-- Fubini identity: the averaged double integral equals ∫ ψ · overlapRatio.
+    After the inner integral substitution (Haar invariance), we have
+    ∫ x in B, ∫ v in closedBall x R, ψ(v). Converting to indicator functions
+    on V × V using the key equivalence v ∈ closedBall x R ↔ x ∈ closedBall v R
+    (dist_comm), we apply integral_integral_swap (Fubini). The inner integral
+    over x evaluates to vol(B ∩ closedBall v R) · ψ(v).
+    See Folland, *A Course in Abstract Harmonic Analysis*, §4.2. -/
 private lemma fejer_avg_eq_integral (ψ : V → ℂ) (hcont : Continuous ψ)
     (hint : Integrable ψ) (R : ℝ) (hR : 0 < R) :
     (volume (Metric.closedBall (0 : V) R)).toReal⁻¹ •
       ∫ x in Metric.closedBall (0 : V) R,
         ∫ y in Metric.closedBall (0 : V) R, ψ (x - y) =
-    ∫ v, (overlapRatio R v : ℂ) * ψ v :=
-  fejer_avg_eq_integral_ax V ψ hcont hint R hR
+    ∫ v, (overlapRatio R v : ℂ) * ψ v := by
+  let B := Metric.closedBall (0 : V) R
+  -- Step 0: Inner integral substitution (Haar invariance)
+  rw [setIntegral_congr_fun measurableSet_closedBall
+    (fun x _ => inner_integral_sub ψ x R)]
+  -- Volume positivity
+  have hvol_ne : (volume B).toReal ≠ 0 :=
+    ne_of_gt (ENNReal.toReal_pos (ne_of_gt (Metric.measure_closedBall_pos volume 0 hR))
+      (ne_of_lt measure_closedBall_lt_top))
+  -- Step 1: Convert nested set integrals to indicator form on V × V
+  have h_to_ind : ∫ x in B, ∫ v in Metric.closedBall x R, ψ v =
+      ∫ x, ∫ v, (B ∩ Metric.closedBall v R).indicator (fun _ => ψ v) x := by
+    trans ∫ x, B.indicator (fun x => ∫ v, (Metric.closedBall x R).indicator ψ v) x
+    · rw [integral_indicator measurableSet_closedBall]
+      congr 1; funext x; exact (integral_indicator measurableSet_closedBall).symm
+    · congr 1; funext x
+      by_cases hx : x ∈ B
+      · rw [Set.indicator_of_mem hx]; congr 1; funext v
+        rw [← indicator_closedBall_inter ψ R x v, Set.indicator_of_mem hx]
+      · rw [Set.indicator_of_notMem hx]
+        rw [show (fun v => (B ∩ Metric.closedBall v R).indicator (fun _ => ψ v) x) = 0 from by
+          funext v; exact Set.indicator_of_notMem (fun h => hx h.1) _]
+        simp
+  -- Suffices: prove the unscaled Fubini identity, then handle scaling
+  suffices h_fubini : ∫ x in B, ∫ v in Metric.closedBall x R, ψ v =
+      ∫ v, (volume (B ∩ Metric.closedBall v R)).toReal • ψ v by
+    rw [h_fubini]
+    -- Push vol(B)⁻¹ inside integral and simplify to overlapRatio
+    calc (volume B).toReal⁻¹ •
+        ∫ v, (volume (B ∩ Metric.closedBall v R)).toReal • ψ v
+      = ∫ v, (volume B).toReal⁻¹ •
+          ((volume (B ∩ Metric.closedBall v R)).toReal • ψ v) :=
+          (integral_smul _ _).symm
+      _ = ∫ v, (overlapRatio R v : ℂ) * ψ v := by
+          congr 1; funext v
+          rw [smul_comm, ← smul_assoc, Complex.real_smul]
+          congr 1; rw [Complex.ofReal_inj]
+          simp only [B]; rw [overlapRatio, if_neg hvol_ne, div_eq_mul_inv,
+            smul_eq_mul]
+  -- Prove h_fubini: Fubini via indicators
+  rw [h_to_ind]
+  -- Step 2: Fubini swap
+  rw [integral_integral_swap (integrable_indicator_prod ψ hcont hint R)]
+  -- Step 3: Evaluate inner integral for each v
+  congr 1; funext v; show _ = (volume (B ∩ Metric.closedBall v R)).toReal • ψ v
+  rw [integral_indicator (measurableSet_closedBall.inter measurableSet_closedBall),
+      setIntegral_const]; rfl
 
 /-- For a continuous integrable PD function ψ, Re(∫ ψ) ≥ 0.
     This is the core result: the Fejér-averaged double integral J_R converges

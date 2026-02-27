@@ -100,6 +100,7 @@ The "forward" direction of Bochner: the characteristic function of any
 finite measure is positive definite. This gives us PD of the Gaussian
 as a corollary: exp(-ε‖x‖²) is the charFun of a Gaussian measure. -/
 
+omit [FiniteDimensional ℝ V] in
 /-- Forward Bochner: the characteristic function of any finite measure is PD.
 
     Proof: charFun(μ)(t) = ∫ exp(i⟨x,t⟩) dμ(x). So
@@ -196,6 +197,7 @@ lemma isPositiveDefinite_charFun (μ : Measure V) [IsFiniteMeasure μ] :
     simp only [Complex.ofReal_re] at hre_swap
     exact hre_swap.symm
 
+omit [FiniteDimensional ℝ V] in
 /-- Pointwise product of a PD function and the characteristic function of a
     finite measure is PD. This is a "continuous Schur product" — the same
     algebraic trick as `isPositiveDefinite_charFun` but with modified
@@ -324,7 +326,7 @@ private lemma gaussian_eq_charFun (ε : ℝ) (hε : 0 < ε) :
         (fun x : V => ‖cexp (-(a : ℂ) * ↑(‖x‖ ^ 2))‖) := by
       ext x
       rw [Complex.norm_exp]; congr 1
-      simp [← Complex.ofReal_pow, ← Complex.ofReal_mul, ← Complex.ofReal_neg]
+      simp [- Complex.ofReal_pow, ← Complex.ofReal_mul, ← Complex.ofReal_neg]
     rw [this]; exact hgauss_cint.norm
   have hnn : 0 ≤ᵐ[volume] (fun x : V => C * rexp (-a * ‖x‖ ^ 2)) :=
     ae_of_all _ (fun x => by positivity)
@@ -441,11 +443,13 @@ lemma gaussianRegularize_integrable (φ : V → ℂ) (hpd : IsPositiveDefinite �
     abs_of_nonneg (norm_nonneg _)]
   exact mul_le_mul_of_nonneg_right (hpd.bounded_by_zero x) (norm_nonneg _)
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
 /-- φ_ε(0) = φ(0). -/
 lemma gaussianRegularize_zero (φ : V → ℂ) (ε : ℝ) :
     gaussianRegularize φ ε 0 = φ 0 := by
   simp [gaussianRegularize, norm_zero]
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
 /-- φ_ε → φ pointwise as ε → 0⁺. -/
 lemma gaussianRegularize_tendsto (φ : V → ℂ) (x : V) :
     Tendsto (fun ε => gaussianRegularize φ ε x) (𝓝[>] 0) (𝓝 (φ x)) := by
@@ -483,6 +487,7 @@ theorem pd_l1_fourier_re_nonneg_ax
     (ξ : V) : 0 ≤ (𝓕 φ ξ).re :=
   pd_l1_fourier_re_nonneg_theorem φ hpd hint hcont ξ
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
 /-- 𝓕(φ_ε)(ξ) → 𝓕(φ)(ξ) as ε → 0⁺, by dominated convergence.
     The integrand φ_ε(x)·e^{-2πi⟨x,ξ⟩} is dominated by |φ(x)|. -/
 private lemma gaussianRegularize_norm_le (φ : V → ℂ) {ε : ℝ} (hε : 0 ≤ ε) (x : V) :
@@ -743,7 +748,7 @@ private lemma parseval_l1 (f g : V → ℂ) (hf : Integrable f) (hg : Integrable
     Real.continuous_fourierChar hL hf hg
     (ν := volume) (μ := volume) (F := ℂ)
   simp only [smul_eq_mul] at h
-  convert h using 2 <;> (try rfl)
+  convert h using 2
   · ext x; congr 1; rw [flip_innerₗ]; rfl
 
 /-- Gaussian x ↦ cexp(-t‖x‖²) is integrable for t > 0. -/
@@ -751,7 +756,7 @@ private lemma gaussian_cexp_integrable (t : ℝ) (ht : 0 < t) :
     Integrable (fun x : V => cexp (-(t : ℂ) * ↑(‖x‖ ^ 2))) := by
   have := GaussianFourier.integrable_cexp_neg_mul_sq_norm_add
     (V := V) (b := (t : ℂ)) (show 0 < ((t : ℂ)).re from by simp [ht]) 0 (0 : V)
-  simp only [add_zero, Complex.ofReal_zero, mul_zero, zero_mul] at this
+  simp only [add_zero, zero_mul] at this
   convert this using 1; ext x; push_cast; ring
 
 /-- The Fourier transform of a Gaussian is integrable (it's also a Gaussian). -/
@@ -965,9 +970,10 @@ theorem gaussianRegularize_ft_integrable (φ : V → ℂ)
   exact ⟨hft_meas, hlintegral_bound.trans_lt ENNReal.ofReal_lt_top⟩
 
 /-- 1 - exp(-x) ≤ x for x ≥ 0. From Mathlib: 1 - x ≤ exp(-x) rearranged. -/
-private lemma one_sub_exp_neg_le {x : ℝ} (hx : 0 ≤ x) : 1 - Real.exp (-x) ≤ x := by
+private lemma one_sub_exp_neg_le {x : ℝ} (_hx : 0 ≤ x) : 1 - Real.exp (-x) ≤ x := by
   linarith [Real.one_sub_le_exp_neg x]
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V] in
 /-- Bound on ‖1 - gaussianRegularize φ ε v‖ in terms of ‖1 - φ v‖ and ‖v‖².
     Uses triangle inequality, bounded_by_zero, and 1-exp(-x) ≤ x. -/
 private lemma gaussianRegularize_deviation_bound (φ : V → ℂ)
@@ -1003,6 +1009,7 @@ private lemma gaussianRegularize_deviation_bound (φ : V → ℂ)
     _ ≤ ‖1 - φ v‖ + 1 * ‖v‖ ^ 2 := by gcongr
     _ = ‖1 - φ v‖ + ‖v‖ ^ 2 := by rw [one_mul]
 
+omit [FiniteDimensional ℝ V] in
 /-- Key bound: for a probability measure μ with charFun μ = gaussianRegularize φ ε (ε ≤ 1),
     and for any y and r > 0:
     μ.real {x | r < |⟪y,x⟫|} ≤ 2 * C + 8 * ‖y‖² * r⁻²
@@ -1011,7 +1018,7 @@ private lemma charFun_measure_inner_bound (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hnorm : φ 0 = 1)
     {μ : Measure V} [IsProbabilityMeasure μ] {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hcharfun : ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ)
-    {y : V} {r : ℝ} (hr : 0 < r) {C : ℝ} (hC : 0 ≤ C)
+    {y : V} {r : ℝ} (hr : 0 < r) {C : ℝ} (_hC : 0 ≤ C)
     (hCbound : ∀ t : ℝ, t ∈ Set.uIoc (-(2 * r⁻¹)) (2 * r⁻¹) →
       ‖(1 : ℂ) - φ (t • y)‖ ≤ C) :
     μ.real {x | r < |⟪y, x⟫_ℝ|} ≤ 2 * C + 8 * ‖y‖ ^ 2 * r⁻¹ ^ 2 := by
