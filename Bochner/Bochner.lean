@@ -354,7 +354,7 @@ private lemma gaussian_eq_charFun (ε : ℝ) (hε : 0 < ε) :
   have hCnorm_pos : 0 < Cnorm := by positivity
   set C : ℝ := Cnorm⁻¹
   have hC_pos : 0 < C := inv_pos.mpr hCnorm_pos
-  -- The ℝ≥0∞-valued density
+  -- The ENNReal-valued density
   set density : V → ENNReal := fun x => ENNReal.ofReal (C * rexp (-a * ‖x‖ ^ 2))
   have hdensity_meas : Measurable density := by
     apply ENNReal.measurable_ofReal.comp
@@ -674,17 +674,235 @@ Prokhorov's theorem (Mathlib: `isCompact_closure_of_isTightMeasureSet`)
 extracts a weakly convergent subsequence. Testing the limit against
 x ↦ exp(i⟨ξ,x⟩) identifies charFun(μ) = φ. -/
 
+/-- L¹ Parseval/Fubini: ∫ (𝓕 f) • g = ∫ f • (𝓕 g) for f, g ∈ L¹.
+    This is `integral_fourierIntegral_smul_eq_flip` with L.flip = L (symmetric IP). -/
+private lemma parseval_l1 (f g : V → ℂ) (hf : Integrable f) (hg : Integrable g) :
+    ∫ ξ, 𝓕 f ξ * g ξ = ∫ x, f x * 𝓕 g x := by
+  have hL : Continuous fun p : V × V => (innerₗ V) p.1 p.2 :=
+    continuous_inner
+  have h := VectorFourier.integral_fourierIntegral_smul_eq_flip
+    Real.continuous_fourierChar hL hf hg
+    (ν := volume) (μ := volume) (F := ℂ)
+  simp only [smul_eq_mul] at h
+  convert h using 2 <;> (try rfl)
+  · ext x; congr 1; rw [flip_innerₗ]; rfl
+
+/-- Gaussian x ↦ cexp(-t‖x‖²) is integrable for t > 0. -/
+private lemma gaussian_cexp_integrable (t : ℝ) (ht : 0 < t) :
+    Integrable (fun x : V => cexp (-(t : ℂ) * ↑(‖x‖ ^ 2))) := by
+  have := GaussianFourier.integrable_cexp_neg_mul_sq_norm_add
+    (V := V) (b := (t : ℂ)) (show 0 < ((t : ℂ)).re from by simp [ht]) 0 (0 : V)
+  simp only [add_zero, Complex.ofReal_zero, mul_zero, zero_mul] at this
+  convert this using 1; ext x; push_cast; ring
+
+/-- The Fourier transform of a Gaussian is integrable (it's also a Gaussian). -/
+private lemma ft_gaussian_integrable (t : ℝ) (ht : 0 < t) :
+    Integrable (𝓕 (fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2)))) := by
+  have htre : 0 < ((t : ℂ)).re := by simp [ht]
+  -- Bridge ↑(‖v‖²) vs ↑‖v‖² to match fourier_gaussian_innerProductSpace
+  rw [show (fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))) =
+    fun v => cexp (-(t : ℂ) * ↑‖v‖ ^ 2) from by ext; simp [Complex.ofReal_pow]]
+  rw [funext (fourier_gaussian_innerProductSpace htre : ∀ w : V, _)]
+  apply Integrable.const_mul
+  have : Integrable (fun w : V => cexp (-(↑(π ^ 2 / t)) * ↑(‖w‖ ^ 2))) :=
+    gaussian_cexp_integrable (π ^ 2 / t) (by positivity)
+  convert this using 1; ext w; congr 1; push_cast; ring
+
+/-- The Fourier transform of a Gaussian has integral equal to 1.
+    Uses Fourier inversion: 𝓕⁻(𝓕 g)(0) = g(0) = 1, and 𝓕⁻(h)(0) = ∫ h. -/
+private lemma integral_ft_gaussian_eq_one (t : ℝ) (ht : 0 < t) :
+    ∫ x : V, 𝓕 (fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))) x = 1 := by
+  set g := fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))
+  have hg_int : Integrable g := gaussian_cexp_integrable t ht
+  have hg_cont : Continuous g := by fun_prop
+  have hft_int : Integrable (𝓕 g) := ft_gaussian_integrable t ht
+  have hinv := hg_cont.fourierInv_fourier_eq hg_int hft_int
+  have h0 := congr_fun hinv 0
+  rw [Real.fourierInv_eq'] at h0
+  simp only [inner_zero_right, mul_zero, Complex.ofReal_zero, zero_mul,
+    Complex.exp_zero, one_smul] at h0
+  convert h0 using 1; simp [g]
+
+/-- The integral of ‖𝓕 g_t‖ equals 1, since 𝓕 g_t is nonneg real (Gaussian is PD). -/
+private lemma integral_norm_ft_gaussian_eq_one (t : ℝ) (ht : 0 < t) :
+    ∫ x : V, ‖𝓕 (fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))) x‖ = 1 := by
+  set g := fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))
+  have hg_int : Integrable g := gaussian_cexp_integrable t ht
+  have hft_int : Integrable (𝓕 g) := ft_gaussian_integrable t ht
+  -- 𝓕 g is nonneg real (since g is PD and integrable)
+  have hg_pd : IsPositiveDefinite g := isPositiveDefinite_gaussian t ht
+  have hft_nonneg := pd_l1_fourier_nonneg g hg_pd hg_int
+  -- ‖𝓕 g(w)‖ = (𝓕 g(w)).re since 𝓕 g is nonneg real
+  have hnorm_eq_re : ∀ w : V, ‖𝓕 g w‖ = (𝓕 g w).re := by
+    intro w; have ⟨hre, him⟩ := hft_nonneg w
+    rw [← RCLike.sqrt_normSq_eq_norm, RCLike.normSq_apply]
+    have : RCLike.im (𝓕 g w) = 0 := him
+    rw [this, mul_zero, add_zero]
+    have : RCLike.re (𝓕 g w) = (𝓕 g w).re := rfl
+    rw [this, Real.sqrt_mul_self hre]
+  -- ∫ ‖𝓕 g‖ = ∫ (𝓕 g).re = Re(∫ 𝓕 g) = Re(1) = 1
+  simp_rw [hnorm_eq_re, show ∀ x : V, (𝓕 g x).re = RCLike.re (𝓕 g x) from fun _ => rfl]
+  rw [integral_re hft_int]
+  show RCLike.re (∫ x : V, 𝓕 g x) = 1
+  rw [show (∫ x : V, 𝓕 g x) = (∫ x : V, 𝓕 (fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))) x)
+    from rfl, integral_ft_gaussian_eq_one t ht]; simp
+
+set_option maxHeartbeats 800000 in
 /-- The Fourier transform of a Gaussian-regularized PD function is integrable.
-    Proof strategy: φ_ε = φ · g_ε ∈ L¹ ∩ L² (bounded × Gaussian), so
-    𝓕(φ_ε) ∈ L² by Plancherel. Also 𝓕(φ_ε) ≥ 0 by pd_l1_fourier_re_nonneg.
-    A Parseval-type argument with a family of Gaussians G_R ↗ 1 shows
-    ∫ 𝓕(φ_ε) = lim ∫ 𝓕(φ_ε) · G_R = lim ∫ (φ_ε) · 𝓕G_R = (φ_ε)(0) = 1,
-    hence 𝓕(φ_ε) ∈ L¹.
-    Ref: Folland, *A Course in Abstract Harmonic Analysis*, §4.2. -/
-axiom gaussianRegularize_ft_integrable (φ : V → ℂ)
+    Proof: 𝓕(φ_ε) ≥ 0 (from PD), and for each t > 0 the Parseval/Fubini identity
+    gives ∫ (𝓕 φ_ε) * g_t = ∫ φ_ε * (𝓕 g_t), bounded by ‖φ_ε‖∞ * ‖𝓕 g_t‖₁ = (φ 0).re.
+    Monotone convergence (g_t ↗ 1) gives ∫⁻ ‖𝓕 φ_ε‖ ≤ (φ 0).re < ∞.
+    Ref: Folland, A Course in Abstract Harmonic Analysis, 4.2. -/
+theorem gaussianRegularize_ft_integrable (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hcont : Continuous φ)
     (ε : ℝ) (hε : 0 < ε) :
-    Integrable (𝓕 (gaussianRegularize φ ε))
+    Integrable (𝓕 (gaussianRegularize φ ε)) := by
+  set φ_ε := gaussianRegularize φ ε
+  have hφε_int := gaussianRegularize_integrable φ hpd hcont ε hε
+  have hφε_pd := gaussianRegularize_pd φ hpd ε hε
+  have hφε_cont : Continuous φ_ε := hcont.mul (by fun_prop)
+  have hft_nonneg := pd_l1_fourier_nonneg φ_ε hφε_pd hφε_int
+  -- φ_ε is bounded by (φ 0).re
+  have hφε0 : (φ_ε 0).re = (φ 0).re := by
+    show (gaussianRegularize φ ε 0).re = _; rw [gaussianRegularize_zero]
+  have hφε_bound : ∀ x : V, ‖φ_ε x‖ ≤ (φ 0).re := by
+    intro x; rw [← hφε0]; exact hφε_pd.bounded_by_zero x
+  -- 𝓕(φ_ε) is continuous
+  have hft_cont : Continuous (𝓕 φ_ε) := by
+    change Continuous (VectorFourier.fourierIntegral Real.fourierChar volume (innerₗ V) φ_ε)
+    exact VectorFourier.fourierIntegral_continuous Real.continuous_fourierChar
+      continuous_inner hφε_int
+  have hft_meas : AEStronglyMeasurable (𝓕 φ_ε) volume := hft_cont.aestronglyMeasurable
+  -- 𝓕 φ_ε is bounded (FT of L¹ function)
+  have hft_bdd : ∀ ξ : V, ‖𝓕 φ_ε ξ‖ ≤ ∫ x, ‖φ_ε x‖ := fun ξ =>
+    VectorFourier.norm_fourierIntegral_le_integral_norm 𝐞 volume (innerₗ V) φ_ε ξ
+  -- Key bound: for each t > 0, Re(∫ (𝓕 φ_ε) * g_t) ≤ (φ 0).re
+  -- This is ∫ (𝓕 φ_ε).re * exp(-t‖ξ‖²) by linearity of Re and g_t being real.
+  have hbound : ∀ t : ℝ, 0 < t →
+      (∫ ξ : V, 𝓕 φ_ε ξ * cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))).re ≤ (φ 0).re := by
+    intro t ht
+    set g_t := fun ξ : V => cexp (-(t : ℂ) * ↑(‖ξ‖ ^ 2))
+    have hgt_int : Integrable g_t := gaussian_cexp_integrable t ht
+    have hparseval := parseval_l1 φ_ε g_t hφε_int hgt_int
+    -- Re(∫ (𝓕 φ_ε) * g_t) = Re(∫ φ_ε * (𝓕 g_t))
+    rw [hparseval]
+    -- Bound: Re(z) ≤ ‖z‖ ≤ ∫ ‖⋯‖ ≤ (φ 0).re * ∫ ‖𝓕 g_t‖ = (φ 0).re
+    have hft_gt_int : Integrable (𝓕 g_t) := ft_gaussian_integrable t ht
+    have hprod_rhs_int : Integrable (fun x => φ_ε x * 𝓕 g_t x) :=
+      hft_gt_int.bdd_mul hφε_cont.aestronglyMeasurable (ae_of_all _ hφε_bound)
+    calc (∫ x, φ_ε x * 𝓕 g_t x).re
+        ≤ ‖∫ x, φ_ε x * 𝓕 g_t x‖ := Complex.re_le_norm _
+      _ ≤ ∫ x, ‖φ_ε x * 𝓕 g_t x‖ := norm_integral_le_integral_norm _
+      _ ≤ ∫ x, (φ 0).re * ‖𝓕 g_t x‖ := by
+          apply integral_mono hprod_rhs_int.norm (hft_gt_int.norm.const_mul _)
+          intro x; show ‖φ_ε x * 𝓕 g_t x‖ ≤ (φ 0).re * ‖𝓕 g_t x‖
+          rw [norm_mul]
+          exact mul_le_mul_of_nonneg_right (hφε_bound x) (norm_nonneg _)
+      _ = (φ 0).re * ∫ x, ‖𝓕 g_t x‖ := integral_const_mul _ _
+      _ = (φ 0).re * 1 := by rw [integral_norm_ft_gaussian_eq_one t ht]
+      _ = (φ 0).re := mul_one _
+  -- MCT: ∫⁻ ‖𝓕 φ_ε‖₊ ≤ (φ 0).re using monotone convergence
+  -- Define f_n(ξ) = ‖𝓕 φ_ε ξ‖₊ * exp(-‖ξ‖²/(n+1)); this increases to ‖𝓕 φ_ε ξ‖₊
+  have hlintegral_bound : ∫⁻ ξ, ‖𝓕 φ_ε ξ‖₊ ≤ ENNReal.ofReal (φ 0).re := by
+    -- Fatou's lemma with f_n(ξ) = ‖(𝓕 φ_ε ξ) * cexp(-‖ξ‖²/(n+1))‖ₑ
+    -- These tend to ‖𝓕 φ_ε ξ‖ₑ pointwise and each has bounded integral
+    -- Helper: cexp of a real argument is real
+    have cexp_arg_real : ∀ (t : ℝ) (ξ : V),
+        -(↑t : ℂ) * ↑(‖ξ‖ ^ 2) = ↑(-t * ‖ξ‖ ^ 2) := by
+      intro t ξ; push_cast; ring
+    -- Helper: cexp of a real argument has zero imaginary part
+    have cexp_im_zero : ∀ (t : ℝ) (ξ : V),
+        (cexp (-(↑t : ℂ) * ↑(‖ξ‖ ^ 2))).im = 0 := by
+      intro t ξ; rw [cexp_arg_real, ← Complex.ofReal_exp]; exact Complex.ofReal_im _
+    -- Helper: cexp of a negative real argument has nonneg real part
+    have cexp_re_nonneg : ∀ (t : ℝ) (ξ : V),
+        0 ≤ (cexp (-(↑t : ℂ) * ↑(‖ξ‖ ^ 2))).re := by
+      intro t ξ
+      rw [show -(↑t : ℂ) * ↑(‖ξ‖ ^ 2) = ↑(-t * ‖ξ‖ ^ 2) from cexp_arg_real t ξ,
+        ← Complex.ofReal_exp, Complex.ofReal_re]
+      exact Real.exp_nonneg _
+    -- For each n, define h_n and its properties
+    set tn : ℕ → ℝ := fun n => 1 / ((n : ℝ) + 1)
+    have htn_pos : ∀ n, 0 < tn n := fun n => by positivity
+    -- h_n(ξ) = 𝓕 φ_ε ξ * cexp(-(tn n)·‖ξ‖²)
+    -- f_n(ξ) = ‖h_n(ξ)‖ₑ
+    let f : ℕ → V → ENNReal := fun n ξ =>
+      ‖𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))‖ₑ
+    -- Measurability: each h_n is continuous
+    have hcexp_cont : ∀ n, Continuous fun ξ : V =>
+        cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2)) := by
+      intro n
+      apply Continuous.cexp
+      exact (continuous_const).mul (Complex.continuous_ofReal.comp (continuous_norm.pow 2))
+    have hf_meas : ∀ n, Measurable (f n) := by
+      intro n; exact (hft_cont.mul (hcexp_cont n)).measurable.enorm
+    -- Tendsto: h_n(ξ) → 𝓕 φ_ε(ξ) as cexp → 1, so ‖h_n‖ₑ → ‖𝓕 φ_ε‖ₑ
+    have hf_tendsto : ∀ ξ, Tendsto (fun n => f n ξ) atTop
+        (𝓝 ((‖𝓕 φ_ε ξ‖₊ : ENNReal))) := by
+      intro ξ
+      apply (Filter.Tendsto.enorm (a := 𝓕 φ_ε ξ) _).congr (fun n => rfl)
+      show Tendsto (fun n => 𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2)))
+        atTop (𝓝 (𝓕 φ_ε ξ))
+      conv_rhs => rw [show 𝓕 φ_ε ξ = 𝓕 φ_ε ξ * 1 from (mul_one _).symm]
+      apply Filter.Tendsto.const_mul
+      rw [show (1 : ℂ) = cexp 0 from Complex.exp_zero.symm]
+      apply Complex.continuous_exp.continuousAt.tendsto.comp
+      show Tendsto (fun n => -(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2)) atTop (𝓝 0)
+      rw [show (0 : ℂ) = -(0 : ℂ) * ↑(‖ξ‖ ^ 2) from by simp]
+      apply Filter.Tendsto.mul_const
+      apply Filter.Tendsto.neg
+      rw [show (0 : ℂ) = (↑(0 : ℝ) : ℂ) from by simp]
+      exact Complex.continuous_ofReal.continuousAt.tendsto.comp
+        (show Tendsto tn atTop (𝓝 0) from by
+          simp only [tn]
+          have h := (tendsto_const_div_atTop_nhds_zero_nat (1 : ℝ)).comp
+            (tendsto_add_atTop_nat 1)
+          simp only [Function.comp_def, Nat.cast_add, Nat.cast_one] at h
+          exact h)
+    have hf_liminf : ∀ ξ, liminf (fun n => f n ξ) atTop = (‖𝓕 φ_ε ξ‖₊ : ENNReal) :=
+      fun ξ => (hf_tendsto ξ).liminf_eq
+    -- Bound: for each n, ∫⁻ f_n ≤ ENNReal.ofReal (φ 0).re
+    have hf_bound : ∀ n, ∫⁻ ξ, f n ξ ≤ ENNReal.ofReal (φ 0).re := by
+      intro n
+      -- h_n is integrable (bounded FT × integrable Gaussian)
+      have hhn_int : Integrable (fun ξ : V =>
+          𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))) :=
+        (gaussian_cexp_integrable _ (htn_pos n)).bdd_mul hft_cont.aestronglyMeasurable
+          (ae_of_all _ hft_bdd)
+      -- Convert ∫⁻ ‖h_n‖ₑ to ENNReal.ofReal (∫ ‖h_n‖)
+      rw [← ofReal_integral_norm_eq_lintegral_enorm hhn_int]
+      apply ENNReal.ofReal_le_ofReal
+      -- Key: ‖h_n(ξ)‖ = (h_n(ξ)).re since h_n is nonneg real-valued
+      -- Then ∫ ‖h_n‖ = ∫ h_n.re = (∫ h_n).re ≤ (φ 0).re
+      have hnorm_eq_re : ∀ ξ : V,
+          ‖𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))‖ =
+          (𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))).re := by
+        intro ξ
+        obtain ⟨hre, him⟩ := hft_nonneg ξ
+        have hprod_im : (𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))).im = 0 := by
+          rw [Complex.mul_im, him, cexp_im_zero]; ring
+        have hprod_re_nn : 0 ≤ (𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))).re := by
+          rw [Complex.mul_re, him, cexp_im_zero]
+          simp only [mul_zero, sub_zero]
+          exact mul_nonneg hre (cexp_re_nonneg _ _)
+        rw [Complex.norm_eq_sqrt_sq_add_sq, hprod_im, sq (0 : ℝ), mul_zero, add_zero,
+          Real.sqrt_sq hprod_re_nn]
+      calc ∫ ξ, ‖𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))‖
+          = ∫ ξ, (𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))).re :=
+            integral_congr_ae (ae_of_all _ hnorm_eq_re)
+        _ = RCLike.re (∫ ξ, 𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))) :=
+            integral_re hhn_int
+        _ = (∫ ξ, 𝓕 φ_ε ξ * cexp (-(↑(tn n) : ℂ) * ↑(‖ξ‖ ^ 2))).re := rfl
+        _ ≤ (φ 0).re := hbound _ (htn_pos n)
+    -- Combine via Fatou's lemma
+    calc ∫⁻ ξ, (‖𝓕 φ_ε ξ‖₊ : ENNReal)
+        = ∫⁻ ξ, liminf (fun n => f n ξ) atTop := by simp_rw [hf_liminf]
+      _ ≤ liminf (fun n => ∫⁻ ξ, f n ξ) atTop := lintegral_liminf_le hf_meas
+      _ ≤ ENNReal.ofReal (φ 0).re := by
+          apply liminf_le_of_le (h := fun b hb => ?_)
+          obtain ⟨n, hn⟩ := hb.exists
+          exact hn.trans (hf_bound n)
+  exact ⟨hft_meas, hlintegral_bound.trans_lt ENNReal.ofReal_lt_top⟩
 
 /-- 1 - exp(-x) ≤ x for x ≥ 0. From Mathlib: 1 - x ≤ exp(-x) rearranged. -/
 private lemma one_sub_exp_neg_le {x : ℝ} (hx : 0 ≤ x) : 1 - Real.exp (-x) ≤ x := by
@@ -795,7 +1013,7 @@ theorem gaussianRegularize_measures_tight (φ : V → ℂ)
   -- Need: Tendsto (fun r ↦ ⨆ μ ∈ S, μ {x | r < ‖⟪y, x⟫_ℝ‖}) atTop (𝓝 0)
   -- Show via tendsto_order: for all a > 0, eventually the iSup < a
   refine tendsto_order.mpr ⟨fun a ha => absurd ha (not_lt.mpr (zero_le a)), fun a ha => ?_⟩
-  -- Given a > 0 in ℝ≥0∞, need: ∀ᶠ r in atTop, ⨆ μ ∈ S, μ {x | r < ‖⟪y,x⟫_ℝ‖} < a
+  -- Given a > 0 in ENNReal, need: ∀ᶠ r in atTop, ⨆ μ ∈ S, μ {x | r < ‖⟪y,x⟫_ℝ‖} < a
   -- Step 1: Get a real δ > 0 with ENNReal.ofReal δ < a
   obtain ⟨δ, hδ_pos, hδ_lt⟩ : ∃ δ : ℝ, 0 < δ ∧ ENNReal.ofReal δ < a := by
     by_cases ha_top : a = ⊤

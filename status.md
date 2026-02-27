@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 2 axioms**
+**Total: 0 sorries, 1 axiom**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -8,7 +8,7 @@
 |---|-------|-------|------------|--------|
 | 1 | `IsPositiveDefinite.mul` | 0 | Medium | proved |
 
-## Bochner.lean — 0 sorries, 2 axioms
+## Bochner.lean — 0 sorries, 1 axiom
 
 | # | Lemma | Layer | Difficulty | Status | Depends on |
 |---|-------|-------|------------|--------|------------|
@@ -16,7 +16,7 @@
 | 3a | `pd_l1_fourier_re_nonneg` | 1 | Hard | axiom | — |
 | 3 | `pd_l1_fourier_nonneg` | 1 | Medium | proved | 3a |
 | 4 | `measure_of_pd_l1` | 3 | Medium | proved | 3 |
-| 6a | `gaussianRegularize_ft_integrable` | 3 | Medium | axiom | — |
+| 6a | `gaussianRegularize_ft_integrable` | 3 | Medium | proved | 3 |
 | 6 | `gaussianRegularize_measures_tight` | 4 | Medium | proved | 4 |
 | 7 | `bochner_theorem` (existence) | 4 | Medium | proved | 4, 6, 6a |
 | 7b | `bochner_theorem` (uniqueness) | 5 | Easy | proved | Mathlib |
@@ -42,6 +42,7 @@
 | `IsPositiveDefinite.mul` | Schur product via PSD kernel matrices + Kronecker/submatrix |
 | `gaussian_eq_charFun` | Gaussian measure via withDensity + integral_cexp_neg_mul_sq_norm_add |
 | `measure_of_pd_l1` | Fourier scaling + inversion + withDensity construction |
+| `gaussianRegularize_ft_integrable` | Fatou's lemma + Parseval bound with Gaussian cutoffs |
 | `gaussianRegularize_measures_tight` | Tightness via `isTightMeasureSet_of_inner_tendsto` + charFun tail bound |
 | `bochner_theorem` (existence) | Assembly: Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | From Mathlib's `Measure.ext_of_charFun` |
@@ -51,19 +52,20 @@
 | Axiom | Layer | Description |
 |-------|-------|-------------|
 | `pd_l1_fourier_re_nonneg` | 1 | Re(𝓕φ(ξ)) ≥ 0 for L¹ PD φ. Proof: Cesàro-weighted Riemann sums from discrete PD condition. Ref: Folland §4.2. |
-| `gaussianRegularize_ft_integrable` | 3 | 𝓕(φ · g_ε) ∈ L¹. Proof: Parseval-type argument with Gaussian approximate identity shows ∫ 𝓕(φ_ε) = φ_ε(0) = 1. |
 
 ## Recommended work order
 
-**Next**: Eliminate the 2 remaining axioms:
-- 6a (`gaussianRegularize_ft_integrable`): Parseval + approximate identity
+**Next**: Eliminate the 1 remaining axiom:
 - 3a (`pd_l1_fourier_re_nonneg`): Hardest — requires multi-dimensional Riemann sum convergence
 
 ## Notes
 
-- The main theorem `bochner_theorem` now compiles (modulo axioms/sorry).
+- The main theorem `bochner_theorem` now compiles (modulo 1 axiom).
   The existence proof uses Prokhorov's theorem (Mathlib) to extract a weakly
   convergent subsequence, then transfers charFun through the weak limit.
+- `gaussianRegularize_ft_integrable` proved via Fatou's lemma: approximate
+  ‖𝓕 φ_ε‖ by ‖𝓕 φ_ε * exp(-‖ξ‖²/(n+1))‖, each bounded by (φ 0).re
+  via Parseval identity, then take liminf.
 - `pd_l1_fourier_nonneg` Im=0: proved via Hermitian symmetry +
   `integral_conj` + `integral_neg_eq_self` (change of variables v → -v).
 - `IsPositiveDefinite` is a `structure` with two fields:
