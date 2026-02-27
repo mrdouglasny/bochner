@@ -5,6 +5,7 @@ Authors: Michael R. Douglas
 -/
 
 import Bochner.PositiveDefinite
+import Bochner.FejerPD
 import Mathlib.Analysis.Fourier.FourierTransform
 import Mathlib.Analysis.Fourier.Inversion
 import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
@@ -473,21 +474,14 @@ As the lattice refines and grows, S_N → 𝓕ψ(ξ), giving Re(𝓕ψ(ξ)) ≥ 
 /-- The Fourier transform of a continuous integrable positive-definite function
     on a finite-dimensional real inner product space has nonneg real part.
 
-    This is the standard fact from harmonic analysis:
-    - Rudin, *Fourier Analysis on Groups*, Theorem 1.4.3
-    - Folland, *A Course in Abstract Harmonic Analysis*, §4.2, Lemma 4.8
-
-    **Proof outline** (not yet formalized): For each N ≥ 1, take lattice points
-    {v_k} with spacing 1/N on a cube of side 2N (using an ONB). With Fourier
-    phase coefficients c_k = N^{-d/2} exp(2πi⟨v_k, ξ⟩), the PD double sum
-    ∑_{k,l} c̄_k c_l φ(v_k - v_l) has Re ≥ 0. Reindexing by differences
-    m = k-l yields a Fejér-weighted Riemann sum that converges to 𝓕φ(ξ) by
-    dominated convergence (Fejér weights → 1, dominated by |φ| ∈ L¹). -/
-axiom pd_l1_fourier_re_nonneg_ax :
-    ∀ (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
-      [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
-      (φ : V → ℂ), IsPositiveDefinite φ → Integrable φ → Continuous φ →
-      ∀ ξ : V, 0 ≤ (𝓕 φ ξ).re
+    Proved in `Bochner.FejerPD` via Fejér-weighted PD sums.
+    Refs: Rudin, Theorem 1.4.3; Folland, §4.2, Lemma 4.8. -/
+theorem pd_l1_fourier_re_nonneg_ax
+    (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
+    [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+    (φ : V → ℂ) (hpd : IsPositiveDefinite φ) (hint : Integrable φ) (hcont : Continuous φ)
+    (ξ : V) : 0 ≤ (𝓕 φ ξ).re :=
+  pd_l1_fourier_re_nonneg_theorem φ hpd hint hcont ξ
 
 /-- 𝓕(φ_ε)(ξ) → 𝓕(φ)(ξ) as ε → 0⁺, by dominated convergence.
     The integrand φ_ε(x)·e^{-2πi⟨x,ξ⟩} is dominated by |φ(x)|. -/
