@@ -672,17 +672,6 @@ Prokhorov's theorem (Mathlib: `isCompact_closure_of_isTightMeasureSet`)
 extracts a weakly convergent subsequence. Testing the limit against
 x ↦ exp(i⟨ξ,x⟩) identifies charFun(μ) = φ. -/
 
-/-- Tightness bound: tail probability bounded by charFun behavior near 0.
-    Standard inequality from Fourier analysis (see Folland §4.2).
-    Proof strategy: use Mathlib's `measureReal_abs_inner_gt_le_integral_charFun`
-    for each direction in an orthonormal basis, then union-bound
-    over d directions using ‖x‖ > R ⟹ ∃ i, |⟪eᵢ,x⟫| > R/√d. -/
-axiom tightness_from_charfun (μ : ProbabilityMeasure V) (R : ℝ) (hR : 0 < R)
-    (δ : ℝ) (hδ : 0 < δ) :
-    (μ : Measure V).real {x | R < ‖x‖} ≤
-      (2 / R ^ 2) * ∫ ξ in Metric.ball (0 : V) δ,
-        (1 - (MeasureTheory.charFun (μ : Measure V) ξ).re)
-
 /-- The Fourier transform of a Gaussian-regularized PD function is integrable.
     Proof strategy: φ_ε = φ · g_ε ∈ L¹ ∩ L² (bounded × Gaussian), so
     𝓕(φ_ε) ∈ L² by Plancherel. Also 𝓕(φ_ε) ≥ 0 by pd_l1_fourier_re_nonneg.
@@ -706,7 +695,7 @@ axiom gaussianRegularize_ft_integrable (φ : V → ℂ)
 axiom gaussianRegularize_measures_tight (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hcont : Continuous φ) (hnorm : φ 0 = 1) :
     IsTightMeasureSet
-      {(μ : Measure V) | ∃ ε > 0, ∃ (_ : IsProbabilityMeasure μ),
+      {(μ : Measure V) | ∃ ε, 0 < ε ∧ ε ≤ 1 ∧ ∃ (_ : IsProbabilityMeasure μ),
         ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ}
 
 /-! ## Phase 5: Uniqueness (from Mathlib)
@@ -771,7 +760,11 @@ theorem bochner_theorem (φ : V → ℂ)
       apply IsTightMeasureSet.subset htight
       rintro μ ⟨ν, hνS, rfl⟩
       obtain ⟨n, rfl⟩ := hνS
-      exact ⟨1 / (↑n + 1), by positivity, (μ_seq n).prop, hμ_seq n⟩
+      have heps_le : (1 : ℝ) / ((n : ℝ) + 1) ≤ 1 := by
+        have h1 : (0 : ℝ) < (n : ℝ) + 1 := by positivity
+        rw [div_le_one₀ h1]
+        linarith [n.cast_nonneg (α := ℝ)]
+      exact ⟨1 / (↑n + 1), by positivity, heps_le, (μ_seq n).prop, hμ_seq n⟩
     have hcompact : IsCompact (closure S) :=
       isCompact_closure_of_isTightMeasureSet hS_tight
     -- Step 5: Extract a convergent subsequence
