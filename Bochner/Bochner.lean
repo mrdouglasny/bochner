@@ -11,6 +11,7 @@ import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 import Mathlib.MeasureTheory.Measure.CharacteristicFunction
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
+import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
 
 /-!
 # Bochner's Theorem
@@ -87,7 +88,35 @@ converges to φ̂(ξ₀) · (const), giving φ̂(ξ₀) ≥ 0. -/
 lemma pd_l1_fourier_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
     (hint : Integrable φ) (ξ : V) :
     0 ≤ (𝓕 φ ξ).re ∧ (𝓕 φ ξ).im = 0 := by
-  sorry
+  -- Part 1: Im = 0 from Hermitian symmetry φ(-x) = conj(φ(x))
+  -- conj(φ̂(ξ)) = ∫ conj(𝐞(-⟪v,ξ⟫) • φ v) = ∫ 𝐞(⟪v,ξ⟫) • φ(-v)
+  -- = ∫ 𝐞(-⟪w,ξ⟫) • φ(w)  (w = -v) = φ̂(ξ)
+  have hft_conj : starRingEnd ℂ (𝓕 φ ξ) = 𝓕 φ ξ := by
+    show starRingEnd ℂ (∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v) = ∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v
+    rw [show starRingEnd ℂ (∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v) =
+      ∫ v, starRingEnd ℂ (𝐞 (-⟪v, ξ⟫_ℝ) • φ v) from integral_conj.symm]
+    -- Goal: ∫ v, conj(𝐞(-⟪v,ξ⟫) • φ v) = ∫ v, 𝐞(-⟪v,ξ⟫) • φ v
+    simp_rw [Circle.smul_def, smul_eq_mul, map_mul,
+      Circle.starRingEnd_addChar, neg_neg,
+      show ∀ v, starRingEnd ℂ (φ v) = φ (-v) from
+        fun v => (hpd.hermitian v).symm]
+    -- Goal: ∫ v, ↑(𝐞(⟪v,ξ⟫)) * φ(-v) = ∫ v, ↑(𝐞(-⟪v,ξ⟫)) * φ v
+    -- Substitute v → -v in LHS using integral_neg_eq_self
+    -- Change variables: v → -v
+    have hsub := integral_neg_eq_self
+      (fun v => (↑(𝐞 (⟪v, ξ⟫_ℝ)) : ℂ) * φ (-v)) (volume : Measure V)
+    simp only [inner_neg_left, neg_neg] at hsub
+    exact hsub.symm
+  have him : (𝓕 φ ξ).im = 0 := by
+    have := congr_arg Complex.im hft_conj
+    simp only [Complex.conj_im] at this
+    linarith
+  -- Part 2: Re ≥ 0 from discrete PD condition + Riemann sum convergence
+  -- Proof sketch: Choose grid points x_k = k/N, k ∈ [-M,M]^d with
+  -- coefficients c_k = N^{-d/2} e^{2πi⟨x_k,ξ⟩}. The PD condition gives
+  -- Σ_{j,k} c̄_j c_k φ(x_j-x_k) ≥ 0. This is a Cesàro-weighted Riemann
+  -- sum that converges to ∫ e^{-2πi⟨x,ξ⟩} φ(x) dx = φ̂(ξ) as N,M → ∞.
+  exact ⟨sorry, him⟩
 
 /-- The Fourier transform of an L¹ PD function is real and nonneg. -/
 lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
@@ -504,9 +533,31 @@ lemma measure_of_pd_l1 (φ : V → ℂ)
   have hψ_int : Integrable ψ := by
     rw [show ψ = (fun x => φ (τ • x)) from rfl]
     exact (integrable_comp_smul_iff volume φ hτ_ne).mpr hint
-  -- Step 5: 𝓕ψ is integrable
+  -- Step 5: 𝓕ψ is integrable (from hint_ft via Fourier scaling)
+  -- Key formula: 𝓕(φ(τ·))(ξ) = |τ⁻ⁿ| · 𝓕φ(τ⁻¹·ξ)
+  -- So Integrable(𝓕ψ) ↔ Integrable(𝓕φ)
   have hψ_ft_int : Integrable (𝓕 ψ) := by
-    sorry -- follows from hint_ft via change of variables
+    -- Step A: Show 𝓕ψ(ξ) = |(τ^n)⁻¹| • 𝓕φ(τ⁻¹ • ξ) pointwise
+    set n' := Module.finrank ℝ V
+    have hkey : ∀ ξ, 𝓕 ψ ξ = |(τ ^ n')⁻¹| • 𝓕 φ (τ⁻¹ • ξ) := by
+      intro ξ
+      -- Unfold to integral form
+      change (∫ v, Real.fourierChar (-⟪v, ξ⟫_ℝ) • φ (τ • v)) =
+        |(τ ^ n')⁻¹| • ∫ v, Real.fourierChar (-⟪v, τ⁻¹ • ξ⟫_ℝ) • φ v
+      -- Change of variables: ∫ g(τ • v) = |(τ^n)⁻¹| • ∫ g(v)
+      -- Change of variables via integral_comp_smul, then simplify inner products
+      have hcov := Measure.integral_comp_smul volume
+        (fun y => Real.fourierChar (-⟪τ⁻¹ • y, ξ⟫_ℝ) • φ y) τ
+      simp only [inv_smul_smul₀ hτ_ne] at hcov
+      rw [hcov]
+      congr 1
+      refine MeasureTheory.integral_congr_ae (ae_of_all _ fun y => ?_)
+      simp only [real_inner_smul_left, real_inner_smul_right]
+    -- Step B: Transfer integrability
+    have hfun_eq : 𝓕 ψ = fun ξ => |(τ ^ n')⁻¹| • 𝓕 φ (τ⁻¹ • ξ) := funext hkey
+    rw [hfun_eq]
+    exact Integrable.smul |(τ ^ n')⁻¹|
+      ((integrable_comp_smul_iff volume (𝓕 φ) (inv_ne_zero hτ_ne)).mpr hint_ft)
   -- Step 6: 𝓕ψ is real and nonneg (from pd_l1_fourier_nonneg)
   have hψ_ft_nonneg : ∀ x, 0 ≤ (𝓕 ψ x).re ∧ (𝓕 ψ x).im = 0 :=
     fun x => pd_l1_fourier_nonneg ψ hψ_pd hψ_int x
@@ -521,7 +572,41 @@ lemma measure_of_pd_l1 (φ : V → ℂ)
   set μ_raw := volume.withDensity density
   -- Step 8: Total mass = ψ(0) = φ(0) = 1 (Fourier inversion at 0)
   have htotal : μ_raw Set.univ = 1 := by
-    sorry -- ∫ Re(𝓕ψ) = 𝓕⁻(𝓕ψ)(0).re = ψ(0).re = Re(φ(0)) = 1
+    -- μ_raw = withDensity(ofReal (Re(𝓕ψ))), so total mass = ∫⁻ ofReal(Re(𝓕ψ))
+    rw [withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ]
+    -- Re(𝓕ψ) is integrable and ≥ 0
+    have hre_int : Integrable (fun x => (𝓕 ψ x).re) := hψ_ft_int.re
+    have hre_nn : 0 ≤ᵐ[volume] fun x => (𝓕 ψ x).re :=
+      ae_of_all _ fun x => (hψ_ft_nonneg x).1
+    rw [show density = fun x => ENNReal.ofReal (𝓕 ψ x).re from rfl,
+      ← ofReal_integral_eq_lintegral_ofReal hre_int hre_nn]
+    -- Goal: ofReal (∫ Re(𝓕ψ)) = 1
+    -- Key chain: ∫ Re(𝓕ψ) = Re(∫ 𝓕ψ) = Re(𝓕⁻(𝓕ψ)(0)) = Re(ψ(0)) = Re(φ(0)) = 1
+    -- Step A: Fourier inversion at 0: 𝓕⁻(𝓕ψ)(0) = ψ(0)
+    have hinv : 𝓕⁻ (𝓕 ψ) 0 = ψ 0 :=
+      hψ_int.fourierInv_fourier_eq hψ_ft_int hψ_cont.continuousAt
+    -- Step B: ψ(0) = φ(T 0) = φ(0) = 1
+    have hψ0 : ψ 0 = 1 := by
+      show φ (T 0) = 1
+      simp [T, smul_zero, hnorm]
+    -- Step C: ∫ 𝓕ψ = ψ(0) = 1 via Fourier inversion at 0
+    have hint_eq : ∫ x, 𝓕 ψ x = 1 := by
+      -- Fourier inversion: 𝓕⁻(𝓕ψ) = ψ, evaluate at 0
+      have hfinv := hψ_cont.fourierInv_fourier_eq hψ_int hψ_ft_int
+      have h0 := congr_fun hfinv 0
+      -- h0 : 𝓕⁻(𝓕ψ)(0) = ψ(0)
+      -- Expand LHS: 𝓕⁻(𝓕ψ)(0) = ∫ 𝓕ψ
+      rw [Real.fourierInv_eq'] at h0
+      simp only [inner_zero_right, mul_zero, Complex.ofReal_zero, zero_mul,
+        Complex.exp_zero, one_smul] at h0
+      -- h0 : ∫ 𝓕ψ v = ψ(0); need ∫ 𝓕ψ x = 1
+      convert h0.trans hψ0
+    -- Step D: ∫ Re(𝓕ψ) = Re(∫ 𝓕ψ) = 1
+    have hre_eq : ∫ x, (𝓕 ψ x).re = 1 := by
+      have h1 := Complex.reCLM.integral_comp_comm hψ_ft_int
+      change ∫ x, (𝓕 ψ x).re = (∫ x, 𝓕 ψ x).re at h1
+      rw [h1, hint_eq]; simp
+    rw [hre_eq]; simp
   -- Step 9: Package as ProbabilityMeasure
   have hfm : IsFiniteMeasure μ_raw := by
     constructor; rw [htotal]; exact ENNReal.one_lt_top
@@ -529,8 +614,45 @@ lemma measure_of_pd_l1 (φ : V → ℂ)
   set μ : ProbabilityMeasure V := ⟨μ_raw, hprob⟩
   -- Step 10: charFun(μ)(t) = φ(t) via Fourier inversion
   refine ⟨μ, fun ξ => ?_⟩
-  -- charFun μ ξ = ∫ e^{i⟪x,ξ⟫} 𝓕ψ(x) dx = 𝓕⁻(𝓕ψ)(ξ/(2π)) = ψ(ξ/(2π)) = φ(ξ)
-  sorry
+  -- charFun μ ξ = ∫ (𝓕ψ x).re • e^{i⟪x,ξ⟫} dx = 𝓕⁻(𝓕ψ)(τ⁻¹ξ) = ψ(τ⁻¹ξ) = φ(ξ)
+  -- Step A: Fourier inversion gives 𝓕⁻(𝓕ψ) = ψ
+  have hfinv := hψ_cont.fourierInv_fourier_eq hψ_int hψ_ft_int
+  -- Step B: ψ(τ⁻¹ • ξ) = φ(T(τ⁻¹ • ξ)) = φ(ξ)
+  have hψ_eval : ψ (τ⁻¹ • ξ) = φ ξ := by
+    show φ (T (τ⁻¹ • ξ)) = φ ξ
+    simp [T, smul_smul, inv_mul_cancel₀ hτ_ne]
+  -- Step C: charFun computation via withDensity integral
+  -- charFun is ∫ cexp(i⟪x,ξ⟫) ∂↑μ, and ↑μ = μ_raw = volume.withDensity density
+  show ∫ x, cexp (↑⟪x, ξ⟫_ℝ * I) ∂μ_raw = φ ξ
+  rw [show μ_raw = volume.withDensity density from rfl]
+  rw [integral_withDensity_eq_integral_toReal_smul₀ hdensity_meas.aemeasurable
+    (ae_of_all _ (fun x => by simp [density]))]
+  -- Goal: ∫ x, (density x).toReal • cexp(⟪x,ξ⟫ * I) = φ ξ
+  -- Simplify density toReal
+  have hdensity_simp : ∀ x, (density x).toReal = (𝓕 ψ x).re := by
+    intro x
+    simp only [density, ENNReal.toReal_ofReal (hψ_ft_nonneg x).1]
+  -- Rewrite using 𝓕⁻(𝓕ψ)(τ⁻¹ξ) = ψ(τ⁻¹ξ)
+  rw [← hψ_eval, ← congr_fun hfinv (τ⁻¹ • ξ)]
+  -- Goal: ∫ (density x).toReal • cexp(⟪x,ξ⟫ * I) = 𝓕⁻(𝓕ψ)(τ⁻¹ξ)
+  -- Expand 𝓕⁻ using fourierInv_eq'
+  rw [Real.fourierInv_eq']
+  -- Goal: ∫ (density x).toReal • cexp(⟪x,ξ⟫*I) = ∫ v, cexp(2π⟪v,τ⁻¹ξ⟫*I) • 𝓕ψ v
+  -- Both sides are integrals over V. Match integrands.
+  refine MeasureTheory.integral_congr_ae (ae_of_all _ fun x => ?_)
+  simp only [hdensity_simp]
+  -- Goal: (𝓕ψ x).re • cexp(⟪x,ξ⟫ * I) = cexp(2π⟪x,τ⁻¹ξ⟫ * I) • 𝓕ψ x
+  have him : (𝓕 ψ x).im = 0 := (hψ_ft_nonneg x).2
+  have hre_cast : 𝓕 ψ x = ↑((𝓕 ψ x).re) := by
+    apply Complex.ext <;> simp [him]
+  -- 2π⟪x,τ⁻¹ξ⟫ = 2π · τ⁻¹ · ⟪x,ξ⟫ = ⟪x,ξ⟫ (since τ = 2π)
+  have hinner : 2 * π * ⟪x, τ⁻¹ • ξ⟫_ℝ = ⟪x, ξ⟫_ℝ := by
+    rw [real_inner_smul_right, hτ_def]
+    field_simp
+  rw [hinner]
+  simp only [smul_eq_mul]
+  conv_rhs => rw [hre_cast]
+  exact mul_comm _ _
 
 /-! ## Phase 4: Tightness and weak limit
 
