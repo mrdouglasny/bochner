@@ -102,24 +102,167 @@ private lemma integral_sub_left_eq (f : V → ℂ) (a : V) :
 
 /-! ### Step A: The PD double integral has nonneg real part -/
 
-/-- The double integral of a PD function over S × S has nonneg real part.
-    Proof strategy: Approximate the double integral by Riemann sums on a grid
-    partitioning S. Each sum ∑ᵢⱼ vol(Cᵢ)vol(Cⱼ)ψ(xᵢ-xⱼ) is a PD double sum
-    with real positive coefficients cᵢ = vol(Cᵢ), so Re ≥ 0. The sum converges
-    to the integral by uniform continuity of ψ on the bounded set {x-y : x,y ∈ S}.
-    See Rudin, *Fourier Analysis on Groups*, proof of Theorem 1.4.3, step 1. -/
-axiom pd_double_integral_re_nonneg_ax :
-    ∀ (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
-      [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
-      (ψ : V → ℂ), IsPositiveDefinite ψ → Continuous ψ →
-      ∀ (S : Set V), MeasurableSet S → Bornology.IsBounded S →
-      0 ≤ (∫ x in S, ∫ y in S, ψ (x - y)).re
+omit [NormedAddCommGroup V] [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [BorelSpace V] in
+open Classical in
+/-- For a simple function sₙ : V → V and any g : V → ℂ,
+    ∫ g(sₙ x) dμ = ∑ u ∈ sₙ.range, μ(sₙ⁻¹'{u}).toReal • g u. -/
+private lemma integral_simpleFunc_comp (sn : SimpleFunc V V) (g : V → ℂ)
+    (μ : Measure V) [IsFiniteMeasure μ] :
+    ∫ x, g (sn x) ∂μ = ∑ u ∈ sn.range, (μ (⇑sn ⁻¹' {u})).toReal • g u := by
+  have hpw : ∀ x, g (sn x) =
+      ∑ u ∈ sn.range, (⇑sn ⁻¹' {u}).indicator (fun _ => g u) x := by
+    intro x
+    simp only [Set.indicator, Set.mem_preimage, Set.mem_singleton_iff]
+    simp_rw [eq_comm (a := sn x)]
+    rw [Finset.sum_ite_eq' sn.range (sn x) (fun u => g u)]; simp
+  simp_rw [hpw]
+  rw [integral_finset_sum _ (fun u _ => (integrable_const _).indicator
+    (sn.measurableSet_preimage _))]
+  congr 1; ext u
+  rw [integral_indicator (sn.measurableSet_preimage _), setIntegral_const]; rfl
 
+/-- The double integral of a PD function over S × S has nonneg real part.
+    Proof: Approximate id : V → V by simple functions sₙ. For each sₙ, the double
+    integral ∫∫ ψ(sₙ(x)-sₙ(y)) dμ dμ expands as ∑ᵢⱼ μ(Aᵢ)μ(Aⱼ)ψ(uᵢ-uⱼ),
+    a PD double sum with real coefficients, so Re ≥ 0. The sums converge to
+    ∫∫ ψ(x-y) dμ dμ by DCT, so Re ≥ 0 passes to the limit.
+    See Rudin, *Fourier Analysis on Groups*, proof of Theorem 1.4.3, step 1. -/
 private lemma pd_double_integral_re_nonneg (ψ : V → ℂ) (hpd : IsPositiveDefinite ψ)
-    (hcont : Continuous ψ) (S : Set V) (hSmeas : MeasurableSet S)
+    (hcont : Continuous ψ) (S : Set V) (_hSmeas : MeasurableSet S)
     (hSbdd : Bornology.IsBounded S) :
-    0 ≤ (∫ x in S, ∫ y in S, ψ (x - y)).re :=
-  pd_double_integral_re_nonneg_ax V ψ hpd hcont S hSmeas hSbdd
+    0 ≤ (∫ x in S, ∫ y in S, ψ (x - y)).re := by
+  let μ := (volume : Measure V).restrict S
+  -- 1. Approximate id by simple functions, show double integral converges
+  have h_approx : ∃ (s : ℕ → SimpleFunc V V),
+      Filter.Tendsto (fun n => ∫ x, ∫ y, ψ (s n x - s n y) ∂μ ∂μ)
+        Filter.atTop (nhds (∫ x, ∫ y, ψ (x - y) ∂μ ∂μ)) := by
+    -- Simple functions approximating id : V → V
+    have hid : StronglyMeasurable (id : V → V) := stronglyMeasurable_id
+    refine ⟨hid.approx, ?_⟩
+    have h_ptwise : ∀ x, Filter.Tendsto (fun n => hid.approx n x) Filter.atTop (nhds x) :=
+      fun x => by simpa using hid.tendsto_approx x
+    -- Uniform bound from PD condition: ‖ψ(z)‖ ≤ (ψ 0).re for all z
+    have hbound : ∀ z, ‖ψ z‖ ≤ (ψ 0).re := hpd.bounded_by_zero
+    have hfm : IsFiniteMeasure μ :=
+      ⟨by simp [μ]; exact hSbdd.measure_lt_top⟩
+    -- Inner integral converges for each x via DCT
+    have h_inner_conv : ∀ x, Filter.Tendsto
+        (fun n => ∫ y, ψ (hid.approx n x - hid.approx n y) ∂μ)
+        Filter.atTop (nhds (∫ y, ψ (x - y) ∂μ)) := by
+      intro x
+      have hmeas : ∀ n, AEStronglyMeasurable
+          (fun y => ψ (hid.approx n x - hid.approx n y)) μ := by
+        intro n
+        have hsf : (fun y => ψ (hid.approx n x - hid.approx n y)) =
+            ⇑((hid.approx n).map (fun v => ψ (hid.approx n x - v))) := by
+          ext y; simp [SimpleFunc.map_apply]
+        rw [hsf]; exact (SimpleFunc.map _ _).aestronglyMeasurable
+      have hbd : ∀ n, ∀ᵐ y ∂μ, ‖ψ (hid.approx n x - hid.approx n y)‖ ≤ (ψ 0).re :=
+        fun n => ae_of_all _ (fun y => hbound _)
+      have hlim : ∀ᵐ y ∂μ, Filter.Tendsto
+          (fun n => ψ (hid.approx n x - hid.approx n y))
+          Filter.atTop (nhds (ψ (x - y))) :=
+        ae_of_all _ (fun y =>
+          (hcont.continuousAt.tendsto.comp ((h_ptwise x).sub (h_ptwise y))))
+      exact tendsto_integral_of_dominated_convergence
+        (fun _ => (ψ 0).re) hmeas (integrable_const _) hbd hlim
+    -- Outer integral converges via DCT
+    have hmeas2 : ∀ n, AEStronglyMeasurable
+        (fun x => ∫ y, ψ (hid.approx n x - hid.approx n y) ∂μ) μ := by
+      intro n
+      have hsf : (fun x => ∫ y, ψ (hid.approx n x - hid.approx n y) ∂μ) =
+          ⇑((hid.approx n).map
+            (fun u => ∫ y, ψ (u - hid.approx n y) ∂μ)) := by
+        ext x; simp [SimpleFunc.map_apply]
+      rw [hsf]; exact (SimpleFunc.map _ _).aestronglyMeasurable
+    have hbd2 : ∀ n, ∀ᵐ x ∂μ,
+        ‖∫ y, ψ (hid.approx n x - hid.approx n y) ∂μ‖ ≤
+          (ψ 0).re * (μ Set.univ).toReal := by
+      intro n; exact ae_of_all _ (fun x => by
+        calc ‖∫ y, ψ (hid.approx n x - hid.approx n y) ∂μ‖
+            ≤ ∫ y, ‖ψ (hid.approx n x - hid.approx n y)‖ ∂μ :=
+              norm_integral_le_integral_norm _
+          _ ≤ ∫ _, (ψ 0).re ∂μ :=
+              integral_mono_of_nonneg (ae_of_all _ (fun _ => norm_nonneg _))
+                (integrable_const _) (ae_of_all _ (fun _ => hbound _))
+          _ = (ψ 0).re * (μ Set.univ).toReal := by
+              rw [integral_const, smul_eq_mul, mul_comm]; rfl)
+    exact tendsto_integral_of_dominated_convergence
+      (fun _ => (ψ 0).re * (μ Set.univ).toReal)
+      hmeas2 (integrable_const _) hbd2 (ae_of_all _ h_inner_conv)
+  rcases h_approx with ⟨s, hs_tendsto⟩
+  -- 2. For any simple function, double integral expands to PD sum with Re ≥ 0
+  have h_sum : ∀ n, 0 ≤ (∫ x, ∫ y, ψ (s n x - s n y) ∂μ ∂μ).re := by
+    intro n
+    let sn := s n
+    let R := sn.range
+    have hfm : IsFiniteMeasure μ :=
+      ⟨by simp [μ]; exact hSbdd.measure_lt_top⟩
+    have h_double_integral : (∫ x, ∫ y, ψ (sn x - sn y) ∂μ ∂μ) =
+        ∑ u ∈ R, ∑ v ∈ R,
+          ((μ (sn ⁻¹' {u})).toReal : ℂ) *
+          ((μ (sn ⁻¹' {v})).toReal : ℂ) * ψ (u - v) := by
+      -- Inner integral: ∫ y, ψ(sn x - sn y) dμ = ∑ v, μ(sn⁻¹'{v}).toReal • ψ(sn x - v)
+      have h_inner : ∀ x, ∫ y, ψ (sn x - sn y) ∂μ =
+          ∑ v ∈ R, (μ (⇑sn ⁻¹' {v})).toReal • ψ (sn x - v) :=
+        fun x => integral_simpleFunc_comp sn (fun v => ψ (sn x - v)) μ
+      simp_rw [h_inner, Complex.real_smul]
+      -- Swap integral and finite sum
+      rw [integral_finset_sum _ (fun v _ => ?_)]
+      · -- Expand outer integral via integral_simpleFunc_comp
+        have h_expand : ∀ v, ∫ a, (↑(μ (⇑sn ⁻¹' {v})).toReal : ℂ) * ψ (sn a - v) ∂μ =
+            ∑ u ∈ R, (μ (⇑sn ⁻¹' {u})).toReal •
+              ((↑(μ (⇑sn ⁻¹' {v})).toReal : ℂ) * ψ (u - v)) := fun v =>
+          integral_simpleFunc_comp sn
+            (fun w => (↑(μ (⇑sn ⁻¹' {v})).toReal : ℂ) * ψ (w - v)) μ
+        simp_rw [h_expand]
+        -- Swap sum order: ∑ v, ∑ u, ... = ∑ u, ∑ v, ...
+        rw [Finset.sum_comm]
+        -- Now match summands pointwise
+        congr 1; ext u; congr 1; ext v
+        rw [Complex.real_smul]
+        ring
+      · -- c * ψ(sn · - v) is integrable on finite measure
+        refine Integrable.const_mul ?_ _
+        -- ψ(sn · - v) = (sn.map (ψ(· - v))) which is a simple function, hence integrable
+        have hsf : (fun x => ψ (sn x - v)) = ⇑(sn.map (fun u => ψ (u - v))) := by
+          ext x; simp [SimpleFunc.map_apply]
+        rw [hsf]
+        exact SimpleFunc.integrable_of_isFiniteMeasure _
+    rw [h_double_integral]
+    -- Reindex the Finset sum to Fin m
+    let m := R.card
+    have ⟨e, _⟩ : ∃ e : Fin m ≃ R, True := ⟨R.equivFin.symm, trivial⟩
+    have h_reindex : (∑ u ∈ R, ∑ v ∈ R,
+        ((μ (sn ⁻¹' {u})).toReal : ℂ) *
+        ((μ (sn ⁻¹' {v})).toReal : ℂ) * ψ (u - v)) =
+      ∑ i : Fin m, ∑ j : Fin m,
+        ((μ (sn ⁻¹' {(e i : V)})).toReal : ℂ) *
+        ((μ (sn ⁻¹' {(e j : V)})).toReal : ℂ) * ψ ((e i : V) - (e j : V)) := by
+      rw [← Finset.sum_coe_sort R]
+      exact Fintype.sum_equiv e.symm _ _ (fun i => by
+        rw [← Finset.sum_coe_sort R]
+        exact Fintype.sum_equiv e.symm _ _ (fun j => by simp))
+    rw [h_reindex]
+    -- Apply PD condition
+    let c : Fin m → ℂ := fun i => ((μ (sn ⁻¹' {(e i : V)})).toReal : ℂ)
+    let x_pts : Fin m → V := fun i => (e i : V)
+    have hpd_eval := hpd.nonneg m x_pts c
+    -- Measures are real, so conj = id
+    have hpd_match : (∑ i : Fin m, ∑ j : Fin m,
+        starRingEnd ℂ (c i) * c j * ψ (x_pts i - x_pts j)) =
+      ∑ i : Fin m, ∑ j : Fin m, c i * c j * ψ (x_pts i - x_pts j) := by
+      apply Finset.sum_congr rfl; intro i _
+      apply Finset.sum_congr rfl; intro j _
+      show (starRingEnd ℂ) (((μ (sn ⁻¹' {(e i : V)})).toReal : ℂ)) * _ * _ = _
+      rw [starRingEnd_apply, star_def, Complex.conj_ofReal]
+    rwa [hpd_match] at hpd_eval
+  -- 3. Pass to the limit
+  have h_re_tendsto : Filter.Tendsto
+      (fun n => (∫ x, ∫ y, ψ (s n x - s n y) ∂μ ∂μ).re)
+      Filter.atTop (nhds (∫ x, ∫ y, ψ (x - y) ∂μ ∂μ).re) :=
+    (Complex.continuous_re.tendsto _).comp hs_tendsto
+  exact ge_of_tendsto' h_re_tendsto h_sum
 
 /-! ### Integral of PD function has nonneg real part -/
 

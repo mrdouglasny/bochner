@@ -6,13 +6,9 @@ A formal proof of Bochner's theorem in Lean 4 using Mathlib.
 
 ## Current status
 
-**0 sorries, 2 axioms** (both are standard integration theory facts)
+**0 sorries, 0 axioms** — fully proved!
 
-The main theorem `bochner_theorem` compiles and depends only on two well-isolated axioms about double integrals:
-1. The double integral of a continuous PD function over S × S has nonneg real part (Riemann sum argument)
-2. A Fubini identity relating the Fejér average to an overlap-ratio integral
-
-See [status.md](status.md) for details and proof strategies for eliminating these axioms.
+The main theorem `bochner_theorem` is completely proved. `#print axioms bochner_theorem` shows only standard Lean axioms (`propext`, `Classical.choice`, `Quot.sound`).
 
 ## Proof strategy
 
@@ -39,10 +35,10 @@ Bochner/
 
 | File | Lines | Axioms | Sorries |
 |------|-------|--------|---------|
-| PositiveDefinite.lean | 201 | 0 | 0 |
-| FejerPD.lean | 382 | 2 | 0 |
-| Bochner.lean | 1290 | 0 | 0 |
-| **Total** | **1873** | **2** | **0** |
+| PositiveDefinite.lean | 200 | 0 | 0 |
+| FejerPD.lean | 612 | 0 | 0 |
+| Bochner.lean | 1297 | 0 | 0 |
+| **Total** | **2109** | **0** | **0** |
 
 ## Building
 
