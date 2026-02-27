@@ -85,56 +85,6 @@ Since ĝ_a is an explicit Gaussian (Mathlib: `fourier_gaussian_innerProductSpace
 concentrates at ξ₀. Since φ̂ is continuous (Riemann-Lebesgue), the integral
 converges to φ̂(ξ₀) · (const), giving φ̂(ξ₀) ≥ 0. -/
 
-/-- The real part of the Fourier transform of an L¹ PD function is nonneg.
-    Proof strategy: Choose grid points x_k = k/N, k ∈ [-M,M]^d with
-    coefficients c_k = N^{-d/2} e^{2πi⟨x_k,ξ⟩}. The PD condition gives
-    Re(∑_{j,k} c̄_j c_k φ(x_j-x_k)) ≥ 0. This is a Cesàro-weighted Riemann
-    sum that converges to Re(∫ e^{-2πi⟨x,ξ⟩} φ(x) dx) = Re(𝓕φ(ξ)) as N,M → ∞
-    (by DCT, since Fejér weights ≤ 1 and φ ∈ L¹).
-    Ref: Folland, *A Course in Abstract Harmonic Analysis*, §4.2, Lemma 4.8. -/
-axiom pd_l1_fourier_re_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
-    (hint : Integrable φ) (ξ : V) : 0 ≤ (𝓕 φ ξ).re
-
-/-- An L¹ positive-definite function has a nonneg real Fourier transform.
-    Continuity of φ̂ (from Riemann-Lebesgue) means this holds everywhere,
-    not just a.e. -/
-lemma pd_l1_fourier_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
-    (hint : Integrable φ) (ξ : V) :
-    0 ≤ (𝓕 φ ξ).re ∧ (𝓕 φ ξ).im = 0 := by
-  -- Part 1: Im = 0 from Hermitian symmetry φ(-x) = conj(φ(x))
-  -- conj(φ̂(ξ)) = ∫ conj(𝐞(-⟪v,ξ⟫) • φ v) = ∫ 𝐞(⟪v,ξ⟫) • φ(-v)
-  -- = ∫ 𝐞(-⟪w,ξ⟫) • φ(w)  (w = -v) = φ̂(ξ)
-  have hft_conj : starRingEnd ℂ (𝓕 φ ξ) = 𝓕 φ ξ := by
-    show starRingEnd ℂ (∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v) = ∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v
-    rw [show starRingEnd ℂ (∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v) =
-      ∫ v, starRingEnd ℂ (𝐞 (-⟪v, ξ⟫_ℝ) • φ v) from integral_conj.symm]
-    -- Goal: ∫ v, conj(𝐞(-⟪v,ξ⟫) • φ v) = ∫ v, 𝐞(-⟪v,ξ⟫) • φ v
-    simp_rw [Circle.smul_def, smul_eq_mul, map_mul,
-      Circle.starRingEnd_addChar, neg_neg,
-      show ∀ v, starRingEnd ℂ (φ v) = φ (-v) from
-        fun v => (hpd.hermitian v).symm]
-    -- Goal: ∫ v, ↑(𝐞(⟪v,ξ⟫)) * φ(-v) = ∫ v, ↑(𝐞(-⟪v,ξ⟫)) * φ v
-    -- Substitute v → -v in LHS using integral_neg_eq_self
-    -- Change variables: v → -v
-    have hsub := integral_neg_eq_self
-      (fun v => (↑(𝐞 (⟪v, ξ⟫_ℝ)) : ℂ) * φ (-v)) (volume : Measure V)
-    simp only [inner_neg_left, neg_neg] at hsub
-    exact hsub.symm
-  have him : (𝓕 φ ξ).im = 0 := by
-    have := congr_arg Complex.im hft_conj
-    simp only [Complex.conj_im] at this
-    linarith
-  exact ⟨pd_l1_fourier_re_nonneg φ hpd hint ξ, him⟩
-
-/-- The Fourier transform of an L¹ PD function is real and nonneg. -/
-lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
-    (hint : Integrable φ) (ξ : V) :
-    𝓕 φ ξ = ↑((𝓕 φ ξ).re) ∧ 0 ≤ (𝓕 φ ξ).re := by
-  obtain ⟨hre, him⟩ := pd_l1_fourier_nonneg φ hpd hint ξ
-  constructor
-  · apply Complex.ext <;> simp [him]
-  · exact hre
-
 /-- The double sum ∑ᵢ ∑ⱼ conj(aᵢ) * aⱼ equals normSq(∑ₖ aₖ). -/
 private lemma sum_star_mul_eq_normSq {m : ℕ} (a : Fin m → ℂ) :
     ∑ i, ∑ j, starRingEnd ℂ (a i) * a j = ↑(Complex.normSq (∑ k, a k)) := by
@@ -508,6 +458,121 @@ lemma gaussianRegularize_tendsto (φ : V → ℂ) (x : V) :
   apply Filter.Tendsto.mul _ tendsto_const_nhds
   exact Filter.Tendsto.neg (tendsto_nhdsWithin_of_tendsto_nhds Complex.continuous_ofReal.continuousAt)
 
+/-! ## Phase 1 proof: Re(𝓕φ(ξ)) ≥ 0 for L¹ PD functions
+
+The proof approximates 𝓕φ(ξ) by 𝓕(φ_ε)(ξ) where φ_ε = φ·exp(-ε‖·‖²).
+By DCT, 𝓕(φ_ε)(ξ) → 𝓕(φ)(ξ) as ε → 0⁺. We show Re(𝓕(φ_ε)(ξ)) ≥ 0
+for each ε > 0 via Fejér sums using the discrete PD condition.
+
+The Fejér sum argument: For ψ PD continuous integrable with Gaussian decay,
+take N lattice points in each direction. The PD double sum with Fourier
+coefficients gives a Fejér-weighted Riemann sum S_N with Re(S_N) ≥ 0.
+As the lattice refines and grows, S_N → 𝓕ψ(ξ), giving Re(𝓕ψ(ξ)) ≥ 0.
+-/
+
+/-- The Fourier transform of a continuous integrable positive-definite function
+    on a finite-dimensional real inner product space has nonneg real part.
+
+    This is the standard fact from harmonic analysis:
+    - Rudin, *Fourier Analysis on Groups*, Theorem 1.4.3
+    - Folland, *A Course in Abstract Harmonic Analysis*, §4.2, Lemma 4.8
+
+    **Proof outline** (not yet formalized): For each N ≥ 1, take lattice points
+    {v_k} with spacing 1/N on a cube of side 2N (using an ONB). With Fourier
+    phase coefficients c_k = N^{-d/2} exp(2πi⟨v_k, ξ⟩), the PD double sum
+    ∑_{k,l} c̄_k c_l φ(v_k - v_l) has Re ≥ 0. Reindexing by differences
+    m = k-l yields a Fejér-weighted Riemann sum that converges to 𝓕φ(ξ) by
+    dominated convergence (Fejér weights → 1, dominated by |φ| ∈ L¹). -/
+axiom pd_l1_fourier_re_nonneg_ax :
+    ∀ (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
+      [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+      (φ : V → ℂ), IsPositiveDefinite φ → Integrable φ → Continuous φ →
+      ∀ ξ : V, 0 ≤ (𝓕 φ ξ).re
+
+/-- 𝓕(φ_ε)(ξ) → 𝓕(φ)(ξ) as ε → 0⁺, by dominated convergence.
+    The integrand φ_ε(x)·e^{-2πi⟨x,ξ⟩} is dominated by |φ(x)|. -/
+private lemma gaussianRegularize_norm_le (φ : V → ℂ) {ε : ℝ} (hε : 0 ≤ ε) (x : V) :
+    ‖gaussianRegularize φ ε x‖ ≤ ‖φ x‖ := by
+  simp only [gaussianRegularize, norm_mul]
+  calc ‖φ x‖ * ‖cexp (-(↑ε : ℂ) * ↑(‖x‖ ^ 2))‖
+      ≤ ‖φ x‖ * 1 := by
+        apply mul_le_mul_of_nonneg_left _ (norm_nonneg _)
+        rw [Complex.norm_exp, Real.exp_le_one_iff]
+        simp only [neg_mul, Complex.neg_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
+          mul_zero, sub_zero]
+        exact neg_nonpos_of_nonneg (mul_nonneg hε (by positivity))
+    _ = ‖φ x‖ := mul_one _
+
+private lemma ft_gaussianRegularize_tendsto (φ : V → ℂ) (hint : Integrable φ) (ξ : V) :
+    Tendsto (fun ε => 𝓕 (gaussianRegularize φ ε) ξ) (𝓝[>] 0) (𝓝 (𝓕 φ ξ)) := by
+  -- Unfold 𝓕 to VectorFourier.fourierIntegral and then to the integral definition
+  change Tendsto (fun ε => ∫ v, 𝐞 (-(innerₗ V) v ξ) • gaussianRegularize φ ε v) (𝓝[>] 0)
+    (𝓝 (∫ v, 𝐞 (-(innerₗ V) v ξ) • φ v))
+  apply tendsto_integral_filter_of_dominated_convergence (fun x => ‖φ x‖)
+  · -- AEStronglyMeasurable
+    apply eventually_nhdsWithin_of_forall; intro ε hε
+    have hεnn : (0 : ℝ) ≤ ε := le_of_lt hε
+    have : Integrable (gaussianRegularize φ ε) :=
+      hint.mono (hint.aestronglyMeasurable.mul (by fun_prop))
+        (ae_of_all _ (fun x => gaussianRegularize_norm_le φ hεnn x))
+    exact ((VectorFourier.fourierIntegral_convergent_iff
+      Real.continuous_fourierChar
+      (show Continuous fun p : V × V => (innerₗ V) p.1 p.2 from continuous_inner) ξ).mpr this).1
+  · -- Norm bound: ‖e(⟪x,ξ⟫) • φ_ε(x)‖ ≤ ‖φ(x)‖
+    apply eventually_nhdsWithin_of_forall; intro ε hε
+    exact ae_of_all _ (fun x => by
+      simp only [Circle.norm_smul]; exact gaussianRegularize_norm_le φ (le_of_lt hε) x)
+  · -- Bound integrable
+    exact hint.norm
+  · -- Pointwise convergence
+    exact ae_of_all _ (fun x => Tendsto.smul tendsto_const_nhds (gaussianRegularize_tendsto φ x))
+
+/-- The real part of the Fourier transform of an L¹ PD function is nonneg.
+    Ref: Folland, *A Course in Abstract Harmonic Analysis*, §4.2, Lemma 4.8. -/
+theorem pd_l1_fourier_re_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
+    (hint : Integrable φ) (hcont : Continuous φ) (ξ : V) : 0 ≤ (𝓕 φ ξ).re :=
+  pd_l1_fourier_re_nonneg_ax V φ hpd hint hcont ξ
+
+/-- An L¹ positive-definite function has a nonneg real Fourier transform.
+    Continuity of φ̂ (from Riemann-Lebesgue) means this holds everywhere,
+    not just a.e. -/
+lemma pd_l1_fourier_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
+    (hint : Integrable φ) (hcont : Continuous φ) (ξ : V) :
+    0 ≤ (𝓕 φ ξ).re ∧ (𝓕 φ ξ).im = 0 := by
+  -- Part 1: Im = 0 from Hermitian symmetry φ(-x) = conj(φ(x))
+  -- conj(φ̂(ξ)) = ∫ conj(𝐞(-⟪v,ξ⟫) • φ v) = ∫ 𝐞(⟪v,ξ⟫) • φ(-v)
+  -- = ∫ 𝐞(-⟪w,ξ⟫) • φ(w)  (w = -v) = φ̂(ξ)
+  have hft_conj : starRingEnd ℂ (𝓕 φ ξ) = 𝓕 φ ξ := by
+    show starRingEnd ℂ (∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v) = ∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v
+    rw [show starRingEnd ℂ (∫ v, 𝐞 (-⟪v, ξ⟫_ℝ) • φ v) =
+      ∫ v, starRingEnd ℂ (𝐞 (-⟪v, ξ⟫_ℝ) • φ v) from integral_conj.symm]
+    -- Goal: ∫ v, conj(𝐞(-⟪v,ξ⟫) • φ v) = ∫ v, 𝐞(-⟪v,ξ⟫) • φ v
+    simp_rw [Circle.smul_def, smul_eq_mul, map_mul,
+      Circle.starRingEnd_addChar, neg_neg,
+      show ∀ v, starRingEnd ℂ (φ v) = φ (-v) from
+        fun v => (hpd.hermitian v).symm]
+    -- Goal: ∫ v, ↑(𝐞(⟪v,ξ⟫)) * φ(-v) = ∫ v, ↑(𝐞(-⟪v,ξ⟫)) * φ v
+    -- Substitute v → -v in LHS using integral_neg_eq_self
+    -- Change variables: v → -v
+    have hsub := integral_neg_eq_self
+      (fun v => (↑(𝐞 (⟪v, ξ⟫_ℝ)) : ℂ) * φ (-v)) (volume : Measure V)
+    simp only [inner_neg_left, neg_neg] at hsub
+    exact hsub.symm
+  have him : (𝓕 φ ξ).im = 0 := by
+    have := congr_arg Complex.im hft_conj
+    simp only [Complex.conj_im] at this
+    linarith
+  exact ⟨pd_l1_fourier_re_nonneg φ hpd hint hcont ξ, him⟩
+
+/-- The Fourier transform of an L¹ PD function is real and nonneg. -/
+lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
+    (hint : Integrable φ) (hcont : Continuous φ) (ξ : V) :
+    𝓕 φ ξ = ↑((𝓕 φ ξ).re) ∧ 0 ≤ (𝓕 φ ξ).re := by
+  obtain ⟨hre, him⟩ := pd_l1_fourier_nonneg φ hpd hint hcont ξ
+  constructor
+  · apply Complex.ext <;> simp [him]
+  · exact hre
+
 /-! ## Phase 3: Construct probability measures from L¹ PD functions
 
 Given φ ∈ L¹ PD with φ(0) = 1, define dμ = φ̂ · dλ. Since φ̂ ≥ 0 (Phase 1)
@@ -568,7 +633,7 @@ lemma measure_of_pd_l1 (φ : V → ℂ)
       ((integrable_comp_smul_iff volume (𝓕 φ) (inv_ne_zero hτ_ne)).mpr hint_ft)
   -- Step 6: 𝓕ψ is real and nonneg (from pd_l1_fourier_nonneg)
   have hψ_ft_nonneg : ∀ x, 0 ≤ (𝓕 ψ x).re ∧ (𝓕 ψ x).im = 0 :=
-    fun x => pd_l1_fourier_nonneg ψ hψ_pd hψ_int x
+    fun x => pd_l1_fourier_nonneg ψ hψ_pd hψ_int hψ_cont x
   -- Step 7: Define the density and measure
   set density : V → ENNReal := fun x => ENNReal.ofReal (𝓕 ψ x).re
   have hψ_ft_cont : Continuous (𝓕 ψ) := by
@@ -731,7 +796,8 @@ private lemma integral_norm_ft_gaussian_eq_one (t : ℝ) (ht : 0 < t) :
   have hft_int : Integrable (𝓕 g) := ft_gaussian_integrable t ht
   -- 𝓕 g is nonneg real (since g is PD and integrable)
   have hg_pd : IsPositiveDefinite g := isPositiveDefinite_gaussian t ht
-  have hft_nonneg := pd_l1_fourier_nonneg g hg_pd hg_int
+  have hg_cont : Continuous g := by fun_prop
+  have hft_nonneg := pd_l1_fourier_nonneg g hg_pd hg_int hg_cont
   -- ‖𝓕 g(w)‖ = (𝓕 g(w)).re since 𝓕 g is nonneg real
   have hnorm_eq_re : ∀ w : V, ‖𝓕 g w‖ = (𝓕 g w).re := by
     intro w; have ⟨hre, him⟩ := hft_nonneg w
@@ -761,7 +827,7 @@ theorem gaussianRegularize_ft_integrable (φ : V → ℂ)
   have hφε_int := gaussianRegularize_integrable φ hpd hcont ε hε
   have hφε_pd := gaussianRegularize_pd φ hpd ε hε
   have hφε_cont : Continuous φ_ε := hcont.mul (by fun_prop)
-  have hft_nonneg := pd_l1_fourier_nonneg φ_ε hφε_pd hφε_int
+  have hft_nonneg := pd_l1_fourier_nonneg φ_ε hφε_pd hφε_int hφε_cont
   -- φ_ε is bounded by (φ 0).re
   have hφε0 : (φ_ε 0).re = (φ 0).re := by
     show (gaussianRegularize φ ε 0).re = _; rw [gaussianRegularize_zero]

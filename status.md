@@ -51,7 +51,7 @@
 
 | Axiom | Layer | Description |
 |-------|-------|-------------|
-| `pd_l1_fourier_re_nonneg` | 1 | Re(𝓕φ(ξ)) ≥ 0 for L¹ PD φ. Proof: Cesàro-weighted Riemann sums from discrete PD condition. Ref: Folland §4.2. |
+| `pd_l1_fourier_re_nonneg_ax` | 1 | Re(𝓕φ(ξ)) ≥ 0 for continuous L¹ PD φ. Proof: Fejér-weighted Riemann sums from discrete PD condition. Ref: Rudin Thm 1.4.3, Folland §4.2 Lemma 4.8. |
 
 ## Recommended work order
 
