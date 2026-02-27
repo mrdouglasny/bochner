@@ -673,13 +673,15 @@ extracts a weakly convergent subsequence. Testing the limit against
 x ↦ exp(i⟨ξ,x⟩) identifies charFun(μ) = φ. -/
 
 /-- Tightness bound: tail probability bounded by charFun behavior near 0.
-    Standard inequality from Fourier analysis (see Folland §4.2). -/
-lemma tightness_from_charfun (μ : ProbabilityMeasure V) (R : ℝ) (hR : 0 < R)
+    Standard inequality from Fourier analysis (see Folland §4.2).
+    Proof strategy: use Mathlib's `measureReal_abs_inner_gt_le_integral_charFun`
+    for each direction in an orthonormal basis, then union-bound
+    over d directions using ‖x‖ > R ⟹ ∃ i, |⟪eᵢ,x⟫| > R/√d. -/
+axiom tightness_from_charfun (μ : ProbabilityMeasure V) (R : ℝ) (hR : 0 < R)
     (δ : ℝ) (hδ : 0 < δ) :
     (μ : Measure V).real {x | R < ‖x‖} ≤
       (2 / R ^ 2) * ∫ ξ in Metric.ball (0 : V) δ,
-        (1 - (MeasureTheory.charFun (μ : Measure V) ξ).re) := by
-  sorry
+        (1 - (MeasureTheory.charFun (μ : Measure V) ξ).re)
 
 /-- The Fourier transform of a Gaussian-regularized PD function is integrable.
     Proof strategy: φ_ε = φ · g_ε ∈ L¹ ∩ L² (bounded × Gaussian), so

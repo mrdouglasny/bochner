@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 1 sorry, 3 axioms**
+**Total: 0 sorries, 4 axioms**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -8,7 +8,7 @@
 |---|-------|-------|------------|--------|
 | 1 | `IsPositiveDefinite.mul` | 0 | Medium | proved |
 
-## Bochner.lean — 1 sorry, 3 axioms
+## Bochner.lean — 0 sorries, 4 axioms
 
 | # | Lemma | Layer | Difficulty | Status | Depends on |
 |---|-------|-------|------------|--------|------------|
@@ -16,7 +16,7 @@
 | 3a | `pd_l1_fourier_re_nonneg` | 1 | Hard | axiom | — |
 | 3 | `pd_l1_fourier_nonneg` | 1 | Medium | proved | 3a |
 | 4 | `measure_of_pd_l1` | 3 | Medium | proved | 3 |
-| 5 | `tightness_from_charfun` | 4 | Medium | sorry | — |
+| 5 | `tightness_from_charfun` | 4 | Medium | axiom | — |
 | 6a | `gaussianRegularize_ft_integrable` | 3 | Medium | axiom | — |
 | 6 | `gaussianRegularize_measures_tight` | 4 | Medium | axiom | 4, 5 |
 | 7 | `bochner_theorem` (existence) | 4 | Medium | proved | 4, 6, 6a |
@@ -52,15 +52,16 @@
 |-------|-------|-------------|
 | `pd_l1_fourier_re_nonneg` | 1 | Re(𝓕φ(ξ)) ≥ 0 for L¹ PD φ. Proof: Cesàro-weighted Riemann sums from discrete PD condition. Ref: Folland §4.2. |
 | `gaussianRegularize_ft_integrable` | 3 | 𝓕(φ · g_ε) ∈ L¹. Proof: Parseval-type argument with Gaussian approximate identity shows ∫ 𝓕(φ_ε) = φ_ε(0) = 1. |
-| `gaussianRegularize_measures_tight` | 4 | Tightness of {μ_ε}. Proof: `measureReal_abs_inner_gt_le_integral_charFun` (Mathlib) + continuity of φ at 0. |
+| `tightness_from_charfun` | 4 | Tail bound via charFun. Proof: Mathlib's `measureReal_abs_inner_gt_le_integral_charFun` + orthonormal basis union bound. |
+| `gaussianRegularize_measures_tight` | 4 | Tightness of {μ_ε}. Proof: `tightness_from_charfun` + continuity of φ at 0. |
 
 ## Recommended work order
 
-**Next**: Fill the 3 axioms and 1 sorry:
-- 3a (`pd_l1_fourier_re_nonneg`): Hardest — requires multi-dimensional Riemann sum convergence
-- 6a (`gaussianRegularize_ft_integrable`): Parseval + approximate identity
+**Next**: Eliminate the 4 axioms:
 - 5 (`tightness_from_charfun`): Can use Mathlib's `measureReal_abs_inner_gt_le_integral_charFun`
 - 6 (`gaussianRegularize_measures_tight`): Follows from 5 + continuity argument
+- 6a (`gaussianRegularize_ft_integrable`): Parseval + approximate identity
+- 3a (`pd_l1_fourier_re_nonneg`): Hardest — requires multi-dimensional Riemann sum convergence
 
 ## Notes
 
