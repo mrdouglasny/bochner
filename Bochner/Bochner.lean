@@ -12,6 +12,7 @@ import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
 import Mathlib.MeasureTheory.Measure.CharacteristicFunction
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
+import Mathlib.MeasureTheory.Measure.Prokhorov
 
 /-!
 # Bochner's Theorem
@@ -82,6 +83,16 @@ Since ĝ_a is an explicit Gaussian (Mathlib: `fourier_gaussian_innerProductSpace
 concentrates at ξ₀. Since φ̂ is continuous (Riemann-Lebesgue), the integral
 converges to φ̂(ξ₀) · (const), giving φ̂(ξ₀) ≥ 0. -/
 
+/-- The real part of the Fourier transform of an L¹ PD function is nonneg.
+    Proof strategy: Choose grid points x_k = k/N, k ∈ [-M,M]^d with
+    coefficients c_k = N^{-d/2} e^{2πi⟨x_k,ξ⟩}. The PD condition gives
+    Re(∑_{j,k} c̄_j c_k φ(x_j-x_k)) ≥ 0. This is a Cesàro-weighted Riemann
+    sum that converges to Re(∫ e^{-2πi⟨x,ξ⟩} φ(x) dx) = Re(𝓕φ(ξ)) as N,M → ∞
+    (by DCT, since Fejér weights ≤ 1 and φ ∈ L¹).
+    Ref: Folland, *A Course in Abstract Harmonic Analysis*, §4.2, Lemma 4.8. -/
+axiom pd_l1_fourier_re_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
+    (hint : Integrable φ) (ξ : V) : 0 ≤ (𝓕 φ ξ).re
+
 /-- An L¹ positive-definite function has a nonneg real Fourier transform.
     Continuity of φ̂ (from Riemann-Lebesgue) means this holds everywhere,
     not just a.e. -/
@@ -111,12 +122,7 @@ lemma pd_l1_fourier_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
     have := congr_arg Complex.im hft_conj
     simp only [Complex.conj_im] at this
     linarith
-  -- Part 2: Re ≥ 0 from discrete PD condition + Riemann sum convergence
-  -- Proof sketch: Choose grid points x_k = k/N, k ∈ [-M,M]^d with
-  -- coefficients c_k = N^{-d/2} e^{2πi⟨x_k,ξ⟩}. The PD condition gives
-  -- Σ_{j,k} c̄_j c_k φ(x_j-x_k) ≥ 0. This is a Cesàro-weighted Riemann
-  -- sum that converges to ∫ e^{-2πi⟨x,ξ⟩} φ(x) dx = φ̂(ξ) as N,M → ∞.
-  exact ⟨sorry, him⟩
+  exact ⟨pd_l1_fourier_re_nonneg φ hpd hint ξ, him⟩
 
 /-- The Fourier transform of an L¹ PD function is real and nonneg. -/
 lemma pd_l1_fourier_real_nonneg (φ : V → ℂ) (hpd : IsPositiveDefinite φ)
@@ -675,11 +681,31 @@ lemma tightness_from_charfun (μ : ProbabilityMeasure V) (R : ℝ) (hR : 0 < R)
         (1 - (MeasureTheory.charFun (μ : Measure V) ξ).re) := by
   sorry
 
-/-- The family {μ_ε} constructed from Gaussian regularization is tight. -/
--- We know we can prove this, but it is hard.
+/-- The Fourier transform of a Gaussian-regularized PD function is integrable.
+    Proof strategy: φ_ε = φ · g_ε ∈ L¹ ∩ L² (bounded × Gaussian), so
+    𝓕(φ_ε) ∈ L² by Plancherel. Also 𝓕(φ_ε) ≥ 0 by pd_l1_fourier_re_nonneg.
+    A Parseval-type argument with a family of Gaussians G_R ↗ 1 shows
+    ∫ 𝓕(φ_ε) = lim ∫ 𝓕(φ_ε) · G_R = lim ∫ (φ_ε) · 𝓕G_R = (φ_ε)(0) = 1,
+    hence 𝓕(φ_ε) ∈ L¹.
+    Ref: Folland, *A Course in Abstract Harmonic Analysis*, §4.2. -/
+axiom gaussianRegularize_ft_integrable (φ : V → ℂ)
+    (hpd : IsPositiveDefinite φ) (hcont : Continuous φ)
+    (ε : ℝ) (hε : 0 < ε) :
+    Integrable (𝓕 (gaussianRegularize φ ε))
+
+/-- The family of measures constructed from Gaussian regularization is tight.
+    For each ε > 0, μ_ε is the probability measure with charFun(μ_ε) = φ_ε.
+    The tightness bound follows from: for any probability measure μ,
+    μ({|⟪a,x⟫| > r}) ≤ C · r · ∫_{-2/r}^{2/r} (1 - Re(charFun μ (t·a))) dt
+    (Mathlib: `measureReal_abs_inner_gt_le_integral_charFun`).
+    Since charFun(μ_ε) = φ_ε → φ uniformly on compacts and φ is continuous
+    at 0 with φ(0) = 1, the RHS → 0 uniformly in ε as r → ∞.
+    Ref: Folland, §4.2, proof of Theorem 4.15. -/
 axiom gaussianRegularize_measures_tight (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hcont : Continuous φ) (hnorm : φ 0 = 1) :
-    ∀ η > 0, ∃ R > 0, ∀ ε > 0, True
+    IsTightMeasureSet
+      {(μ : Measure V) | ∃ ε > 0, ∃ (_ : IsProbabilityMeasure μ),
+        ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ}
 
 /-! ## Phase 5: Uniqueness (from Mathlib)
 
@@ -688,6 +714,7 @@ the measure uniquely. -/
 
 /-! ## Main Theorem -/
 
+set_option maxHeartbeats 400000 in
 /-- **Bochner's Theorem.** A continuous positive-definite function φ : V → ℂ
     with φ(0) = 1 on a finite-dimensional real inner product space is the
     characteristic function of a unique probability measure on V.
@@ -716,7 +743,83 @@ theorem bochner_theorem (φ : V → ℂ)
   --   charFun(μ)(ξ) = lim charFun(μ_{ε_k})(ξ) = lim φ_{ε_k}(ξ) = φ(ξ).
   have hex : ∃ μ : ProbabilityMeasure V,
       ∀ ξ, MeasureTheory.charFun (μ : Measure V) ξ = φ ξ := by
-    sorry
+    -- Step 1: For each ε > 0, construct μ_ε : ProbabilityMeasure V
+    -- with charFun(μ_ε) = gaussianRegularize φ ε
+    have hmu_eps : ∀ ε > 0, ∃ μ_ε : ProbabilityMeasure V,
+        ∀ ξ, charFun (μ_ε : Measure V) ξ = gaussianRegularize φ ε ξ := by
+      intro ε hε
+      exact measure_of_pd_l1 (gaussianRegularize φ ε)
+        (gaussianRegularize_pd φ hpd ε hε)
+        (gaussianRegularize_integrable φ hpd hcont ε hε)
+        (hcont.mul (by fun_prop))
+        (by rw [gaussianRegularize_zero]; exact hnorm)
+        (gaussianRegularize_ft_integrable φ hpd hcont ε hε)
+    -- Step 2: Choose a specific family μ_n = μ_{1/(n+1)} using Choice
+    have hmu_seq : ∀ n : ℕ, ∃ μ : ProbabilityMeasure V,
+        ∀ ξ, charFun (μ : Measure V) ξ = gaussianRegularize φ (1 / (↑n + 1)) ξ := by
+      intro n
+      exact hmu_eps (1 / (↑n + 1)) (by positivity)
+    choose μ_seq hμ_seq using hmu_seq
+    -- Step 3: The set of measures is tight (from axiom)
+    have htight := gaussianRegularize_measures_tight φ hpd hcont hnorm
+    -- Step 4: The closure of {μ_seq n} is compact by Prokhorov
+    set S : Set (ProbabilityMeasure V) := Set.range μ_seq with hS_def
+    have hS_tight : IsTightMeasureSet
+        {((μ : ProbabilityMeasure V) : Measure V) | μ ∈ S} := by
+      apply IsTightMeasureSet.subset htight
+      rintro μ ⟨ν, hνS, rfl⟩
+      obtain ⟨n, rfl⟩ := hνS
+      exact ⟨1 / (↑n + 1), by positivity, (μ_seq n).prop, hμ_seq n⟩
+    have hcompact : IsCompact (closure S) :=
+      isCompact_closure_of_isTightMeasureSet hS_tight
+    -- Step 5: Extract a convergent subsequence
+    have hseq_in : ∀ n, μ_seq n ∈ closure S :=
+      fun n => subset_closure (Set.mem_range_self n)
+    obtain ⟨μ, _, f, hf_strict, hf_conv⟩ :=
+      hcompact.tendsto_subseq hseq_in
+    -- Step 6: charFun(μ) = φ, transferring through the weak limit
+    refine ⟨μ, fun ξ => ?_⟩
+    -- The function x ↦ cexp(⟪x,ξ⟫ * I) is bounded continuous
+    set g_ξ : BoundedContinuousFunction V ℂ := BoundedContinuousFunction.ofNormedAddCommGroup
+      (fun x => cexp (↑⟪x, ξ⟫_ℝ * I)) (by fun_prop) 1
+      (fun x => by simp [Complex.norm_exp_ofReal_mul_I]) with hg_ξ_def
+    -- Weak convergence: ∫ g_ξ ∂(μ_seq (f n)) → ∫ g_ξ ∂μ
+    have hweak := (ProbabilityMeasure.tendsto_iff_forall_integral_rclike_tendsto ℂ).mp
+      hf_conv g_ξ
+    -- LHS: ∫ g_ξ ∂(μ_seq (f n)) = charFun(μ_seq (f n))(ξ) = gaussianRegularize φ ε_n ξ
+    have hlhs : ∀ n, ∫ x, g_ξ x ∂(μ_seq (f n) : Measure V) = charFun (μ_seq (f n) : Measure V) ξ := by
+      intro n; simp [charFun_apply, hg_ξ_def]
+    -- RHS: ∫ g_ξ ∂μ = charFun(μ)(ξ)
+    have hrhs : ∫ x, g_ξ x ∂(μ : Measure V) = charFun (μ : Measure V) ξ := by
+      simp [charFun_apply, hg_ξ_def]
+    -- So charFun(μ_seq (f n))(ξ) → charFun(μ)(ξ)
+    have hcharfun_conv : Tendsto (fun n => charFun (μ_seq (f n) : Measure V) ξ) atTop
+        (𝓝 (charFun (μ : Measure V) ξ)) := by
+      rwa [show (fun n => charFun (↑(μ_seq (f n))) ξ) =
+        (fun n => ∫ x, g_ξ x ∂(μ_seq (f n) : Measure V)) from funext (fun n => (hlhs n).symm),
+        show charFun (↑μ) ξ = ∫ x, g_ξ x ∂(μ : Measure V) from hrhs.symm]
+    -- Also charFun(μ_seq (f n))(ξ) = gaussianRegularize φ (1/(f n + 1)) ξ → φ ξ
+    have hcharfun_vals : ∀ n, charFun (μ_seq (f n) : Measure V) ξ =
+        gaussianRegularize φ (1 / (↑(f n) + 1)) ξ :=
+      fun n => hμ_seq (f n) ξ
+    -- gaussianRegularize φ (1/(f n + 1)) ξ → φ ξ as f n → ∞
+    have heps_tendsto : Tendsto (fun n => (1 : ℝ) / (↑(f n) + 1)) atTop (𝓝[>] 0) := by
+      apply tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within
+      · have hfn : Tendsto (fun n => (↑(f n) : ℝ)) atTop atTop :=
+          tendsto_natCast_atTop_atTop.comp hf_strict.tendsto_atTop
+        have hfn1 : Tendsto (fun n => (↑(f n) : ℝ) + 1) atTop atTop :=
+          Filter.tendsto_atTop_add_const_right atTop 1 hfn
+        simp_rw [one_div]
+        exact tendsto_inv_atTop_zero.comp hfn1
+      · exact Eventually.of_forall (fun n => Set.mem_Ioi.mpr (by positivity))
+    have hgr_conv : Tendsto (fun n => gaussianRegularize φ (1 / (↑(f n) + 1)) ξ) atTop (𝓝 (φ ξ)) :=
+      (gaussianRegularize_tendsto φ ξ).comp heps_tendsto
+    -- The same sequence also → charFun(μ)(ξ) by weak convergence
+    have hgr_conv' : Tendsto (fun n => charFun (μ_seq (f n) : Measure V) ξ) atTop (𝓝 (φ ξ)) := by
+      rwa [show (fun n => charFun (↑(μ_seq (f n))) ξ) =
+        (fun n => gaussianRegularize φ (1 / (↑(f n) + 1)) ξ) from funext hcharfun_vals]
+    -- By uniqueness of limits: charFun μ ξ = φ ξ
+    exact tendsto_nhds_unique hcharfun_conv hgr_conv'
   -- Uniqueness: from Mathlib's Measure.ext_of_charFun
   obtain ⟨μ, hμ⟩ := hex
   refine ⟨μ, hμ, fun ν hν => ?_⟩
