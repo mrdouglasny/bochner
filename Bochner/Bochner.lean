@@ -13,6 +13,8 @@ import Mathlib.MeasureTheory.Measure.CharacteristicFunction
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
 import Mathlib.MeasureTheory.Measure.Prokhorov
+import Mathlib.MeasureTheory.Measure.TightNormed
+import Mathlib.MeasureTheory.Measure.IntegralCharFun
 
 /-!
 # Bochner's Theorem
@@ -684,6 +686,94 @@ axiom gaussianRegularize_ft_integrable (φ : V → ℂ)
     (ε : ℝ) (hε : 0 < ε) :
     Integrable (𝓕 (gaussianRegularize φ ε))
 
+/-- 1 - exp(-x) ≤ x for x ≥ 0. From Mathlib: 1 - x ≤ exp(-x) rearranged. -/
+private lemma one_sub_exp_neg_le {x : ℝ} (hx : 0 ≤ x) : 1 - Real.exp (-x) ≤ x := by
+  linarith [Real.one_sub_le_exp_neg x]
+
+/-- Bound on ‖1 - gaussianRegularize φ ε v‖ in terms of ‖1 - φ v‖ and ‖v‖².
+    Uses triangle inequality, bounded_by_zero, and 1-exp(-x) ≤ x. -/
+private lemma gaussianRegularize_deviation_bound (φ : V → ℂ)
+    (hpd : IsPositiveDefinite φ) (hnorm : φ 0 = 1)
+    (v : V) (ε : ℝ) (hε : 0 < ε) (hε1 : ε ≤ 1) :
+    ‖(1 : ℂ) - gaussianRegularize φ ε v‖ ≤ ‖(1 : ℂ) - φ v‖ + ‖v‖ ^ 2 := by
+  -- 1 - φ(v) * exp(-ε‖v‖²) = (1 - φ(v)) + φ(v) * (1 - exp(-ε‖v‖²))
+  have hdecomp : (1 : ℂ) - gaussianRegularize φ ε v =
+      (1 - φ v) + φ v * (1 - cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2))) := by
+    simp only [gaussianRegularize]; ring
+  rw [hdecomp]
+  -- Triangle inequality
+  calc ‖(1 - φ v) + φ v * (1 - cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2)))‖
+      ≤ ‖1 - φ v‖ + ‖φ v * (1 - cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2)))‖ := norm_add_le _ _
+    _ = ‖1 - φ v‖ + ‖φ v‖ * ‖1 - cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2))‖ := by
+        rw [norm_mul]
+    _ ≤ ‖1 - φ v‖ + 1 * ‖1 - cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2))‖ := by
+        gcongr
+        -- ‖φ v‖ ≤ (φ 0).re = 1
+        have hb := hpd.bounded_by_zero v
+        rw [hnorm] at hb; simpa using hb
+    _ = ‖1 - φ v‖ + ‖1 - cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2))‖ := by rw [one_mul]
+    _ ≤ ‖1 - φ v‖ + ε * ‖v‖ ^ 2 := by
+        gcongr
+        -- ‖1 - cexp(-(ε : ℂ) * ↑(‖v‖²))‖ = 1 - exp(-ε‖v‖²) ≤ ε‖v‖²
+        have harg_nn : 0 ≤ ε * ‖v‖ ^ 2 := by positivity
+        have hcexp_real : cexp (-(ε : ℂ) * ↑(‖v‖ ^ 2)) = ↑(Real.exp (-(ε * ‖v‖ ^ 2))) := by
+          push_cast; congr 1; ring
+        rw [hcexp_real, ← Complex.ofReal_one, ← Complex.ofReal_sub, Complex.norm_real,
+          Real.norm_eq_abs,
+          abs_of_nonneg (by linarith [Real.exp_le_one_iff.mpr (by linarith : -(ε * ‖v‖ ^ 2) ≤ 0)])]
+        exact one_sub_exp_neg_le harg_nn
+    _ ≤ ‖1 - φ v‖ + 1 * ‖v‖ ^ 2 := by gcongr
+    _ = ‖1 - φ v‖ + ‖v‖ ^ 2 := by rw [one_mul]
+
+/-- Key bound: for a probability measure μ with charFun μ = gaussianRegularize φ ε (ε ≤ 1),
+    and for any y and r > 0:
+    μ.real {x | r < |⟪y,x⟫|} ≤ 2 * C + 8 * ‖y‖² * r⁻²
+    where C bounds ‖1 - φ(t•y)‖ for |t| ≤ 2/r. -/
+private lemma charFun_measure_inner_bound (φ : V → ℂ)
+    (hpd : IsPositiveDefinite φ) (hnorm : φ 0 = 1)
+    {μ : Measure V} [IsProbabilityMeasure μ] {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1)
+    (hcharfun : ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ)
+    {y : V} {r : ℝ} (hr : 0 < r) {C : ℝ} (hC : 0 ≤ C)
+    (hCbound : ∀ t : ℝ, t ∈ Set.uIoc (-(2 * r⁻¹)) (2 * r⁻¹) →
+      ‖(1 : ℂ) - φ (t • y)‖ ≤ C) :
+    μ.real {x | r < |⟪y, x⟫_ℝ|} ≤ 2 * C + 8 * ‖y‖ ^ 2 * r⁻¹ ^ 2 := by
+  -- Apply Mathlib's charFun tail bound
+  have hcf := measureReal_abs_inner_gt_le_integral_charFun (a := y) (μ := μ) hr
+  -- Bound the integral using norm_integral_le_of_norm_le_const
+  have hdeviation_bound : ∀ t : ℝ, t ∈ Set.uIoc (-(2 * r⁻¹)) (2 * r⁻¹) →
+      ‖(1 : ℂ) - charFun μ (t • y)‖ ≤ C + 4 * ‖y‖ ^ 2 * r⁻¹ ^ 2 := by
+    intro t ht
+    rw [hcharfun]
+    calc ‖(1 : ℂ) - gaussianRegularize φ ε (t • y)‖
+        ≤ ‖(1 : ℂ) - φ (t • y)‖ + ‖t • y‖ ^ 2 :=
+          gaussianRegularize_deviation_bound φ hpd hnorm _ ε hε hε1
+      _ ≤ C + ‖t • y‖ ^ 2 := by gcongr; exact hCbound t ht
+      _ = C + t ^ 2 * ‖y‖ ^ 2 := by
+          rw [norm_smul, Real.norm_eq_abs, mul_pow, sq_abs]
+      _ ≤ C + (2 * r⁻¹) ^ 2 * ‖y‖ ^ 2 := by
+          have hle : -(2 * r⁻¹) ≤ 2 * r⁻¹ := by linarith [inv_pos.mpr hr]
+          rw [Set.uIoc_of_le hle] at ht
+          have h_abs : |t| ≤ 2 * r⁻¹ := abs_le.mpr ⟨by linarith [ht.1.le], ht.2⟩
+          have h_sq : t ^ 2 ≤ (2 * r⁻¹) ^ 2 := by
+            rw [← sq_abs t]; exact pow_le_pow_left₀ (abs_nonneg t) h_abs 2
+          nlinarith [sq_nonneg ‖y‖]
+      _ = C + 4 * ‖y‖ ^ 2 * r⁻¹ ^ 2 := by ring
+  have hnorm_bound := intervalIntegral.norm_integral_le_of_norm_le_const hdeviation_bound
+  -- Combine: μ.real ≤ 2⁻¹ * r * ‖∫...‖ ≤ 2⁻¹ * r * ((C + 4‖y‖²/r²) * (4/r))
+  -- Align -2*r⁻¹ and -(2*r⁻¹) notation
+  simp only [neg_mul] at hcf hnorm_bound
+  calc μ.real {x | r < |⟪y, x⟫_ℝ|}
+      ≤ 2⁻¹ * r * ‖∫ t in -(2 * r⁻¹)..2 * r⁻¹, (1 : ℂ) - charFun μ (t • y)‖ := hcf
+    _ ≤ 2⁻¹ * r * ((C + 4 * ‖y‖ ^ 2 * r⁻¹ ^ 2) * |2 * r⁻¹ - -(2 * r⁻¹)|) :=
+        mul_le_mul_of_nonneg_left hnorm_bound (by positivity)
+    _ = 2 * C + 8 * ‖y‖ ^ 2 * r⁻¹ ^ 2 := by
+        rw [show |2 * r⁻¹ - -(2 * r⁻¹)| = 4 * r⁻¹ from by
+          rw [show 2 * r⁻¹ - -(2 * r⁻¹) = 4 * r⁻¹ from by ring]
+          exact abs_of_nonneg (by positivity)]
+        field_simp
+        ring
+
+set_option maxHeartbeats 800000 in
 /-- The family of measures constructed from Gaussian regularization is tight.
     For each ε > 0, μ_ε is the probability measure with charFun(μ_ε) = φ_ε.
     The tightness bound follows from: for any probability measure μ,
@@ -692,11 +782,110 @@ axiom gaussianRegularize_ft_integrable (φ : V → ℂ)
     Since charFun(μ_ε) = φ_ε → φ uniformly on compacts and φ is continuous
     at 0 with φ(0) = 1, the RHS → 0 uniformly in ε as r → ∞.
     Ref: Folland, §4.2, proof of Theorem 4.15. -/
-axiom gaussianRegularize_measures_tight (φ : V → ℂ)
+theorem gaussianRegularize_measures_tight (φ : V → ℂ)
     (hpd : IsPositiveDefinite φ) (hcont : Continuous φ) (hnorm : φ 0 = 1) :
     IsTightMeasureSet
       {(μ : Measure V) | ∃ ε, 0 < ε ∧ ε ≤ 1 ∧ ∃ (_ : IsProbabilityMeasure μ),
-        ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ}
+        ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ} := by
+  set S := {(μ : Measure V) | ∃ ε, 0 < ε ∧ ε ≤ 1 ∧ ∃ (_ : IsProbabilityMeasure μ),
+    ∀ ξ, charFun μ ξ = gaussianRegularize φ ε ξ}
+  -- Use the inner product criterion for tightness
+  apply isTightMeasureSet_of_inner_tendsto (𝕜 := ℝ)
+  intro y
+  -- Need: Tendsto (fun r ↦ ⨆ μ ∈ S, μ {x | r < ‖⟪y, x⟫_ℝ‖}) atTop (𝓝 0)
+  -- Show via tendsto_order: for all a > 0, eventually the iSup < a
+  refine tendsto_order.mpr ⟨fun a ha => absurd ha (not_lt.mpr (zero_le a)), fun a ha => ?_⟩
+  -- Given a > 0 in ℝ≥0∞, need: ∀ᶠ r in atTop, ⨆ μ ∈ S, μ {x | r < ‖⟪y,x⟫_ℝ‖} < a
+  -- Step 1: Get a real δ > 0 with ENNReal.ofReal δ < a
+  obtain ⟨δ, hδ_pos, hδ_lt⟩ : ∃ δ : ℝ, 0 < δ ∧ ENNReal.ofReal δ < a := by
+    by_cases ha_top : a = ⊤
+    · exact ⟨1, one_pos, ha_top ▸ ENNReal.ofReal_lt_top⟩
+    · have ha_real := ENNReal.toReal_pos ha.ne' ha_top
+      refine ⟨a.toReal / 2, by positivity, ?_⟩
+      calc ENNReal.ofReal (a.toReal / 2)
+          < ENNReal.ofReal a.toReal := (ENNReal.ofReal_lt_ofReal_iff ha_real).mpr (by linarith)
+        _ = a := ENNReal.ofReal_toReal ha_top
+  -- Step 2: By continuity of φ at 0 with φ(0) = 1, get η > 0 with
+  --   ‖v‖ < η → ‖1 - φ v‖ < δ/4
+  have hcont0 : ∀ η' > (0 : ℝ), ∃ ξ > 0, ∀ v : V, ‖v‖ < ξ → ‖(1:ℂ) - φ v‖ < η' := by
+    intro η' hη'
+    have h1 : ∃ ξ > 0, ∀ v : V, dist v 0 < ξ → dist (φ v) (φ 0) < η' :=
+      Metric.continuousAt_iff.mp hcont.continuousAt η' hη'
+    obtain ⟨ξ, hξ, hball⟩ := h1
+    refine ⟨ξ, hξ, fun v hv => ?_⟩
+    have := hball v (by rwa [dist_zero_right])
+    rwa [hnorm, Complex.dist_eq, norm_sub_rev] at this
+  obtain ⟨η, hη, hη_bound⟩ := hcont0 (δ / 4) (by positivity)
+  -- Step 3: Choose R large enough
+  -- Need: 2‖y‖/r < η (so |t|≤2/r gives ‖t•y‖ < η)
+  -- Need: 8‖y‖²/r² < δ/2
+  set R : ℝ := max (2 * ‖y‖ / η + 1) (max (Real.sqrt (16 * ‖y‖ ^ 2 / δ) + 1) 1)
+  refine Filter.eventually_atTop.mpr ⟨R, fun r hr => ?_⟩
+  -- Step 4: Bound the iSup
+  -- For each μ ∈ S: μ {x | r < ‖⟪y,x⟫_ℝ‖} < a
+  -- Note: ‖⟪y,x⟫_ℝ‖ = |⟪y,x⟫_ℝ| for real inner product
+  have hr_pos : 0 < r := lt_of_lt_of_le one_pos (le_max_right _ _ |>.trans (le_max_right _ _) |>.trans hr)
+  -- For r ≥ R: 2‖y‖/r < η
+  have hsmall : 2 * ‖y‖ * r⁻¹ < η := by
+    have hR1 : 2 * ‖y‖ / η + 1 ≤ r := (le_max_left _ _).trans hr
+    -- 2‖y‖ < η * r since 2‖y‖/η + 1 ≤ r and η > 0
+    have h1 : 2 * ‖y‖ < η * r := by
+      have h2 : 2 * ‖y‖ / η < r := by linarith
+      rw [div_lt_iff₀ hη] at h2; linarith
+    rwa [mul_inv_lt_iff₀ hr_pos]
+  -- For r ≥ R: 8‖y‖²/r² < δ/2
+  have hsmall2 : 8 * ‖y‖ ^ 2 * r⁻¹ ^ 2 < δ / 2 := by
+    have hR2 : Real.sqrt (16 * ‖y‖ ^ 2 / δ) + 1 ≤ r :=
+      (le_max_left _ _ |>.trans (le_max_right _ _)).trans hr
+    -- r² > 16‖y‖²/δ since r > sqrt(16‖y‖²/δ)
+    have hsqrt_le : Real.sqrt (16 * ‖y‖ ^ 2 / δ) < r := by linarith
+    have hr_sq : 16 * ‖y‖ ^ 2 / δ < r ^ 2 := by
+      calc 16 * ‖y‖ ^ 2 / δ
+          ≤ Real.sqrt (16 * ‖y‖ ^ 2 / δ) ^ 2 :=
+            le_of_eq (Real.sq_sqrt (by positivity)).symm
+        _ < r ^ 2 := by
+            exact pow_lt_pow_left₀ hsqrt_le (Real.sqrt_nonneg _) (by norm_num)
+    rw [inv_pow, mul_inv_lt_iff₀ (sq_pos_of_pos hr_pos)]
+    -- hr_sq: 16 * ‖y‖² / δ < r², i.e. 16 * ‖y‖² < δ * r²
+    rw [div_lt_iff₀ hδ_pos] at hr_sq
+    linarith
+  -- Bound for each μ ∈ S
+  have hmu_bound : ∀ μ ∈ S, μ {x | r < ‖⟪y, x⟫_ℝ‖} ≤ ENNReal.ofReal δ := by
+    intro μ hμS
+    obtain ⟨ε, hε, hε1, hprob, hcf⟩ := hμS
+    haveI := hprob
+    -- Convert ‖⟪y,x⟫_ℝ‖ = |⟪y,x⟫_ℝ| for real scalars
+    have hset_eq : {x : V | r < ‖⟪y, x⟫_ℝ‖} = {x | r < |⟪y, x⟫_ℝ|} := by
+      ext x; simp [Real.norm_eq_abs]
+    rw [hset_eq]
+    -- Apply the key bound
+    have hCval : ∀ t : ℝ, t ∈ Set.uIoc (-(2 * r⁻¹)) (2 * r⁻¹) →
+        ‖(1 : ℂ) - φ (t • y)‖ ≤ δ / 4 := by
+      intro t ht
+      apply le_of_lt
+      apply hη_bound
+      rw [norm_smul, Real.norm_eq_abs]
+      calc |t| * ‖y‖ ≤ 2 * r⁻¹ * ‖y‖ := by
+            gcongr
+            -- t ∈ uIoc (-(2*r⁻¹)) (2*r⁻¹) implies |t| ≤ 2*r⁻¹
+            have hle : -(2 * r⁻¹) ≤ 2 * r⁻¹ := by linarith [inv_pos.mpr hr_pos]
+            rw [Set.uIoc_of_le hle] at ht
+            exact abs_le.mpr ⟨by linarith [ht.1.le], ht.2⟩
+        _ = 2 * ‖y‖ * r⁻¹ := by ring
+        _ < η := hsmall
+    have hreal_bound := charFun_measure_inner_bound φ hpd hnorm hε hε1 hcf hr_pos
+      (by positivity : (0:ℝ) ≤ δ/4) hCval
+    -- μ.real {r < |⟪y,x⟫|} ≤ 2*(δ/4) + 8‖y‖²/r² = δ/2 + 8‖y‖²/r² < δ
+    -- Convert from μ.real to μ (ENNReal)
+    rw [show μ {x | r < |⟪y, x⟫_ℝ|} = ENNReal.ofReal (μ.real {x | r < |⟪y, x⟫_ℝ|}) from by
+      rw [Measure.real, ENNReal.ofReal_toReal]
+      exact measure_ne_top μ _]
+    apply ENNReal.ofReal_le_ofReal
+    linarith
+  -- Step 5: Conclude iSup ≤ ENNReal.ofReal δ < a
+  calc ⨆ μ ∈ S, μ {x | r < ‖⟪y, x⟫_ℝ‖}
+      ≤ ENNReal.ofReal δ := iSup₂_le hmu_bound
+    _ < a := hδ_lt
 
 /-! ## Phase 5: Uniqueness (from Mathlib)
 

@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 3 axioms**
+**Total: 0 sorries, 2 axioms**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -8,7 +8,7 @@
 |---|-------|-------|------------|--------|
 | 1 | `IsPositiveDefinite.mul` | 0 | Medium | proved |
 
-## Bochner.lean — 0 sorries, 3 axioms
+## Bochner.lean — 0 sorries, 2 axioms
 
 | # | Lemma | Layer | Difficulty | Status | Depends on |
 |---|-------|-------|------------|--------|------------|
@@ -17,7 +17,7 @@
 | 3 | `pd_l1_fourier_nonneg` | 1 | Medium | proved | 3a |
 | 4 | `measure_of_pd_l1` | 3 | Medium | proved | 3 |
 | 6a | `gaussianRegularize_ft_integrable` | 3 | Medium | axiom | — |
-| 6 | `gaussianRegularize_measures_tight` | 4 | Medium | axiom | 4 |
+| 6 | `gaussianRegularize_measures_tight` | 4 | Medium | proved | 4 |
 | 7 | `bochner_theorem` (existence) | 4 | Medium | proved | 4, 6, 6a |
 | 7b | `bochner_theorem` (uniqueness) | 5 | Easy | proved | Mathlib |
 
@@ -42,6 +42,7 @@
 | `IsPositiveDefinite.mul` | Schur product via PSD kernel matrices + Kronecker/submatrix |
 | `gaussian_eq_charFun` | Gaussian measure via withDensity + integral_cexp_neg_mul_sq_norm_add |
 | `measure_of_pd_l1` | Fourier scaling + inversion + withDensity construction |
+| `gaussianRegularize_measures_tight` | Tightness via `isTightMeasureSet_of_inner_tendsto` + charFun tail bound |
 | `bochner_theorem` (existence) | Assembly: Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | From Mathlib's `Measure.ext_of_charFun` |
 
@@ -51,12 +52,10 @@
 |-------|-------|-------------|
 | `pd_l1_fourier_re_nonneg` | 1 | Re(𝓕φ(ξ)) ≥ 0 for L¹ PD φ. Proof: Cesàro-weighted Riemann sums from discrete PD condition. Ref: Folland §4.2. |
 | `gaussianRegularize_ft_integrable` | 3 | 𝓕(φ · g_ε) ∈ L¹. Proof: Parseval-type argument with Gaussian approximate identity shows ∫ 𝓕(φ_ε) = φ_ε(0) = 1. |
-| `gaussianRegularize_measures_tight` | 4 | Tightness of {μ_ε} for 0 < ε ≤ 1. Proof: Mathlib's `measureReal_abs_inner_gt_le_integral_charFun` + continuity of φ at 0. |
 
 ## Recommended work order
 
-**Next**: Eliminate the 3 axioms:
-- 6 (`gaussianRegularize_measures_tight`): Use Mathlib's `measureReal_abs_inner_gt_le_integral_charFun` + continuity argument
+**Next**: Eliminate the 2 remaining axioms:
 - 6a (`gaussianRegularize_ft_integrable`): Parseval + approximate identity
 - 3a (`pd_l1_fourier_re_nonneg`): Hardest — requires multi-dimensional Riemann sum convergence
 
@@ -69,5 +68,7 @@
   `integral_conj` + `integral_neg_eq_self` (change of variables v → -v).
 - `IsPositiveDefinite` is a `structure` with two fields:
   `hermitian` (φ(-x) = conj(φ(x))) and `nonneg` (Re ≥ 0 condition)
-- `gaussianRegularize_measures_tight` restricts ε ≤ 1 (family is not tight
-  for unbounded ε since Gaussian spreading dominates as ε → ∞).
+- `gaussianRegularize_measures_tight` proved using `isTightMeasureSet_of_inner_tendsto`,
+  `measureReal_abs_inner_gt_le_integral_charFun`, and continuity of φ at 0.
+  Key helper lemmas: `gaussianRegularize_deviation_bound` (‖1-φ_ε(v)‖ ≤ ‖1-φ(v)‖+‖v‖²)
+  and `charFun_measure_inner_bound` (tail bound for individual measures).
