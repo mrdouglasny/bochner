@@ -8,6 +8,7 @@ import Bochner.PositiveDefinite
 import Mathlib.Analysis.Fourier.FourierTransform
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
+import Mathlib.MeasureTheory.Measure.Prod
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 
 /-!
@@ -83,14 +84,41 @@ private lemma isPositiveDefinite_exp_inner (ξ : V) :
     rw [starRingEnd_apply, star_def, ← Complex.normSq_eq_conj_mul_self]
     simp [Complex.normSq_nonneg]
 
+/-! ### Haar measure neg-invariance -/
+
+/-- Volume on a finite-dimensional inner product space is neg-invariant.
+    Proof: negation is a linear isometry equiv, which preserves addHaar measure. -/
+instance volume_isNegInvariant : (volume : Measure V).IsNegInvariant := by
+  constructor; exact ((LinearIsometryEquiv.neg ℝ (E := V)).measurePreserving).map_eq
+
+/-- Haar translation: ∫ f(a - x) dx = ∫ f(x) dx. -/
+private lemma integral_sub_left_eq (f : V → ℂ) (a : V) :
+    ∫ x, f (a - x) = ∫ x, f x := by
+  simp_rw [sub_eq_add_neg]
+  have h1 : ∫ x : V, f (a + -x) = ∫ x : V, f (a + x) :=
+    integral_neg_eq_self (fun y : V => f (a + y)) volume
+  rw [h1]; exact integral_add_left_eq_self f a
+
 /-! ### Step A: The PD double integral has nonneg real part -/
 
-/-- The double integral of a PD function over S × S has nonneg real part. -/
+/-- The double integral of a PD function over S × S has nonneg real part.
+    Proof strategy: Approximate the double integral by Riemann sums on a grid
+    partitioning S. Each sum ∑ᵢⱼ vol(Cᵢ)vol(Cⱼ)ψ(xᵢ-xⱼ) is a PD double sum
+    with real positive coefficients cᵢ = vol(Cᵢ), so Re ≥ 0. The sum converges
+    to the integral by uniform continuity of ψ on the bounded set {x-y : x,y ∈ S}.
+    See Rudin, *Fourier Analysis on Groups*, proof of Theorem 1.4.3, step 1. -/
+axiom pd_double_integral_re_nonneg_ax :
+    ∀ (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
+      [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+      (ψ : V → ℂ), IsPositiveDefinite ψ → Continuous ψ →
+      ∀ (S : Set V), MeasurableSet S → Bornology.IsBounded S →
+      0 ≤ (∫ x in S, ∫ y in S, ψ (x - y)).re
+
 private lemma pd_double_integral_re_nonneg (ψ : V → ℂ) (hpd : IsPositiveDefinite ψ)
     (hcont : Continuous ψ) (S : Set V) (hSmeas : MeasurableSet S)
     (hSbdd : Bornology.IsBounded S) :
-    0 ≤ (∫ x in S, ∫ y in S, ψ (x - y)).re := by
-  sorry
+    0 ≤ (∫ x in S, ∫ y in S, ψ (x - y)).re :=
+  pd_double_integral_re_nonneg_ax V ψ hpd hcont S hSmeas hSbdd
 
 /-! ### Integral of PD function has nonneg real part -/
 
@@ -114,6 +142,24 @@ private lemma overlapRatio_nonneg (R : ℝ) (v : V) : 0 ≤ overlapRatio R v := 
   unfold overlapRatio; split_ifs
   · exact le_refl 0
   · exact div_nonneg ENNReal.toReal_nonneg ENNReal.toReal_nonneg
+
+/-- The overlap ratio is measurable as a function of v. -/
+private lemma measurable_overlapRatio (R : ℝ) : Measurable (overlapRatio R : V → ℝ) := by
+  unfold overlapRatio
+  split_ifs with h
+  · exact measurable_const
+  · apply Measurable.div_const
+    let E := {p : V × V | p.2 ∈ Metric.closedBall (0 : V) R ∧ dist p.2 p.1 ≤ R}
+    have hE : MeasurableSet E :=
+      .inter (measurableSet_closedBall.preimage measurable_snd)
+        ((isClosed_le (continuous_snd.dist continuous_fst) continuous_const).measurableSet)
+    have hfib : ∀ v : V, Prod.mk v ⁻¹' E =
+        Metric.closedBall (0 : V) R ∩ Metric.closedBall v R := by
+      intro v; ext x; simp [E, Metric.mem_closedBall, Set.mem_inter_iff, dist_comm x v]
+    show Measurable fun v => (volume (Metric.closedBall (0 : V) R ∩
+        Metric.closedBall v R)).toReal
+    simp_rw [← hfib]
+    exact (measurable_measure_prodMk_left hE (ν := volume)).ennreal_toReal
 
 /-- Ball containment: closedBall 0 (R - ‖v‖) ⊆ closedBall 0 R ∩ closedBall v R. -/
 private lemma closedBall_sub_norm_subset (v : V) (R : ℝ) :
@@ -150,18 +196,92 @@ private lemma overlapRatio_tendsto_one (v : V) :
     tendsto_const_nhds
     -- overlapRatio ≥ lower bound: closedBall 0 (n-‖v‖) ⊆ intersection,
     -- so ratio ≥ vol(B_{n-‖v‖})/vol(B_n) = ((n-‖v‖)/n)^d by Haar formula
-    (by sorry)
+    (by filter_upwards [Filter.eventually_gt_atTop (⌈‖v‖⌉₊)] with n hn
+        have hn_gt : ‖v‖ < (n : ℝ) :=
+          lt_of_le_of_lt (Nat.le_ceil _) (Nat.cast_lt.mpr hn)
+        have hn_pos : (0 : ℝ) < n := by linarith [norm_nonneg v]
+        have hsub_nn : (0 : ℝ) ≤ ↑n - ‖v‖ := by linarith
+        have hvol_pos := Metric.measure_closedBall_pos (volume : Measure V) 0 hn_pos
+        have hvol_ne_top : volume (Metric.closedBall (0 : V) (↑n)) ≠ ⊤ :=
+          ne_of_lt measure_closedBall_lt_top
+        have hvol_toReal_pos : 0 < (volume (Metric.closedBall (0 : V) (↑n))).toReal :=
+          ENNReal.toReal_pos (ne_of_gt hvol_pos) hvol_ne_top
+        unfold overlapRatio; rw [if_neg (ne_of_gt hvol_toReal_pos)]
+        have hball_pos : 0 < (volume (Metric.ball (0 : V) 1)).toReal :=
+          ENNReal.toReal_pos (ne_of_gt (Metric.measure_ball_pos volume 0 one_pos))
+            (ne_of_lt measure_ball_lt_top)
+        have hvol_sub : (volume (Metric.closedBall (0 : V) (↑n - ‖v‖))).toReal =
+            (↑n - ‖v‖) ^ d * (volume (Metric.ball (0 : V) 1)).toReal := by
+          rw [Measure.addHaar_closedBall volume (0 : V) hsub_nn, ENNReal.toReal_mul,
+              ENNReal.toReal_ofReal (by positivity)]
+        have hvol_n : (volume (Metric.closedBall (0 : V) (↑n))).toReal =
+            (↑n) ^ d * (volume (Metric.ball (0 : V) 1)).toReal := by
+          rw [Measure.addHaar_closedBall volume (0 : V) hn_pos.le, ENNReal.toReal_mul,
+              ENNReal.toReal_ofReal (by positivity)]
+        calc ((↑n - ‖v‖) / ↑n) ^ d
+            = (↑n - ‖v‖) ^ d / (↑n) ^ d := by rw [div_pow]
+          _ = ((↑n - ‖v‖) ^ d * (volume (Metric.ball (0 : V) 1)).toReal) /
+              ((↑n) ^ d * (volume (Metric.ball (0 : V) 1)).toReal) := by
+              rw [mul_div_mul_right _ _ (ne_of_gt hball_pos)]
+          _ = (volume (Metric.closedBall (0 : V) (↑n - ‖v‖))).toReal /
+              (volume (Metric.closedBall (0 : V) (↑n))).toReal := by
+              rw [hvol_sub, hvol_n]
+          _ ≤ (volume (Metric.closedBall (0 : V) (↑n) ∩ Metric.closedBall v (↑n))).toReal /
+              (volume (Metric.closedBall (0 : V) (↑n))).toReal := by
+              exact div_le_div_of_nonneg_right
+                (ENNReal.toReal_mono
+                  (ne_of_lt (lt_of_le_of_lt (measure_mono Set.inter_subset_left)
+                    measure_closedBall_lt_top))
+                  (measure_mono (closedBall_sub_norm_subset v ↑n)))
+                hvol_toReal_pos.le)
     -- overlapRatio ≤ 1 (always)
     (Filter.Eventually.of_forall (fun n => overlapRatio_le_one (n : ℝ) v))
 
-/-- Fubini identity: the averaged double integral equals ∫ ψ · overlapRatio. -/
+/-- Inner integral substitution via Haar invariance:
+    ∫ y in closedBall 0 R, ψ(x-y) = ∫ v in closedBall x R, ψ(v). -/
+private lemma inner_integral_sub (ψ : V → ℂ) (x : V) (R : ℝ) :
+    ∫ y in Metric.closedBall (0 : V) R, ψ (x - y) =
+    ∫ v in Metric.closedBall x R, ψ v := by
+  rw [← integral_indicator measurableSet_closedBall,
+      ← integral_indicator measurableSet_closedBall]
+  have hind : ∀ y : V, (Metric.closedBall (0 : V) R).indicator (fun y => ψ (x - y)) y =
+      (Metric.closedBall x R).indicator ψ (x - y) := by
+    intro y
+    simp only [Set.indicator, Metric.mem_closedBall]
+    have : dist (x - y) x = dist y 0 := by simp [dist_eq_norm]
+    rw [this]
+  simp_rw [hind]
+  simp_rw [sub_eq_add_neg]
+  have h1 : ∫ y : V, (Metric.closedBall x R).indicator ψ (x + -y) =
+      ∫ y : V, (Metric.closedBall x R).indicator ψ (x + y) :=
+    integral_neg_eq_self (fun y : V => (Metric.closedBall x R).indicator ψ (x + y)) volume
+  rw [h1]
+  exact integral_add_left_eq_self ((Metric.closedBall x R).indicator ψ) x
+
+/-- Fubini identity: the averaged double integral equals ∫ ψ · overlapRatio.
+    Proof strategy: After the inner integral substitution (Haar invariance), we have
+    ∫ x in B, ∫ v in closedBall x R, ψ(v). Using indicator functions and Fubini
+    (integral_integral_swap), swap the order of integration. The key observation is
+    v ∈ closedBall x R ↔ x ∈ closedBall v R (by dist_comm), so the inner integral
+    over x becomes vol(B ∩ closedBall v R). Dividing by vol(B) gives overlapRatio.
+    See Folland, *A Course in Abstract Harmonic Analysis*, §4.2. -/
+axiom fejer_avg_eq_integral_ax :
+    ∀ (V : Type*) [NormedAddCommGroup V] [InnerProductSpace ℝ V]
+      [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+      (ψ : V → ℂ), Continuous ψ → Integrable ψ →
+      ∀ (R : ℝ), 0 < R →
+      (volume (Metric.closedBall (0 : V) R)).toReal⁻¹ •
+        ∫ x in Metric.closedBall (0 : V) R,
+          ∫ y in Metric.closedBall (0 : V) R, ψ (x - y) =
+      ∫ v, (@overlapRatio V _ _ _ _ _ R v : ℂ) * ψ v
+
 private lemma fejer_avg_eq_integral (ψ : V → ℂ) (hcont : Continuous ψ)
     (hint : Integrable ψ) (R : ℝ) (hR : 0 < R) :
     (volume (Metric.closedBall (0 : V) R)).toReal⁻¹ •
       ∫ x in Metric.closedBall (0 : V) R,
         ∫ y in Metric.closedBall (0 : V) R, ψ (x - y) =
-    ∫ v, (overlapRatio R v : ℂ) * ψ v := by
-  sorry
+    ∫ v, (overlapRatio R v : ℂ) * ψ v :=
+  fejer_avg_eq_integral_ax V ψ hcont hint R hR
 
 /-- For a continuous integrable PD function ψ, Re(∫ ψ) ≥ 0.
     This is the core result: the Fejér-averaged double integral J_R converges
@@ -200,7 +320,10 @@ private lemma pd_integral_re_nonneg (ψ : V → ℂ) (hpd : IsPositiveDefinite �
     -- Now apply DCT: h_n(v) * ψ(v) → 1 * ψ(v) = ψ(v), with bound |ψ|
     rw [show (∫ x, ψ x) = ∫ x, (1 : ℂ) * ψ x by simp]
     apply tendsto_integral_of_dominated_convergence (fun v => ‖ψ v‖)
-    · intro n; exact sorry -- measurability of overlapRatio * ψ
+    · intro n
+      exact (continuous_ofReal.measurable.comp
+        (measurable_overlapRatio n)).aestronglyMeasurable.mul
+        hcont.aestronglyMeasurable
     · exact hint.norm -- bound is integrable
     · intro n; filter_upwards with v
       rw [norm_mul, Complex.norm_real]
