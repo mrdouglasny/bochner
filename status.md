@@ -81,6 +81,31 @@
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
 
+## SazonovTightness.lean — 1 sorry, 2 axioms
+
+| # | Definition/Lemma | Status |
+|---|-----------------|--------|
+| T1 | `SazonovContinuousAt` | defined |
+| T2 | `marginalFun` | defined |
+| T3 | `marginalFun_isPositiveDefinite` | proved |
+| T4 | `one_sub_exp_neg_pos` | proved |
+| T5 | `exp_neg_le_exp_neg` | proved |
+| T6 | `one_sub_exp_half_sq_pos` | proved |
+| T7 | `tail_bound_from_exp_integral` | axiom (Chebyshev/Markov for exp functional) |
+| T8 | `gaussian_averaging_bound` | axiom (Fubini + Gaussian FT + Markov) |
+| T9 | `scaled_tail_bound` | proved (from T7 + T8) |
+| T10 | `exists_R_for_tail_bound` | proved |
+| T11 | `sazonov_tightness` | sorry (needs restriction of S to marginal subspace) |
+
+### Axioms (SazonovTightness)
+
+1. **`tail_bound_from_exp_integral`** — Chebyshev/Markov bound: if
+   ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ C, then μ({‖y‖ ≥ R}) ≤ C/(1-exp(-R²/(2σ²))).
+
+2. **`gaussian_averaging_bound`** — For a probability measure μ with charFun φ,
+   ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ ε + 2σ²·Tr(S), where S is positive with
+   quadForm S x < 1 ⟹ ‖1-φ(x)‖ < ε.
+
 ## Sazonov.lean — 0 sorries, 0 axioms
 
 | # | Definition/Lemma | Status |
