@@ -10,59 +10,35 @@ probability measure on the topological dual E' = WeakDual ℝ E.
 
 ## Proof strategy
 
-1. **Finite-dim marginals** (proved): For each finite F = {f₁,...,fₙ} ⊂ E,
-   Bochner gives μ_F on ℝⁿ with charFun = Φ(∑ tᵢfᵢ).
-2. **Consistency** (from Bochner uniqueness): projections of μ_G to F-coords = μ_F.
-3. **Kolmogorov extension** (axiom): consistent family → measure ν on E → ℝ.
+1. **Finite-dim marginals** (proved in FinDimMarginals.lean): For each finite
+   F = {f₁,...,fₙ} ⊂ E, Bochner gives μ_F on ℝⁿ with charFun = Φ(∑ tᵢfᵢ).
+2. **Projective family** (proved in ProjectiveFamily.lean): Transport marginals
+   to `∀ j : J, ℝ` indexed by `Finset E`, forming an `IsProjectiveMeasureFamily`.
+3. **Kolmogorov extension** (imported from KolmogorovExtension4):
+   `projectiveLimit` gives measure ν on E → ℝ.
 4. **Nuclear support** (axiom): nuclearity → ν concentrates on WeakDual image.
 5. **Descend** to WeakDual via measurable embedding (axiom).
 
-## Axioms (3)
+## Axioms (2)
 
-1. `kolmogorov_extension` — projective limit of consistent finite-dim measures
-2. `nuclear_support_concentration` — nuclearity → support in continuous dual
-3. `weakDual_measurableEmbedding` — evaluation embedding is measurable
+1. `nuclear_support_concentration` — nuclearity → support in continuous dual
+2. `weakDual_measurableEmbedding` — evaluation embedding is measurable
 
 ## References
 
 - Minlos, "Generalized random processes and their extension to measures" (1959)
 - Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, Thm 3
 - Billingsley, "Convergence of Probability Measures", Thm 36.1
+- Degenne-Pfaffelhuber, KolmogorovExtension4 (formalized Kolmogorov extension)
 -/
 
-import Bochner.Minlos.FinDimMarginals
+import Bochner.Minlos.ProjectiveFamily
 
 open BigOperators MeasureTheory Complex
 
 noncomputable section
 
 /-! ## Axioms -/
-
-/-- **Kolmogorov Extension Theorem.** A consistent projective family of probability
-    measures on finite-dimensional coordinate spaces extends to a probability measure
-    on the full product space.
-
-    Here "consistent" means: for F ⊆ G, the pushforward of μ_G along the
-    coordinate restriction (G → ℝ) → (F → ℝ) equals μ_F.
-
-    **Formalized** (not yet imported as dependency):
-    `MeasureTheory.isProjectiveLimit_projectiveLimit` in
-    [KolmogorovExtension4](https://github.com/remydegenne/kolmogorov_extension4)
-    (Rémy Degenne, Peter Pfaffelhuber). Uses `IsProjectiveMeasureFamily` from Mathlib
-    and proves existence via inner regularity + compact systems on Polish spaces.
-    This axiom could be eliminated by adding KolmogorovExtension4 as a dependency.
-
-    **Reference:** Billingsley, "Convergence of Probability Measures", Thm 36.1;
-    Kolmogorov, "Grundbegriffe der Wahrscheinlichkeitsrechnung" (1933).
-    **✅ Verified (Gemini, Billingsley Thm 36.1)** -/
-axiom kolmogorov_extension {I : Type*}
-    (μ : ∀ (n : ℕ) (_ : Fin n → I), ProbabilityMeasure (Fin n → ℝ))
-    (h_consistent : ∀ (n m : ℕ) (f : Fin n → I) (g : Fin m → I)
-      (π : Fin n → Fin m), (∀ i, g (π i) = f i) →
-      (μ m g).toMeasure.map (fun x => x ∘ π) = (μ n f).toMeasure) :
-    ∃ ν : ProbabilityMeasure (I → ℝ),
-      ∀ (n : ℕ) (f : Fin n → I),
-        ν.toMeasure.map (fun ω i => ω (f i)) = (μ n f).toMeasure
 
 /-- **Nuclear support concentration.** On a nuclear space E, a probability
     measure on E → ℝ whose characteristic functional is continuous on E
@@ -75,6 +51,12 @@ axiom kolmogorov_extension {I : Type*}
 
     Without the continuity hypothesis, one can construct measures via Kolmogorov
     extension that do NOT concentrate on the dual space, even for nuclear E.
+
+    **Proved in OSforGFF-matteo** (Matteo Barucco): the Gaussian case is proved
+    across `MinlosGaussianSupport*.lean` files using nuclear seminorm estimates,
+    Chebyshev-Borel-Cantelli, and measurable modification. The technique
+    generalizes to arbitrary continuous PD Φ (variance bounds are controlled
+    by continuity at 0, nuclear structure gives series convergence).
 
     **Reference:** Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3,
     Thm 3 (p. 320): "For L(φ) to be representable as ∫ exp(i(F,φ)) dμ(F) with μ
@@ -114,28 +96,32 @@ axiom weakDual_measurableEmbedding (E : Type*) [AddCommGroup E] [Module ℝ E]
     extension (→ measure on E → ℝ), nuclear support concentration (→ measure on
     WeakDual ℝ E), and Bochner uniqueness (→ uniqueness of μ).
 
-    **References**: Minlos (1959), Gel'fand-Vilenkin Vol. 4, Billingsley. -/
+    **References**: Minlos (1959), Gel'fand-Vilenkin Vol. 4, Billingsley,
+    Degenne-Pfaffelhuber (KolmogorovExtension4). -/
 theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E] (Φ : E → ℂ)
+    [NuclearSpace E] [Nonempty E] (Φ : E → ℂ)
     (h_continuous : Continuous Φ) (h_positive_definite : IsPositiveDefinite Φ)
     (h_normalized : Φ 0 = 1) :
     ∃! μ : ProbabilityMeasure (WeakDual ℝ E),
       ∀ f : E, Φ f = ∫ ω, exp (I * (ω f)) ∂μ.toMeasure := by
-  -- Step 1: Build marginal family from Bochner
-  -- For each finite set of test vectors f₁,...,fₙ, get μ_{f} on ℝⁿ
-  have h_marginals : ∀ (n : ℕ) (f : Fin n → E),
-      ∃! μ : ProbabilityMeasure (EuclideanSpace ℝ (Fin n)),
-        ∀ ξ, charFun (μ : Measure (EuclideanSpace ℝ (Fin n))) ξ =
-          marginalCF Φ f ξ :=
-    fun n f => marginal_measure_exists Φ f h_continuous h_positive_definite h_normalized
-  -- Step 2: Assembly from marginals + axioms
-  -- (a) Show consistency of marginals (from Bochner uniqueness on projected CFs)
-  -- (b) Apply kolmogorov_extension → ν on E → ℝ
-  -- (c) Apply nuclear_support_concentration → ν concentrates on WeakDual image
-  -- (d) Use weakDual_measurableEmbedding to descend ν to μ on WeakDual ℝ E
-  -- (e) Verify CF identity from Kolmogorov marginal property
-  -- (f) Prove uniqueness from Bochner uniqueness on 1D marginals
+  -- Step 1: Build the projective family and Kolmogorov extension
+  -- This gives us ν : Measure (E → ℝ), a probability measure on the algebraic dual
+  let ν := marginalProjectiveLimit Φ h_continuous h_positive_definite h_normalized
+  have hν_prob : IsProbabilityMeasure ν :=
+    marginalProjectiveLimit_isProbability Φ h_continuous h_positive_definite h_normalized
+  let ν_prob : ProbabilityMeasure (E → ℝ) := ⟨ν, hν_prob⟩
+  -- Step 2: The CF of ν is continuous (it equals Φ, which is continuous by hypothesis)
+  -- This uses the projective limit marginal property
+  have h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν) := by
+    sorry -- CF of projective limit = Φ via marginal property, hence continuous
+  -- Step 3: Nuclear support concentration — ν concentrates on WeakDual image
+  have h_support := nuclear_support_concentration ν_prob h_cf_cont
+  -- Step 4: Descend ν to μ on WeakDual ℝ E via measurable embedding
+  have h_embed := weakDual_measurableEmbedding E
+  -- Step 5: Construct the probability measure μ on WeakDual ℝ E
+  -- Since ν concentrates on the image of the embedding, we can restrict/descend
   sorry
 
 /-! ## Derived results -/
@@ -144,7 +130,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     on a nuclear space must be equal. -/
 theorem minlos_uniqueness {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E]
+    [NuclearSpace E] [Nonempty E]
     {Φ : E → ℂ} (hΦ_cont : Continuous Φ)
     (hΦ_pd : IsPositiveDefinite Φ) (hΦ_norm : Φ 0 = 1)
     {μ₁ μ₂ : ProbabilityMeasure (WeakDual ℝ E)}
