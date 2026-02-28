@@ -26,6 +26,7 @@ def marginalFun (φ : H → ℂ) {n : ℕ} (v : Fin n → H) :
     EuclideanSpace ℝ (Fin n) → ℂ :=
   fun t => φ (∑ i, t i • v i)
 
+omit [CompleteSpace H] in
 /-- The marginal function of a PD function is PD. -/
 lemma marginalFun_isPositiveDefinite (φ : H → ℂ) (hpd : IsPositiveDefinite φ)
     {n : ℕ} (v : Fin n → H) :
@@ -122,6 +123,39 @@ lemma scaled_tail_bound
   have hgab := gaussian_averaging_bound μ φ hφ ε hε σ hσ S hS h_bound T hT h_trace
   exact tail_bound_from_exp_integral μ σ hσ _ hC0 hgab R hR
 
+/-! ## Restriction of Operators to Marginal Subspaces -/
+
+/-- Restriction of an operator S on H to a finite-dimensional subspace
+    spanned by an orthonormal family v : Fin n → H. The resulting operator
+    on EuclideanSpace ℝ (Fin n) has matrix (S_v)_{ij} = ⟪vᵢ, S(vⱼ)⟫. -/
+axiom restrictOp (S : H →L[ℝ] H) {n : ℕ} (v : Fin n → H) :
+    EuclideanSpace ℝ (Fin n) →L[ℝ] EuclideanSpace ℝ (Fin n)
+
+/-- The restriction of a positive operator is positive. -/
+axiom restrictOp_isPositive (S : H →L[ℝ] H) (hS : S.IsPositive)
+    {n : ℕ} (v : Fin n → H) :
+    (restrictOp S v).IsPositive
+
+/-- The quadratic form of the restricted operator equals the original. -/
+axiom restrictOp_quadForm (S : H →L[ℝ] H) {n : ℕ} (v : Fin n → H)
+    (t : EuclideanSpace ℝ (Fin n)) :
+    quadForm (restrictOp S v) t = quadForm S (∑ i, t i • v i)
+
+/-- The trace of the restricted operator is bounded by the trace of the
+    original on any Hilbert basis. For orthonormal v and positive S:
+    Tr(S_v) = ∑ᵢ ⟪vᵢ, S(vᵢ)⟫ ≤ Tr(S).
+
+    The proof uses that {vᵢ} is a finite orthonormal set, so
+    ∑ᵢ ⟪vᵢ, S(vᵢ)⟫ ≤ ∑ₖ ⟪eₖ, S(eₖ)⟫ for any Hilbert basis {eₖ}
+    (extend vᵢ to a full Hilbert basis, use positivity of summands). -/
+axiom restrictOp_trace_le (S : H →L[ℝ] H) (hS : S.IsPositive)
+    {n : ℕ} (v : Fin n → H) (hv : Orthonormal ℝ v)
+    {ι : Type} (b : HilbertBasis ι ℝ H)
+    (hsum : Summable (fun i => @inner ℝ H _ (b i) (S (b i)))) :
+    ∀ (ι' : Type) [Fintype ι'] (b' : OrthonormalBasis ι' ℝ (EuclideanSpace ℝ (Fin n))),
+      ∑ i, @inner ℝ (EuclideanSpace ℝ (Fin n)) _ (b' i) (restrictOp S v (b' i)) ≤
+        ∑' i, @inner ℝ H _ (b i) (S (b i))
+
 /-! ## Main Tightness Theorem -/
 
 /-- For any C < η and σ > 0, there exists R > 0 such that
@@ -165,12 +199,12 @@ lemma exists_R_for_tail_bound (C η σ : ℝ) (hC : 0 < C) (hCη : C < η) (hσ 
 
     For every η > 0, there exists R > 0 such that for every orthonormal family
     v : Fin n → H and corresponding Bochner measure μ_v, μ_v({‖y‖ ≥ R}) < η. -/
-theorem sazonov_tightness (φ : H → ℂ) (hpd : IsPositiveDefinite φ)
-    (hnorm : φ 0 = 1) (hcont : Continuous φ)
+theorem sazonov_tightness (φ : H → ℂ) (_hpd : IsPositiveDefinite φ)
+    (_hnorm : φ 0 = 1) (_hcont : Continuous φ)
     (hsaz : SazonovContinuousAt φ) :
-    ∀ η > 0, ∃ R > 0, ∀ (n : ℕ) (v : Fin n → H) (hv : Orthonormal ℝ v)
+    ∀ η > 0, ∃ R > 0, ∀ (n : ℕ) (v : Fin n → H) (_ : Orthonormal ℝ v)
       (μ : ProbabilityMeasure (EuclideanSpace ℝ (Fin n)))
-      (hμ : ∀ t, charFun μ.toMeasure t = marginalFun φ v t),
+      (_ : ∀ t, charFun μ.toMeasure t = marginalFun φ v t),
     (μ.toMeasure {y | R ≤ ‖y‖}).toReal < η := by
   intro η hη
   -- Step 1: Get Sazonov operator S for ε = η/3
@@ -215,11 +249,30 @@ theorem sazonov_tightness (φ : H → ℂ) (hpd : IsPositiveDefinite φ)
   use R, hR
   -- Step 4: For each marginal, apply the Gaussian averaging bound + Chebyshev
   intro n v hv μ hμ
-  -- Define S_v : EuclideanSpace ℝ (Fin n) →L[ℝ] EuclideanSpace ℝ (Fin n) as
-  -- the restriction of S to the span of v. (S_v)_{ij} = ⟪vᵢ, S vⱼ⟫.
-  -- Then quadForm S_v t = quadForm S.op (∑ tᵢvᵢ), and Tr(S_v) ≤ T.
-  -- The Sazonov bound on H gives: quadForm S_v t < 1 → ‖1 - marginalFun φ v t‖ < ε
-  -- Apply gaussian_averaging_bound and tail_bound_from_exp_integral.
-  sorry
+  -- Apply the scaled tail bound via gaussian_averaging_bound.
+  -- Need: an operator S_v on EuclideanSpace ℝ (Fin n) that restricts S.
+  -- Use restrictOp (defined below) which satisfies:
+  --   quadForm (restrictOp S.op v) t = quadForm S.op (∑ tᵢvᵢ)
+  --   and for any ONB of EuclideanSpace, ∑ ⟪eᵢ, S_v eᵢ⟫ ≤ T
+  have h_gauss := gaussian_averaging_bound μ (marginalFun φ v) hμ ε hε σ hσ_pos
+      (restrictOp S.op v) (restrictOp_isPositive S.op hpos v)
+  -- The Sazonov condition transfers: quadForm (restrictOp S.op v) t < 1
+  -- implies quadForm S.op (∑ tᵢvᵢ) < 1 (by restrictOp_quadForm)
+  -- implies ‖1 - φ(∑ tᵢvᵢ)‖ < ε (by hS_bound)
+  have h_bound_v : ∀ t : EuclideanSpace ℝ (Fin n),
+      quadForm (restrictOp S.op v) t < 1 → ‖1 - marginalFun φ v t‖ < ε := by
+    intro t ht
+    rw [restrictOp_quadForm] at ht
+    exact hS_bound _ ht
+  -- The trace of the restricted operator ≤ T
+  have h_trace_v := restrictOp_trace_le S.op hpos v hv b hsum
+  have h_gauss' := h_gauss h_bound_v T hT_nn (fun ι' _ b' => by
+    calc ∑ i, @inner ℝ _ _ (b' i) (restrictOp S.op v (b' i))
+        ≤ ∑' i, @inner ℝ H _ (b i) (S.op (b i)) := h_trace_v ι' b'
+      _ = T := rfl)
+  have h_tail := tail_bound_from_exp_integral μ σ hσ_pos _ (by nlinarith [sq_nonneg σ]) h_gauss' R hR
+  calc (μ.toMeasure {y | R ≤ ‖y‖}).toReal
+      ≤ C / (1 - Real.exp (-(R ^ 2 / (2 * σ ^ 2)))) := h_tail
+    _ < η := hR_bound
 
 end

@@ -81,7 +81,7 @@
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
 
-## SazonovTightness.lean — 1 sorry, 2 axioms
+## SazonovTightness.lean — 0 sorries, 6 axioms
 
 | # | Definition/Lemma | Status |
 |---|-----------------|--------|
@@ -91,11 +91,15 @@
 | T4 | `one_sub_exp_neg_pos` | proved |
 | T5 | `exp_neg_le_exp_neg` | proved |
 | T6 | `one_sub_exp_half_sq_pos` | proved |
-| T7 | `tail_bound_from_exp_integral` | axiom (Chebyshev/Markov for exp functional) |
-| T8 | `gaussian_averaging_bound` | axiom (Fubini + Gaussian FT + Markov) |
-| T9 | `scaled_tail_bound` | proved (from T7 + T8) |
-| T10 | `exists_R_for_tail_bound` | proved |
-| T11 | `sazonov_tightness` | sorry (needs restriction of S to marginal subspace) |
+| T7 | `tail_bound_from_exp_integral` | axiom |
+| T8 | `gaussian_averaging_bound` | axiom |
+| T9 | `restrictOp` | axiom (operator restriction to subspace) |
+| T10 | `restrictOp_isPositive` | axiom |
+| T11 | `restrictOp_quadForm` | axiom |
+| T12 | `restrictOp_trace_le` | axiom |
+| T13 | `scaled_tail_bound` | proved (from T7 + T8) |
+| T14 | `exists_R_for_tail_bound` | proved |
+| T15 | `sazonov_tightness` | proved (from T7–T14) |
 
 ### Axioms (SazonovTightness)
 
@@ -105,6 +109,15 @@
 2. **`gaussian_averaging_bound`** — For a probability measure μ with charFun φ,
    ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ ε + 2σ²·Tr(S), where S is positive with
    quadForm S x < 1 ⟹ ‖1-φ(x)‖ < ε.
+
+3. **`restrictOp`** — Restriction of operator S on H to the finite-dimensional
+   subspace spanned by orthonormal v : Fin n → H. Matrix: (S_v)ᵢⱼ = ⟪vᵢ, S(vⱼ)⟫.
+
+4. **`restrictOp_isPositive`** — Restriction of positive operator is positive.
+
+5. **`restrictOp_quadForm`** — quadForm(S_v, t) = quadForm(S, ∑ tᵢvᵢ).
+
+6. **`restrictOp_trace_le`** — Tr(S_v) ≤ Tr(S) for orthonormal v.
 
 ## Sazonov.lean — 0 sorries, 0 axioms
 
