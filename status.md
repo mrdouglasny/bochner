@@ -81,7 +81,7 @@
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
 
-## SazonovTightness.lean — 0 sorries, 6 axioms
+## SazonovTightness.lean — 0 sorries, 2 axioms
 
 | # | Definition/Lemma | Status |
 |---|-----------------|--------|
@@ -91,33 +91,31 @@
 | T4 | `one_sub_exp_neg_pos` | proved |
 | T5 | `exp_neg_le_exp_neg` | proved |
 | T6 | `one_sub_exp_half_sq_pos` | proved |
-| T7 | `tail_bound_from_exp_integral` | axiom |
+| T7 | `tail_bound_from_exp_integral` | proved (Chebyshev/Markov via set integrals) |
 | T8 | `gaussian_averaging_bound` | axiom |
-| T9 | `restrictOp` | axiom (operator restriction to subspace) |
-| T10 | `restrictOp_isPositive` | axiom |
-| T11 | `restrictOp_quadForm` | axiom |
-| T12 | `restrictOp_trace_le` | axiom |
+| T9 | `restrictOp` | proved (definition via π ∘ S ∘ ι) |
+| T10 | `restrictOp_isPositive` | proved (symmetry via adjoint, nonneg via quadForm) |
+| T11 | `restrictOp_quadForm` | proved (PiLp.inner_apply + sum_inner) |
+| T12a | `orthonormal_diag_le_hilbert_trace` | axiom (∑ⱼ ⟪vⱼ, S(vⱼ)⟫ ≤ Tr(S)) |
+| T12b | `restrictOp_trace_eq_diag` | proved (trace basis independence via LinearMap.trace) |
+| T12c | `restrictOp_trace_le` | proved (from T12a + T12b) |
 | T13 | `scaled_tail_bound` | proved (from T7 + T8) |
 | T14 | `exists_R_for_tail_bound` | proved |
 | T15 | `sazonov_tightness` | proved (from T7–T14) |
 
 ### Axioms (SazonovTightness)
 
-1. **`tail_bound_from_exp_integral`** — Chebyshev/Markov bound: if
-   ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ C, then μ({‖y‖ ≥ R}) ≤ C/(1-exp(-R²/(2σ²))).
-
-2. **`gaussian_averaging_bound`** — For a probability measure μ with charFun φ,
+1. **`gaussian_averaging_bound`** — For a probability measure μ with charFun φ,
    ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ ε + 2σ²·Tr(S), where S is positive with
    quadForm S x < 1 ⟹ ‖1-φ(x)‖ < ε.
 
-3. **`restrictOp`** — Restriction of operator S on H to the finite-dimensional
-   subspace spanned by orthonormal v : Fin n → H. Matrix: (S_v)ᵢⱼ = ⟪vᵢ, S(vⱼ)⟫.
-
-4. **`restrictOp_isPositive`** — Restriction of positive operator is positive.
-
-5. **`restrictOp_quadForm`** — quadForm(S_v, t) = quadForm(S, ∑ tᵢvᵢ).
-
-6. **`restrictOp_trace_le`** — Tr(S_v) ≤ Tr(S) for orthonormal v.
+2. **`orthonormal_diag_le_hilbert_trace`** — For orthonormal v : Fin n → H and
+   positive S with summable trace, ∑ⱼ ⟪vⱼ, S(vⱼ)⟫ ≤ ∑' k ⟪bₖ, S(bₖ)⟫.
+   Proof sketch: decompose bₖ = P(bₖ) + Q(bₖ) where P is the projection
+   onto span(v). The cross term ∑' k ⟪Q(bₖ), S(P(bₖ))⟫ = 0 by Parseval +
+   orthonormality, so the difference = ∑' k ⟪Q(bₖ), S(Q(bₖ))⟫ ≥ 0.
+   (The trace basis independence on EuclideanSpace is proved separately
+   via `LinearMap.trace_eq_sum_inner`.)
 
 ## Sazonov.lean — 0 sorries, 0 axioms
 
