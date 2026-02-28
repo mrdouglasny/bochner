@@ -81,7 +81,7 @@
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
 
-## SazonovTightness.lean — 0 sorries, 2 axioms
+## SazonovTightness.lean — 0 sorries, 1 axiom
 
 | # | Definition/Lemma | Status |
 |---|-----------------|--------|
@@ -96,7 +96,7 @@
 | T9 | `restrictOp` | proved (definition via π ∘ S ∘ ι) |
 | T10 | `restrictOp_isPositive` | proved (symmetry via adjoint, nonneg via quadForm) |
 | T11 | `restrictOp_quadForm` | proved (PiLp.inner_apply + sum_inner) |
-| T12a | `orthonormal_diag_le_hilbert_trace` | axiom (∑ⱼ ⟪vⱼ, S(vⱼ)⟫ ≤ Tr(S)) |
+| T12a | `orthonormal_diag_le_hilbert_trace` | proved (P/Q projection + Parseval + HasSum arithmetic) |
 | T12b | `restrictOp_trace_eq_diag` | proved (trace basis independence via LinearMap.trace) |
 | T12c | `restrictOp_trace_le` | proved (from T12a + T12b) |
 | T13 | `scaled_tail_bound` | proved (from T7 + T8) |
@@ -106,16 +106,10 @@
 ### Axioms (SazonovTightness)
 
 1. **`gaussian_averaging_bound`** — For a probability measure μ with charFun φ,
-   ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ ε + 2σ²·Tr(S), where S is positive with
-   quadForm S x < 1 ⟹ ‖1-φ(x)‖ < ε.
-
-2. **`orthonormal_diag_le_hilbert_trace`** — For orthonormal v : Fin n → H and
-   positive S with summable trace, ∑ⱼ ⟪vⱼ, S(vⱼ)⟫ ≤ ∑' k ⟪bₖ, S(bₖ)⟫.
-   Proof sketch: decompose bₖ = P(bₖ) + Q(bₖ) where P is the projection
-   onto span(v). The cross term ∑' k ⟪Q(bₖ), S(P(bₖ))⟫ = 0 by Parseval +
-   orthonormality, so the difference = ∑' k ⟪Q(bₖ), S(Q(bₖ))⟫ ≥ 0.
-   (The trace basis independence on EuclideanSpace is proved separately
-   via `LinearMap.trace_eq_sum_inner`.)
+   ∫ (1 - exp(-σ²‖y‖²/2)) dμ ≤ ε + 2σ²·Tr(S), where S is positive with
+   quadForm S x < 1 ⟹ ‖1-φ(x)‖ < ε. Here exp(-σ²‖y‖²/2) is the
+   charFun of N(0, σ²I). Proof: Fubini to rewrite as ∫ Re(1-φ(x)) dγ(x),
+   split over {qf<1} and {qf≥1}, Markov for E_γ[⟨x,Sx⟩] = σ²·Tr(S).
 
 ## Sazonov.lean — 0 sorries, 0 axioms
 

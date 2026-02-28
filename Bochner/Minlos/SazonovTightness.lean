@@ -67,47 +67,48 @@ lemma one_sub_exp_half_sq_pos (R : ℝ) (hR : 0 < R) :
     0 < 1 - Real.exp (-(R ^ 2 / 2)) := by
   apply one_sub_exp_neg_pos; positivity
 
-/-- Chebyshev/Markov bound with scaling: if ∫ (1 - exp(-‖y‖²/(2σ²))) dμ ≤ C,
-    then μ({‖y‖ ≥ R}) ≤ C / (1 - exp(-R²/(2σ²))). -/
+/-- Chebyshev/Markov bound with scaling: if ∫ (1 - exp(-σ²‖y‖²/2)) dμ ≤ C,
+    then μ({‖y‖ ≥ R}) ≤ C / (1 - exp(-σ²R²/2)). -/
 lemma tail_bound_from_exp_integral {V : Type*} [NormedAddCommGroup V]
     [MeasurableSpace V] [BorelSpace V]
     (μ : ProbabilityMeasure V) (σ : ℝ) (hσ : 0 < σ)
     (C : ℝ) (_hC0 : 0 ≤ C)
-    (hC : ∫ y, (1 - Real.exp (-(‖y‖ ^ 2 / (2 * σ ^ 2)))) ∂μ.toMeasure ≤ C)
+    (hC : ∫ y, (1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) ∂μ.toMeasure ≤ C)
     (R : ℝ) (hR : 0 < R) :
-    (μ.toMeasure {y | R ≤ ‖y‖}).toReal ≤ C / (1 - Real.exp (-(R ^ 2 / (2 * σ ^ 2)))) := by
-  set δ := 1 - Real.exp (-(R ^ 2 / (2 * σ ^ 2))) with hδ_def
+    (μ.toMeasure {y | R ≤ ‖y‖}).toReal ≤ C / (1 - Real.exp (-(σ ^ 2 * R ^ 2 / 2))) := by
+  set δ := 1 - Real.exp (-(σ ^ 2 * R ^ 2 / 2)) with hδ_def
   have hδ_pos : 0 < δ := by
     rw [hδ_def]
-    have : Real.exp (-(R ^ 2 / (2 * σ ^ 2))) < 1 := by
-      calc Real.exp (-(R ^ 2 / (2 * σ ^ 2))) < Real.exp 0 :=
-            Real.exp_strictMono (by linarith [show 0 < R ^ 2 / (2 * σ ^ 2) from by positivity])
+    have : Real.exp (-(σ ^ 2 * R ^ 2 / 2)) < 1 := by
+      calc Real.exp (-(σ ^ 2 * R ^ 2 / 2)) < Real.exp 0 :=
+            Real.exp_strictMono (by linarith [show 0 < σ ^ 2 * R ^ 2 / 2 from by positivity])
         _ = 1 := Real.exp_zero
     linarith
   set A := {y : V | R ≤ ‖y‖}
-  set f : V → ℝ := fun y => 1 - Real.exp (-(‖y‖ ^ 2 / (2 * σ ^ 2)))
+  set f : V → ℝ := fun y => 1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))
   have hA_meas : MeasurableSet A :=
     measurableSet_le measurable_const continuous_norm.measurable
   have hf_nn : ∀ y, 0 ≤ f y := by
     intro y; simp only [f]
-    have : Real.exp (-(‖y‖ ^ 2 / (2 * σ ^ 2))) ≤ Real.exp 0 :=
-      Real.exp_le_exp_of_le (by linarith [show 0 ≤ ‖y‖ ^ 2 / (2 * σ ^ 2) from by positivity])
+    have : Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2)) ≤ Real.exp 0 :=
+      Real.exp_le_exp_of_le (by linarith [show 0 ≤ σ ^ 2 * ‖y‖ ^ 2 / 2 from by positivity])
     rw [Real.exp_zero] at this; linarith
   have hf_ge_δ : ∀ y ∈ A, δ ≤ f y := by
     intro y hy
     simp only [A, mem_setOf_eq] at hy; simp only [f, hδ_def]
-    have : R ^ 2 / (2 * σ ^ 2) ≤ ‖y‖ ^ 2 / (2 * σ ^ 2) :=
-      div_le_div_of_nonneg_right (sq_le_sq' (by linarith) hy) (by positivity)
+    have : σ ^ 2 * R ^ 2 / 2 ≤ σ ^ 2 * ‖y‖ ^ 2 / 2 := by
+      apply div_le_div_of_nonneg_right _ (by positivity : (0:ℝ) ≤ 2)
+      exact mul_le_mul_of_nonneg_left (sq_le_sq' (by linarith) hy) (by positivity)
     linarith [Real.exp_le_exp_of_le (neg_le_neg this)]
   have hf_cont : Continuous f := by
     simp only [f]; apply continuous_const.sub
     exact Real.continuous_exp.comp (continuous_neg.comp
-      ((continuous_norm.pow 2).mul continuous_const))
+      ((continuous_const.mul (continuous_norm.pow 2)).div_const _))
   have hf_int : Integrable f μ.toMeasure := by
     apply Integrable.mono' (integrable_const (1 : ℝ)) hf_cont.aestronglyMeasurable
     exact Eventually.of_forall fun y => by
       rw [Real.norm_eq_abs, abs_of_nonneg (hf_nn y)]
-      simp only [f]; linarith [Real.exp_nonneg (-(‖y‖ ^ 2 / (2 * σ ^ 2)))]
+      simp only [f]; linarith [Real.exp_nonneg (-(σ ^ 2 * ‖y‖ ^ 2 / 2))]
   have key : δ * (μ.toMeasure A).toReal ≤ C :=
     calc δ * (μ.toMeasure A).toReal
         = ∫ _ in A, δ ∂μ.toMeasure := by
@@ -124,11 +125,11 @@ lemma tail_bound_from_exp_integral {V : Type*} [NormedAddCommGroup V]
 
 /-- The Gaussian averaging bound with scaling parameter σ > 0:
 
-    ∫ (1 - exp(-‖y‖²/(2σ²))) dμ(y) ≤ ε + 2σ²·T
+    ∫ (1 - exp(-σ²‖y‖²/2)) dμ(y) ≤ ε + 2σ²·T
 
-    When σ = 1, this is the standard bound ε + 2T.
-    The scaling freedom is critical for tightness: it lets us balance
-    the numerator ε + 2σ²T against the denominator 1 - exp(-R²/(2σ²)). -/
+    Here exp(-σ²‖y‖²/2) is the characteristic function of N(0, σ²I).
+    The bound follows from Fubini + splitting over {qf(S,x) < 1}
+    + Markov's inequality for E_γ[⟨x,Sx⟩] = σ²·Tr(S). -/
 axiom gaussian_averaging_bound
     {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
     [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
@@ -142,7 +143,7 @@ axiom gaussian_averaging_bound
     (T : ℝ) (hT : 0 ≤ T)
     (h_trace : ∀ (ι : Type*) [Fintype ι] (b : OrthonormalBasis ι ℝ V),
       ∑ i, @inner ℝ V _ (b i) (S (b i)) ≤ T) :
-    ∫ y, (1 - Real.exp (-(‖y‖ ^ 2 / (2 * σ ^ 2)))) ∂μ.toMeasure ≤ ε + 2 * σ ^ 2 * T
+    ∫ y, (1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) ∂μ.toMeasure ≤ ε + 2 * σ ^ 2 * T
 
 /-- Scaled Chebyshev: combining Gaussian averaging with the tail bound. -/
 lemma scaled_tail_bound
@@ -160,9 +161,9 @@ lemma scaled_tail_bound
       ∑ i, @inner ℝ V _ (b i) (S (b i)) ≤ T)
     (R : ℝ) (hR : 0 < R) :
     (μ.toMeasure {y | R ≤ ‖y‖}).toReal ≤
-      (ε + 2 * σ ^ 2 * T) / (1 - Real.exp (-(R ^ 2 / (2 * σ ^ 2)))) := by
+      (ε + 2 * σ ^ 2 * T) / (1 - Real.exp (-(σ ^ 2 * R ^ 2 / 2))) := by
   have hσ2 : 0 < σ ^ 2 := by positivity
-  have hRσ : 0 < R ^ 2 / (2 * σ ^ 2) := by positivity
+  have hRσ : 0 < σ ^ 2 * R ^ 2 / 2 := by positivity
   have hC0 : 0 ≤ ε + 2 * σ ^ 2 * T := by nlinarith
   have hgab := gaussian_averaging_bound μ φ hφ ε hε σ hσ S hS h_bound T hT h_trace
   exact tail_bound_from_exp_integral μ σ hσ _ hC0 hgab R hR
@@ -242,12 +243,79 @@ lemma restrictOp_isPositive (S : H →L[ℝ] H) (hS : S.IsPositive)
     Proof: decompose bₖ = P(bₖ) + Q(bₖ) via the projection P onto span(v).
     The cross term ∑' k ⟪Q(bₖ), S(P(bₖ))⟫ vanishes by Parseval + orthonormality,
     so the difference = ∑' k ⟪Q(bₖ), S(Q(bₖ))⟫ ≥ 0 by positivity of S. -/
-axiom orthonormal_diag_le_hilbert_trace (S : H →L[ℝ] H) (hS : S.IsPositive)
+theorem orthonormal_diag_le_hilbert_trace (S : H →L[ℝ] H) (hS : S.IsPositive)
     {n : ℕ} (v : Fin n → H) (hv : Orthonormal ℝ v)
     {ι : Type} (b : HilbertBasis ι ℝ H)
     (hsum : Summable (fun i => @inner ℝ H _ (b i) (S (b i)))) :
     ∑ j : Fin n, @inner ℝ H _ (v j) (S (v j)) ≤
-      ∑' i, @inner ℝ H _ (b i) (S (b i))
+      ∑' i, @inner ℝ H _ (b i) (S (b i)) := by
+  have sa : ∀ a c : H, @inner ℝ H _ a (S c) = @inner ℝ H _ c (S a) := by
+    intro a c
+    have h := ContinuousLinearMap.adjoint_inner_left S c a
+    rw [hS.isSelfAdjoint.adjoint_eq] at h; rw [← h, real_inner_comm]
+  have hnn : ∀ x : H, 0 ≤ @inner ℝ H _ x (S x) := by
+    intro x; have := hS.re_inner_nonneg_left x
+    simp only [RCLike.re_to_real] at this; rwa [real_inner_comm]
+  set Pv : H → H := fun x => ∑ j, @inner ℝ H _ (v j) x • v j with hPv_def
+  suffices hsuff :
+      ∑ j, @inner ℝ H _ (v j) (S (v j)) +
+        ∑' k, @inner ℝ H _ (b k - Pv (b k)) (S (b k - Pv (b k))) =
+      ∑' k, @inner ℝ H _ (b k) (S (b k)) by
+    have h_nn : 0 ≤ ∑' k, @inner ℝ H _ (b k - Pv (b k)) (S (b k - Pv (b k))) :=
+      tsum_nonneg fun k => hnn (b k - Pv (b k))
+    linarith
+  have expand : ∀ k, @inner ℝ H _ (b k - Pv (b k)) (S (b k - Pv (b k))) =
+      @inner ℝ H _ (b k) (S (b k)) - 2 * @inner ℝ H _ (Pv (b k)) (S (b k)) +
+      @inner ℝ H _ (Pv (b k)) (S (Pv (b k))) := by
+    intro k; rw [map_sub]; simp only [inner_sub_left, inner_sub_right, sa (b k) (Pv (b k))]; ring
+  have hA_eq : ∀ k, @inner ℝ H _ (Pv (b k)) (S (b k)) =
+      ∑ j, @inner ℝ H _ (v j) (b k) * @inner ℝ H _ (b k) (S (v j)) := by
+    intro k; simp only [hPv_def, sum_inner]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [inner_smul_left, RCLike.conj_to_real, sa]
+  have hA : HasSum (fun k => @inner ℝ H _ (Pv (b k)) (S (b k)))
+      (∑ j, @inner ℝ H _ (v j) (S (v j))) := by
+    simp_rw [hA_eq]
+    exact hasSum_sum fun j _ => b.hasSum_inner_mul_inner (v j) (S (v j))
+  have hB_eq : ∀ k, @inner ℝ H _ (Pv (b k)) (S (Pv (b k))) =
+      ∑ j, ∑ i, @inner ℝ H _ (v j) (S (v i)) *
+        (@inner ℝ H _ (v j) (b k) * @inner ℝ H _ (v i) (b k)) := by
+    intro k; simp only [hPv_def, sum_inner, inner_smul_left, RCLike.conj_to_real]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [sa (v j) (∑ i, @inner ℝ H _ (v i) (↑(b k)) • v i)]
+    simp only [sum_inner, inner_smul_left, RCLike.conj_to_real]
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [sa]; ring
+  have hB_parseval : ∀ j i : Fin n,
+      HasSum (fun k => @inner ℝ H _ (v j) (b k) * @inner ℝ H _ (v i) (b k))
+        (@inner ℝ H _ (v j) (v i)) := by
+    intro j i
+    have h := b.hasSum_inner_mul_inner (v j) (v i)
+    simp_rw [real_inner_comm (v i) (b _)] at h; exact h
+  have hB_target_eq : ∑ j : Fin n, @inner ℝ H _ (v j) (S (v j)) =
+      ∑ j, ∑ i, @inner ℝ H _ (v j) (S (v i)) * @inner ℝ H _ (v j) (v i) := by
+    congr 1; ext j
+    conv_lhs => rw [show @inner ℝ H _ (v j) (S (v j)) =
+      ∑ i, @inner ℝ H _ (v j) (S (v i)) * @inner ℝ H _ (v j) (v i) from by
+        simp_rw [orthonormal_iff_ite.mp hv]
+        simp [Finset.mem_univ]]
+  have hB : HasSum (fun k => @inner ℝ H _ (Pv (b k)) (S (Pv (b k))))
+      (∑ j, @inner ℝ H _ (v j) (S (v j))) := by
+    rw [hB_target_eq]; simp_rw [hB_eq]
+    exact hasSum_sum fun j _ => hasSum_sum fun i _ =>
+      (hB_parseval j i).const_smul (@inner ℝ H _ (v j) (S (v i)))
+  simp_rw [expand]
+  have hQ : HasSum (fun k =>
+      @inner ℝ H _ (b k) (S (b k)) - 2 * @inner ℝ H _ (Pv (b k)) (S (b k)) +
+      @inner ℝ H _ (Pv (b k)) (S (Pv (b k))))
+      (∑' k, @inner ℝ H _ (b k) (S (b k)) -
+       ∑ j, @inner ℝ H _ (v j) (S (v j))) := by
+    have h := ((hsum.hasSum.sub (hA.add hA)).add hB)
+    convert h using 1
+    · ext k; ring
+    · ring
+  linarith [hQ.tsum_eq]
 
 omit [CompleteSpace H] in
 /-- The trace of restrictOp in any ONB of EuclideanSpace equals ∑ⱼ ⟪vⱼ, S(vⱼ)⟫.
@@ -283,7 +351,6 @@ lemma restrictOp_trace_eq_diag (S : H →L[ℝ] H) {n : ℕ} (v : Fin n → H)
     simp [Finset.sum_ite_eq']
   exact lhs_eq.trans ((h1.symm.trans h2).trans rhs_eq)
 
-omit [CompleteSpace H] in
 /-- The trace of the restricted operator is bounded by the trace of the
     original on any Hilbert basis. Combines trace basis independence on
     EuclideanSpace with the diagonal bound. -/
@@ -302,9 +369,9 @@ lemma restrictOp_trace_le (S : H →L[ℝ] H) (hS : S.IsPositive)
 /-! ## Main Tightness Theorem -/
 
 /-- For any C < η and σ > 0, there exists R > 0 such that
-    C / (1 - exp(-R²/(2σ²))) < η. -/
+    C / (1 - exp(-σ²R²/2)) < η. -/
 lemma exists_R_for_tail_bound (C η σ : ℝ) (hC : 0 < C) (hCη : C < η) (hσ : 0 < σ) :
-    ∃ R > 0, C / (1 - Real.exp (-(R ^ 2 / (2 * σ ^ 2)))) < η := by
+    ∃ R > 0, C / (1 - Real.exp (-(σ ^ 2 * R ^ 2 / 2))) < η := by
   have hη : 0 < η := by linarith
   set δ := (1 - C / η) / 2 with hδ_def
   have hCη' : C / η < 1 := by rwa [div_lt_one hη]
@@ -312,14 +379,14 @@ lemma exists_R_for_tail_bound (C η σ : ℝ) (hC : 0 < C) (hCη : C < η) (hσ 
   have hδ_bound : δ < 1 - C / η := by rw [hδ_def]; linarith
   have hδ_lt_one : δ < 1 := by linarith [div_pos hC hη]
   have hlog_neg : Real.log δ < 0 := Real.log_neg hδ_pos hδ_lt_one
-  set R := σ * Real.sqrt (2 * (-Real.log δ)) with hR_def
+  set R := Real.sqrt (2 * (-Real.log δ)) / σ with hR_def
   use R
   constructor
-  · rw [hR_def]; apply mul_pos hσ; apply Real.sqrt_pos.mpr; nlinarith
+  · rw [hR_def]; apply div_pos (Real.sqrt_pos.mpr (by nlinarith)) hσ
   · have hσ2 : 0 < σ ^ 2 := by positivity
-    have hR_sq : R ^ 2 = σ ^ 2 * (2 * (-Real.log δ)) := by
-      rw [hR_def]; ring_nf; rw [Real.sq_sqrt (by nlinarith)]; ring
-    have h_exp_arg : R ^ 2 / (2 * σ ^ 2) = -Real.log δ := by
+    have hR_sq : R ^ 2 = 2 * (-Real.log δ) / σ ^ 2 := by
+      rw [hR_def, div_pow, Real.sq_sqrt (by nlinarith)]
+    have h_exp_arg : σ ^ 2 * R ^ 2 / 2 = -Real.log δ := by
       rw [hR_sq]; field_simp
     rw [h_exp_arg, neg_neg, Real.exp_log hδ_pos]
     rw [div_lt_iff₀ (by linarith : 0 < 1 - δ)]
@@ -381,7 +448,7 @@ theorem sazonov_tightness (φ : H → ℂ) (_hpd : IsPositiveDefinite φ)
       _ = T := rfl)
   have h_tail := tail_bound_from_exp_integral μ σ hσ_pos _ (by nlinarith [sq_nonneg σ]) h_gauss' R hR
   calc (μ.toMeasure {y | R ≤ ‖y‖}).toReal
-      ≤ C / (1 - Real.exp (-(R ^ 2 / (2 * σ ^ 2)))) := h_tail
+      ≤ C / (1 - Real.exp (-(σ ^ 2 * R ^ 2 / 2))) := h_tail
     _ < η := hR_bound
 
 end
