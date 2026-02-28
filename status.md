@@ -81,6 +81,19 @@
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
 
+## Sazonov.lean — 0 sorries, 0 axioms
+
+| # | Definition/Lemma | Status |
+|---|-----------------|--------|
+| S1 | `IsPositiveTraceClass` | defined |
+| S2 | `quadForm` | defined |
+| S3 | `quadForm_nonneg` | proved |
+| S4 | `quadForm_add` | proved |
+| S5 | `inner_sq_le_quadForm_mul` (Cauchy-Schwarz for ⟪·, S·⟫) | proved |
+| S6 | `sqrt_quadForm_add_le` (triangle inequality) | proved |
+| S7 | `sazonovSeminorm` | defined (all fields proved) |
+| S8 | `sazonovTopology` | defined (via `SeminormFamily.moduleFilterBasis`) |
+
 ## Notes
 
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
