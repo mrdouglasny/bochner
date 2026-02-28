@@ -48,6 +48,39 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
+## Minlos/ — 0 sorries, 2 axioms
+
+| File | Status |
+|------|--------|
+| `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
+| `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
+| `Minlos.lean` | proved modulo 2 axioms (0 sorries) |
+
+### Axioms
+
+1. **`nuclear_support_concentration`** — If E is a nuclear space and ν is a
+   probability measure on the algebraic dual E → ℝ whose characteristic
+   functional φ(f) = ∫ e^{iω(f)} dν(ω) is continuous on E, then ν-a.e.
+   ω is actually a *continuous* linear functional (i.e., ω ∈ E').
+   Informally: on nuclear spaces, continuity of the CF forces the measure
+   to live on the topological dual, not just the algebraic dual.
+   (Ref: Gel'fand-Vilenkin Vol. 4, Ch. IV, Thm 3)
+
+2. **`weakDual_measurableEmbedding`** — The natural map E' → (E → ℝ) sending
+   a continuous linear functional l to its underlying function f ↦ l(f) is
+   a measurable embedding. This means it is injective, measurable, and its
+   range is a measurable set — allowing us to transfer a measure from E → ℝ
+   (that concentrates on E') down to a measure on E'.
+   (Ref: Bogachev, "Measure Theory" Vol. 2, §7.14)
+
+### Key proofs (Minlos)
+
+| Lemma | Technique |
+|-------|-----------|
+| `marginalFamily_isProjective` | charFun uniqueness + sum reindexing over finset inclusions |
+| `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
+| `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
+
 ## Notes
 
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
