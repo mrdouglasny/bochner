@@ -6,6 +6,7 @@ import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.InnerProductSpace.Adjoint
 import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.InnerProductSpace.Trace
+import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 
 open MeasureTheory Complex Filter Topology Set InnerProductSpace
 open scoped Real FourierTransform
@@ -123,17 +124,137 @@ lemma tail_bound_from_exp_integral {V : Type*} [NormedAddCommGroup V]
 
 /-! ## The Gaussian Averaging Bound (with scaling parameter) -/
 
+/-! ## Gaussian Averaging Infrastructure -/
+
+section GaussianAveraging
+
+variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
+  [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+  [SecondCountableTopology V]
+
+private abbrev gaussDensity (σ : ℝ) (x : V) : ℝ :=
+  Real.exp (-(1 / (2 * σ ^ 2)) * ‖x‖ ^ 2)
+
+/-- Fubini identity for Gaussian averaging:
+    ∫_μ (1-exp(-σ²‖y‖²/2)) = C⁻¹ ∫ exp(-b‖x‖²) Re(1-φ(x)) dx. -/
+axiom fubini_gaussian_charFun
+    (μ : ProbabilityMeasure V) (φ : V → ℂ)
+    (hφ : ∀ t, charFun μ.toMeasure t = φ t) (σ : ℝ) (hσ : 0 < σ) :
+    ∫ y, (1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) ∂μ.toMeasure =
+    (∫ x : V, gaussDensity σ x)⁻¹ *
+      ∫ x : V, gaussDensity σ x * (1 - (φ x).re)
+
+/-- Gaussian second moment bound:
+    C⁻¹ ∫ exp(-b‖x‖²) ⟪x,Sx⟫ dx ≤ σ²·Tr(S).
+    Proof requires computing E_γ[⟪x,Sx⟫] = σ²·∑ᵢ ⟪eᵢ,Seᵢ⟫. -/
+axiom gaussian_quadForm_integral_le
+    (σ : ℝ) (hσ : 0 < σ)
+    (S : V →L[ℝ] V) (hS : S.IsPositive)
+    (T : ℝ) (_hT : 0 ≤ T)
+    (h_trace : ∀ (ι : Type*) [Fintype ι] (b : OrthonormalBasis ι ℝ V),
+      ∑ i, @inner ℝ V _ (b i) (S (b i)) ≤ T) :
+    (∫ x : V, gaussDensity σ x)⁻¹ *
+      ∫ x : V, gaussDensity σ x * quadForm S x ≤ σ ^ 2 * T
+
+private lemma gaussDensity_nonneg' (σ : ℝ) (x : V) : 0 ≤ gaussDensity σ x :=
+  Real.exp_nonneg _
+
+private lemma gaussDensity_continuous' (σ : ℝ) : Continuous (gaussDensity (V := V) σ) := by
+  unfold gaussDensity; fun_prop
+
+private lemma gaussDensity_integrable' (σ : ℝ) (hσ : 0 < σ) :
+    Integrable (gaussDensity σ) (volume : Measure V) := by
+  set b : ℝ := 1 / (2 * σ ^ 2)
+  have hb : 0 < b := by positivity
+  have hcint : Integrable (fun x : V => cexp (-(b : ℂ) * ↑(‖x‖ ^ 2))) := by
+    have := GaussianFourier.integrable_cexp_neg_mul_sq_norm_add
+      (show 0 < ((b : ℂ)).re by simp [hb]) (0 : ℂ) (0 : V)
+    simp at this; convert this using 1; ext x; simp [Complex.ofReal_pow]
+  have heq : gaussDensity (V := V) σ = fun x => ‖cexp (-(b : ℂ) * ↑(‖x‖ ^ 2))‖ := by
+    ext x; unfold gaussDensity; rw [Complex.norm_exp]; congr 1
+    simp only [Complex.neg_re, Complex.mul_re, Complex.ofReal_re, Complex.ofReal_im,
+      mul_zero, sub_zero]; ring
+  rw [heq]; exact hcint.norm
+
+private lemma gaussDensity_integral_pos' (σ : ℝ) (hσ : 0 < σ) :
+    0 < ∫ x : V, gaussDensity σ x := by
+  apply integral_pos_of_integrable_nonneg_nonzero
+    (gaussDensity_continuous' σ) (gaussDensity_integrable' σ hσ)
+  · exact fun x => gaussDensity_nonneg' σ x
+  · exact ne_of_gt (Real.exp_pos (-(1 / (2 * σ ^ 2)) * ‖(0 : V)‖ ^ 2))
+
+private lemma mul_exp_neg_le_one' {t : ℝ} (ht : 0 ≤ t) : t * Real.exp (-t) ≤ 1 := by
+  rw [Real.exp_neg, ← div_eq_mul_inv, div_le_one (Real.exp_pos t)]
+  linarith [Real.add_one_le_exp t]
+
+private lemma gaussDensity_mul_quadForm_integrable' (σ : ℝ) (hσ : 0 < σ)
+    (S : V →L[ℝ] V) :
+    Integrable (fun x => gaussDensity σ x * quadForm S x) volume := by
+  set b := 1 / (2 * σ ^ 2) with hb_def
+  have hb : 0 < b := by positivity
+  set C := ‖S‖ * (2 / b)
+  have hC : 0 ≤ C := by positivity
+  have hbound_int : Integrable (fun x : V => C * Real.exp (-(b / 2) * ‖x‖ ^ 2)) volume := by
+    apply Integrable.const_mul
+    have h := gaussDensity_integrable' (V := V) (σ * Real.sqrt 2) (by positivity)
+    unfold gaussDensity at h
+    convert h using 1; ext x; congr 1
+    rw [mul_pow, Real.sq_sqrt (by positivity : (2 : ℝ) ≥ 0)]; ring
+  have hqf_cont : Continuous (fun x : V => quadForm S x) := by
+    unfold quadForm; fun_prop
+  apply hbound_int.mono'
+  · exact ((gaussDensity_continuous' σ).mul hqf_cont).aestronglyMeasurable
+  · filter_upwards with x
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (gaussDensity_nonneg' σ x)]
+    have hqf_bound : |quadForm S x| ≤ ‖S‖ * ‖x‖ ^ 2 := by
+      unfold quadForm
+      calc |@inner ℝ V _ x (S x)| ≤ ‖x‖ * ‖S x‖ := abs_real_inner_le_norm x (S x)
+        _ ≤ ‖x‖ * (‖S‖ * ‖x‖) :=
+            mul_le_mul_of_nonneg_left (S.le_opNorm x) (norm_nonneg _)
+        _ = ‖S‖ * ‖x‖ ^ 2 := by ring
+    have hgsq_bound : gaussDensity σ x * ‖x‖ ^ 2 ≤
+        (2 / b) * Real.exp (-(b / 2) * ‖x‖ ^ 2) := by
+      unfold gaussDensity
+      set s := ‖x‖ ^ 2
+      have hs : 0 ≤ s := sq_nonneg _
+      have h_split : Real.exp (-(1 / (2 * σ ^ 2)) * s) =
+          Real.exp (-(b / 2) * s) * Real.exp (-(b / 2) * s) := by
+        rw [← Real.exp_add]; congr 1; rw [hb_def]; ring
+      rw [h_split]
+      have hexp_nn := (Real.exp_pos (-(b / 2) * s)).le
+      have key := mul_exp_neg_le_one' (show 0 ≤ b / 2 * s by positivity)
+      have hkey2 : b / 2 * (Real.exp (-(b / 2 * s)) * s) ≤ 1 := by
+        linarith [show b / 2 * s * Real.exp (-(b / 2 * s)) =
+          b / 2 * (Real.exp (-(b / 2 * s)) * s) from by ring]
+      have hse : Real.exp (-(b / 2 * s)) * s ≤ 2 / b := by
+        rw [le_div_iff₀ (by positivity : (0 : ℝ) < b)]
+        calc Real.exp (-(b / 2 * s)) * s * b
+            = 2 * (b / 2 * (Real.exp (-(b / 2 * s)) * s)) := by ring
+          _ = 2 * (b / 2 * s * Real.exp (-(b / 2 * s))) := by ring
+          _ ≤ 2 * 1 := by linarith
+          _ = 2 := by ring
+      rw [show -(b / 2) * s = -(b / 2 * s) from by ring] at hexp_nn ⊢
+      calc Real.exp (-(b / 2 * s)) * Real.exp (-(b / 2 * s)) * s
+          = Real.exp (-(b / 2 * s)) * (Real.exp (-(b / 2 * s)) * s) := by ring
+        _ ≤ Real.exp (-(b / 2 * s)) * (2 / b) :=
+            mul_le_mul_of_nonneg_left hse hexp_nn
+        _ = 2 / b * Real.exp (-(b / 2 * s)) := by ring
+    calc gaussDensity σ x * |quadForm S x|
+        ≤ gaussDensity σ x * (‖S‖ * ‖x‖ ^ 2) :=
+          mul_le_mul_of_nonneg_left hqf_bound (gaussDensity_nonneg' σ x)
+      _ = ‖S‖ * (gaussDensity σ x * ‖x‖ ^ 2) := by ring
+      _ ≤ ‖S‖ * ((2 / b) * Real.exp (-(b / 2) * ‖x‖ ^ 2)) :=
+          mul_le_mul_of_nonneg_left hgsq_bound (norm_nonneg S)
+      _ = C * Real.exp (-(b / 2) * ‖x‖ ^ 2) := by ring
+
 /-- The Gaussian averaging bound with scaling parameter σ > 0:
 
     ∫ (1 - exp(-σ²‖y‖²/2)) dμ(y) ≤ ε + 2σ²·T
 
     Here exp(-σ²‖y‖²/2) is the characteristic function of N(0, σ²I).
-    The bound follows from Fubini + splitting over {qf(S,x) < 1}
-    + Markov's inequality for E_γ[⟨x,Sx⟩] = σ²·Tr(S). -/
-axiom gaussian_averaging_bound
-    {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
-    [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
-    [SecondCountableTopology V]
+    The bound follows from Fubini + pointwise bound Re(1-φ) ≤ ε + 2·qf
+    + Gaussian second moment E_γ[⟨x,Sx⟩] ≤ σ²·Tr(S). -/
+theorem gaussian_averaging_bound
     (μ : ProbabilityMeasure V) (φ : V → ℂ)
     (hφ : ∀ t, charFun μ.toMeasure t = φ t)
     (ε : ℝ) (hε : 0 < ε)
@@ -143,7 +264,84 @@ axiom gaussian_averaging_bound
     (T : ℝ) (hT : 0 ≤ T)
     (h_trace : ∀ (ι : Type*) [Fintype ι] (b : OrthonormalBasis ι ℝ V),
       ∑ i, @inner ℝ V _ (b i) (S (b i)) ≤ T) :
-    ∫ y, (1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) ∂μ.toMeasure ≤ ε + 2 * σ ^ 2 * T
+    ∫ y, (1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) ∂μ.toMeasure ≤ ε + 2 * σ ^ 2 * T := by
+  set g := gaussDensity (V := V) σ with hg_def
+  set C := ∫ x : V, g x with hC_def
+  have hC_pos : 0 < C := gaussDensity_integral_pos' (V := V) σ hσ
+  have hCinv_nn : 0 ≤ C⁻¹ := inv_nonneg.mpr hC_pos.le
+  have hg_int := gaussDensity_integrable' (V := V) σ hσ
+  -- Step 1: Fubini
+  rw [fubini_gaussian_charFun μ φ hφ σ hσ]
+  -- Step 2: Pointwise bound
+  have hpointwise : ∀ x, (1 - (φ x).re) ≤ ε + 2 * quadForm S x := by
+    intro x
+    by_cases hqf : quadForm S x < 1
+    · have hre : (1 - (φ x).re) ≤ ‖1 - φ x‖ := by
+        calc (1 - (φ x).re) = (1 - φ x).re := by simp [sub_re]
+          _ ≤ |(1 - φ x).re| := le_abs_self _
+          _ ≤ ‖1 - φ x‖ := abs_re_le_norm _
+      linarith [h_bound x hqf, quadForm_nonneg hS x]
+    · push_neg at hqf
+      have hre_le : (φ x).re ≤ ‖φ x‖ := le_trans (le_abs_self _) (abs_re_le_norm _)
+      have hnorm_le : ‖φ x‖ ≤ 1 := by
+        rw [← hφ]; haveI : IsProbabilityMeasure μ.toMeasure := inferInstance
+        exact norm_charFun_le_one x
+      have hneg_re : -(φ x).re ≤ ‖φ x‖ := le_trans (neg_le_abs _) (abs_re_le_norm _)
+      linarith
+  -- Step 3: Integrability
+  have hgqf_int : Integrable (fun x => g x * quadForm S x) volume :=
+    gaussDensity_mul_quadForm_integrable' (V := V) σ hσ S
+  have hprod_int : Integrable (fun x => g x * (1 - (φ x).re)) volume := by
+    have hφ_eq : φ = charFun μ.toMeasure := funext (fun t => (hφ t).symm)
+    rw [hφ_eq]
+    have hφ_meas : Measurable (fun x => (charFun μ.toMeasure x).re) :=
+      Complex.measurable_re.comp measurable_charFun
+    apply Integrable.mono (hg_int.const_mul 2)
+      (((gaussDensity_continuous' σ).measurable.mul
+        (measurable_const.sub hφ_meas)).aestronglyMeasurable)
+    filter_upwards with x
+    haveI : IsProbabilityMeasure μ.toMeasure := inferInstance
+    have hg_nn := gaussDensity_nonneg' σ x
+    have hre := le_trans (le_abs_self (charFun μ.toMeasure x).re) (abs_re_le_norm _)
+    have hnre := le_trans (neg_le_abs (charFun μ.toMeasure x).re) (abs_re_le_norm _)
+    have hnorm := norm_charFun_le_one (μ := μ.toMeasure) x
+    have h1 : |1 - (charFun μ.toMeasure x).re| ≤ 2 := by rw [abs_le]; constructor <;> linarith
+    have h2 : ‖g x * (1 - (charFun μ.toMeasure x).re)‖ ≤ g x * 2 := by
+      rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hg_nn]
+      exact mul_le_mul_of_nonneg_left h1 hg_nn
+    have h3 : ‖2 * g x‖ = g x * 2 := by
+      rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg (by positivity) hg_nn)]; ring
+    linarith
+  have hprod2_int : Integrable (fun x => g x * (ε + 2 * quadForm S x)) volume := by
+    have : (fun x => g x * (ε + 2 * quadForm S x)) =
+        (fun x => ε * g x + 2 * (g x * quadForm S x)) := by ext x; ring
+    rw [this]; exact (hg_int.const_mul ε).add (hgqf_int.const_mul 2)
+  -- Step 4: Integral inequality + split + combine
+  have hint_le : C⁻¹ * ∫ x, g x * (1 - (φ x).re) ≤
+      C⁻¹ * ∫ x, g x * (ε + 2 * quadForm S x) :=
+    mul_le_mul_of_nonneg_left
+      (integral_mono hprod_int hprod2_int fun x =>
+        mul_le_mul_of_nonneg_left (hpointwise x) (gaussDensity_nonneg' σ x))
+      hCinv_nn
+  have hint_split : ∫ x, g x * (ε + 2 * quadForm S x) =
+      ε * C + 2 * ∫ x, g x * quadForm S x := by
+    have heq : (fun x => g x * (ε + 2 * quadForm S x)) =
+        (fun x => ε * g x + 2 * (g x * quadForm S x)) := by ext x; ring
+    rw [heq, integral_add (hg_int.const_mul ε) (hgqf_int.const_mul 2),
+      integral_const_mul ε, integral_const_mul 2]
+  calc C⁻¹ * ∫ x, g x * (1 - (φ x).re)
+      ≤ C⁻¹ * ∫ x, g x * (ε + 2 * quadForm S x) := hint_le
+    _ = C⁻¹ * (ε * C + 2 * ∫ x, g x * quadForm S x) := by rw [hint_split]
+    _ = ε + 2 * (C⁻¹ * ∫ x, g x * quadForm S x) := by
+        have hCne : C ≠ 0 := ne_of_gt hC_pos
+        rw [mul_add]; congr 1
+        · rw [← mul_assoc, mul_comm C⁻¹ ε, mul_assoc, inv_mul_cancel₀ hCne, mul_one]
+        · ring
+    _ ≤ ε + 2 * (σ ^ 2 * T) := by
+        linarith [gaussian_quadForm_integral_le σ hσ S hS T hT h_trace]
+    _ = ε + 2 * σ ^ 2 * T := by ring
+
+end GaussianAveraging
 
 /-- Scaled Chebyshev: combining Gaussian averaging with the tail bound. -/
 lemma scaled_tail_bound

@@ -48,12 +48,13 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 0 sorries, 2 axioms
+## Minlos/ — 0 sorries, 4 axioms
 
 | File | Status |
 |------|--------|
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
+| `SazonovTightness.lean` | proved modulo 2 axioms (0 sorries) |
 | `Minlos.lean` | proved modulo 2 axioms (0 sorries) |
 
 ### Axioms
@@ -80,8 +81,9 @@
 | `marginalFamily_isProjective` | charFun uniqueness + sum reindexing over finset inclusions |
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
+| `gaussian_averaging_bound` | Pointwise bound Re(1-φ) ≤ ε + 2·qf + integral monotonicity + Gaussian·quadForm integrability via t·exp(-t) ≤ 1 |
 
-## SazonovTightness.lean — 0 sorries, 1 axiom
+## SazonovTightness.lean — 0 sorries, 2 axioms
 
 | # | Definition/Lemma | Status |
 |---|-----------------|--------|
@@ -92,7 +94,9 @@
 | T5 | `exp_neg_le_exp_neg` | proved |
 | T6 | `one_sub_exp_half_sq_pos` | proved |
 | T7 | `tail_bound_from_exp_integral` | proved (Chebyshev/Markov via set integrals) |
-| T8 | `gaussian_averaging_bound` | axiom |
+| T8a | `fubini_gaussian_charFun` | axiom |
+| T8b | `gaussian_quadForm_integral_le` | axiom |
+| T8 | `gaussian_averaging_bound` | proved (from T8a + T8b + pointwise bound + integrability) |
 | T9 | `restrictOp` | proved (definition via π ∘ S ∘ ι) |
 | T10 | `restrictOp_isPositive` | proved (symmetry via adjoint, nonneg via quadForm) |
 | T11 | `restrictOp_quadForm` | proved (PiLp.inner_apply + sum_inner) |
@@ -105,11 +109,15 @@
 
 ### Axioms (SazonovTightness)
 
-1. **`gaussian_averaging_bound`** — For a probability measure μ with charFun φ,
-   ∫ (1 - exp(-σ²‖y‖²/2)) dμ ≤ ε + 2σ²·Tr(S), where S is positive with
-   quadForm S x < 1 ⟹ ‖1-φ(x)‖ < ε. Here exp(-σ²‖y‖²/2) is the
-   charFun of N(0, σ²I). Proof: Fubini to rewrite as ∫ Re(1-φ(x)) dγ(x),
-   split over {qf<1} and {qf≥1}, Markov for E_γ[⟨x,Sx⟩] = σ²·Tr(S).
+1. **`fubini_gaussian_charFun`** — Fubini identity for Gaussian averaging:
+   ∫_μ (1-exp(-σ²‖y‖²/2)) = C⁻¹ ∫ exp(-b‖x‖²) Re(1-φ(x)) dx,
+   where b = 1/(2σ²) and C = ∫ exp(-b‖x‖²) dx. Requires constructing
+   the Gaussian measure, showing its charFun is exp(-σ²‖y‖²/2), and Fubini.
+
+2. **`gaussian_quadForm_integral_le`** — Gaussian second moment bound:
+   C⁻¹ ∫ exp(-b‖x‖²) ⟪x,Sx⟫ dx ≤ σ²·Tr(S). Requires computing
+   E_γ[⟪x,Sx⟫] = σ²·∑ᵢ ⟪eᵢ,Seᵢ⟫ via ONB decomposition or
+   differentiation of the Gaussian integral formula.
 
 ## Sazonov.lean — 0 sorries, 0 axioms
 
