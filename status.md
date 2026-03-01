@@ -48,14 +48,14 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 5 sorries, 0 axioms
+## Minlos/ — 6 sorries, 0 axioms
 
 | File | Status |
 |------|--------|
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `MeasurableModification.lean` | 5 sorries (measurable projection infrastructure) |
+| `MeasurableModification.lean` | 6 sorries (measurable projection infrastructure) |
 | `Minlos.lean` | proved modulo MeasurableModification sorries (0 sorries, 0 axioms) |
 
 ### Sorries (MeasurableModification.lean)
@@ -67,15 +67,18 @@
    Follows from the definition of the extension.
 3. **`measurable_measurableProjection`** — P is measurable. Each eval P(ω)(f)
    is a pointwise limit of measurable_pi_apply functions.
-4. **`goodPaths_ae`** — ν(goodPaths) = 1. ℚ-linearity via CF = Φ(0) = 1;
-   boundedness via Markov + Φ continuity + NuclearSpace seminorms.
-5. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. Via convergence of
+4. **`qLinearPaths_ae`** — ℚ-linearity a.e. Reduced to single-variable via
+   `eventually_countable_forall`. Needs CF = 1 → X = 0 via `ext_of_charFun`.
+5. **`boundedPaths_ae`** — boundedness a.e. Via Markov/Chebyshev + Φ continuity
+   + NuclearSpace seminorms.
+6. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. Via convergence of
    ω(d_n) → ω(f) in probability (CF continuity) + ω(d_n) → P(ω)(f) a.s.
 
 **Proved from sorry'd lemmas:**
-- **`embed_mem_goodPaths`** — proved (ℚ-linearity + Seminorm.bound_of_continuous).
-- **`extensionCLM_embed`** — proved via Continuous.ext_on density argument.
+- **`embed_mem_goodPaths`** — proved (ℚ-linearity + `Seminorm.bound_of_continuous`).
+- **`extensionCLM_embed`** — proved via `Continuous.ext_on` density argument.
 - **`projection_embed_eq`** — P ∘ embed = id. Proved from above.
+- **`goodPaths_ae`** — proved from `qLinearPaths_ae` + `boundedPaths_ae`.
 
 ### Key proofs (Minlos)
 
