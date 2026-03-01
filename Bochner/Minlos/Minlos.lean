@@ -152,21 +152,40 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
       intro y; simp only [g, finsetPiMeasEquiv, trans_symm_apply_eq',
         MeasurableEquiv.coe_toLp_symm, finsetReindexEquiv,
         MeasurableEquiv.symm_mk, MeasurableEquiv.coe_mk, fi_def]; rfl
-    simp_rw [h_simp]
-    -- Step 3: Fiber infrastructure
-    have h_fiber_disj : Set.PairwiseDisjoint (Finset.univ : Finset (Fin J.card))
-        (fun k => Finset.univ.filter (fun i : Fin n => fi i = k)) := by
-      intro k₁ _ k₂ _ hk
-      exact Finset.disjoint_filter.mpr (fun i _ h₁ h₂ => hk (h₁.symm.trans h₂))
-    have h_fiber_cover : Finset.univ.biUnion (fun k : Fin J.card =>
-        Finset.univ.filter (fun i : Fin n => fi i = k)) = Finset.univ := by ext i; simp
+    simp_rw [h_simp, mul_comm Complex.I _]
+    -- Step 3: Define ξ = ∑ i, s i • single (fi i) 1 and rewrite sum as inner product
+    set ξ : EuclideanSpace ℝ (Fin J.card) :=
+      ∑ i : Fin n, (s i) • EuclideanSpace.single (fi i) (1 : ℝ) with ξ_def
+    have h_inner : ∀ y : EuclideanSpace ℝ (Fin J.card),
+        (∑ i : Fin n, s i * y (fi i) : ℝ) = @inner ℝ _ _ y ξ := by
+      intro y
+      simp only [ξ_def, inner_sum, inner_smul_right, EuclideanSpace.inner_single_right,
+        RCLike.conj_to_real, one_mul]
+    simp_rw [h_inner, ← charFun_apply, marginalMeasure_charFun]
+    -- Step 4: Unfold marginalCF and show sum equality
+    simp only [marginalCF]
+    congr 1
+    -- Goal: ∑ k, ξ k • finsetTestVectors J k = ∑ i, s i • x i
     have h_tv : ∀ i : Fin n, (J.equivFin.symm (fi i) : E) = x i := by
       intro i; simp [fi_def]
-    -- Step 4: Connect to charFun via inner product and marginalCF
-    -- Remaining: rewrite ∑ i, sᵢ * y(fi i) as ⟪y, ξ⟫ for appropriate ξ,
-    -- apply charFun_apply + marginalMeasure_charFun, then show
-    -- marginalCF Φ (finsetTestVectors J) ξ = Φ(∑ i, sᵢ • xᵢ) via fiber reindex.
-    sorry
+    -- Expand ξ and reduce to ∑ i, s i • x i
+    -- Goal after marginalCF/congr: ∑ k, ξ k • testVec k = ∑ i, s i • x i
+    -- Convert to a form where we can compute ξ k directly
+    show ∑ k : Fin J.card, ξ k • finsetTestVectors J k = ∑ i, s i • x i
+    -- Compute ξ k = ∑ i, s i * ite (fi i = k) 1 0
+    have h_coord : ∀ k : Fin J.card,
+        ξ k = ∑ i : Fin n, s i * if fi i = k then 1 else 0 := by
+      intro k
+      simp [ξ_def, Finset.sum_apply', PiLp.smul_apply, smul_eq_mul,
+        EuclideanSpace.single_apply, Pi.single_apply, eq_comm]
+    simp_rw [h_coord, Finset.sum_smul]
+    -- Goal: ∑ k, ∑ i, (s i * ite (fi i = k) 1 0) • testVec k = ∑ i, s i • x i
+    rw [Finset.sum_comm]
+    -- Goal: ∑ i, ∑ k, (s i * ite (fi i = k) 1 0) • testVec k = ∑ i, s i • x i
+    apply Finset.sum_congr rfl; intro i _
+    simp only [mul_ite, mul_one, mul_zero, ite_smul, zero_smul,
+      Finset.sum_ite_eq', Finset.mem_univ, ite_true, finsetTestVectors]
+    congr 1; simp [fi_def]
   -- Step 3: Push forward ν through measurable projection P to get μ on WeakDual ℝ E
   have h_prob_map : IsProbabilityMeasure (ν.map measurableProjection) :=
     isProbabilityMeasure_map_projection ν
