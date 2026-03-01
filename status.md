@@ -48,13 +48,13 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 0 sorries, 4 axioms
+## Minlos/ — 0 sorries, 2 axioms
 
 | File | Status |
 |------|--------|
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
-| `SazonovTightness.lean` | proved modulo 2 axioms (0 sorries) |
+| `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
 | `Minlos.lean` | proved modulo 2 axioms (0 sorries) |
 
 ### Axioms
@@ -82,8 +82,9 @@
 | `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
 | `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
 | `gaussian_averaging_bound` | Pointwise bound Re(1-φ) ≤ ε + 2·qf + integral monotonicity + Gaussian·quadForm integrability via t·exp(-t) ≤ 1 |
+| `gaussian_quadForm_integral_le` | Spectral decomposition + cosh bound (x²/2 ≤ cosh(x)-1) + ge_of_tendsto for (exp(tA)-1)/t → A + ULift reindex for universe bridging |
 
-## SazonovTightness.lean — 0 sorries, 2 axioms
+## SazonovTightness.lean — 0 sorries, 0 axioms
 
 | # | Definition/Lemma | Status |
 |---|-----------------|--------|
@@ -94,8 +95,8 @@
 | T5 | `exp_neg_le_exp_neg` | proved |
 | T6 | `one_sub_exp_half_sq_pos` | proved |
 | T7 | `tail_bound_from_exp_integral` | proved (Chebyshev/Markov via set integrals) |
-| T8a | `fubini_gaussian_charFun` | axiom |
-| T8b | `gaussian_quadForm_integral_le` | axiom |
+| T8a | `fubini_gaussian_charFun` | proved (Fubini + Gaussian Fourier transform) |
+| T8b | `gaussian_quadForm_integral_le` | proved (spectral decomposition + cosh bound + ge_of_tendsto) |
 | T8 | `gaussian_averaging_bound` | proved (from T8a + T8b + pointwise bound + integrability) |
 | T9 | `restrictOp` | proved (definition via π ∘ S ∘ ι) |
 | T10 | `restrictOp_isPositive` | proved (symmetry via adjoint, nonneg via quadForm) |
@@ -106,18 +107,6 @@
 | T13 | `scaled_tail_bound` | proved (from T7 + T8) |
 | T14 | `exists_R_for_tail_bound` | proved |
 | T15 | `sazonov_tightness` | proved (from T7–T14) |
-
-### Axioms (SazonovTightness)
-
-1. **`fubini_gaussian_charFun`** — Fubini identity for Gaussian averaging:
-   ∫_μ (1-exp(-σ²‖y‖²/2)) = C⁻¹ ∫ exp(-b‖x‖²) Re(1-φ(x)) dx,
-   where b = 1/(2σ²) and C = ∫ exp(-b‖x‖²) dx. Requires constructing
-   the Gaussian measure, showing its charFun is exp(-σ²‖y‖²/2), and Fubini.
-
-2. **`gaussian_quadForm_integral_le`** — Gaussian second moment bound:
-   C⁻¹ ∫ exp(-b‖x‖²) ⟪x,Sx⟫ dx ≤ σ²·Tr(S). Requires computing
-   E_γ[⟪x,Sx⟫] = σ²·∑ᵢ ⟪eᵢ,Seᵢ⟫ via ONB decomposition or
-   differentiation of the Gaussian integral formula.
 
 ## Sazonov.lean — 0 sorries, 0 axioms
 
