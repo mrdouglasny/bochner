@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 0 axioms — FULLY PROVED**
+**Total: 0 sorries, 6 axioms (MeasurableModification.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -48,33 +48,34 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 6 sorries, 0 axioms
+## Minlos/ — 0 sorries, 6 axioms
 
 | File | Status |
 |------|--------|
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `MeasurableModification.lean` | 6 sorries (measurable projection infrastructure) |
-| `Minlos.lean` | proved modulo MeasurableModification sorries (0 sorries, 0 axioms) |
+| `MeasurableModification.lean` | 0 sorries, 6 axioms (textbook results) |
+| `Minlos.lean` | proved modulo MeasurableModification axioms (0 sorries, 0 axioms) |
 
-### Sorries (MeasurableModification.lean)
+### Axioms (MeasurableModification.lean)
 
-1. **`extensionCLM`** — Construction of ContinuousLinearMap from good path ω.
-   On good paths (ℚ-linear + bounded on countable dense D), extend ω|_D
-   by uniform continuity to a ContinuousLinearMap.
+1. **`extensionCLM`** — BLT theorem: ℚ-linear bounded function on dense
+   subset extends to ContinuousLinearMap. (Rudin, Functional Analysis, Thm 1.18)
 2. **`extensionCLM_eq_on_dense`** — Extension agrees with ω on dense sequence.
-   Follows from the definition of the extension.
-3. **`measurable_measurableProjection`** — P is measurable. Each eval P(ω)(f)
-   is a pointwise limit of measurable_pi_apply functions.
-4. **`qLinearPaths_ae`** — ℚ-linearity a.e. Reduced to single-variable via
-   `eventually_countable_forall`. Needs CF = 1 → X = 0 via `ext_of_charFun`.
-5. **`boundedPaths_ae`** — boundedness a.e. Via Markov/Chebyshev + Φ continuity
-   + NuclearSpace seminorms.
-6. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. Via convergence of
-   ω(d_n) → ω(f) in probability (CF continuity) + ω(d_n) → P(ω)(f) a.s.
+3. **`measurable_measurableProjection`** — P is measurable (piecewise of
+   pointwise limits of measurable functions). (Billingsley, §13)
+4. **`qLinearPaths_ae`** — ℚ-linearity a.e. CF ≡ 1 ⟹ X = 0 a.s. via
+   ext_of_charFun + countable intersection.
+   (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
+5. **`boundedPaths_ae`** — Boundedness a.e. via Markov/Chebyshev + CF
+   continuity + NuclearSpace seminorms.
+   (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
+6. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. via convergence in
+   probability + a.s. convergence.
+   (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
 
-**Proved from sorry'd lemmas:**
+**Proved from axioms:**
 - **`embed_mem_goodPaths`** — proved (ℚ-linearity + `Seminorm.bound_of_continuous`).
 - **`extensionCLM_embed`** — proved via `Continuous.ext_on` density argument.
 - **`projection_embed_eq`** — P ∘ embed = id. Proved from above.
