@@ -281,6 +281,16 @@ private lemma qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (h_cf_one : (fun f : E => ∫ ω : E → ℝ,
       Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ qLinearPaths (denseSeq E) := by
+  simp only [qLinearPaths, Set.mem_iInter, Set.mem_setOf_eq]
+  -- Countable intersection: suffices to show each condition holds a.e.
+  rw [eventually_countable_forall]; intro i
+  rw [eventually_countable_forall]; intro j
+  rw [eventually_countable_forall]; intro a
+  rw [eventually_countable_forall]; intro b
+  -- For fixed i, j, a, b: show ω(a•d_i + b•d_j) = a*ω(d_i) + b*ω(d_j) a.e.
+  -- The random variable X = ω(a•d_i + b•d_j) - a*ω(d_i) - b*ω(d_j) has CF ≡ 1
+  -- (since t•(a•d_i+b•d_j) - ta•d_i - tb•d_j = 0, giving Φ(0) = 1)
+  -- A probability measure on ℝ with CF ≡ 1 is δ₀, hence X = 0 a.s.
   sorry
 
 /-- Boundedness holds ν-a.e.
