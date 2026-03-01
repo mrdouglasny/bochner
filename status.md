@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 1 sorry, 6 axioms (MeasurableModification.lean)**
+**Total: 1 sorry, 16 axioms (6 in MeasurableModification.lean, 10 in PietschBridge.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -48,22 +48,17 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 1 sorry, 6 axioms
+## Minlos/ — 1 sorry, 16 axioms
 
 | File | Status |
 |------|--------|
+| `NuclearSpace.lean` | definitions only |
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
 | `MeasurableModification.lean` | 0 sorries, 6 axioms (textbook results) |
-| `Minlos.lean` | 1 sorry (`h_cf_joint`), 0 axioms |
-
-### Sorry (Minlos.lean)
-
-- **`h_cf_joint`** — Joint characteristic function: for any finite collection
-  of test vectors and scalars, ∫ exp(i∑ sₖ·ω(xₖ)) dν = Φ(∑ sₖ•xₖ).
-  Follows from projective limit property (same structure as h_cf_eq but
-  for general Finset instead of singleton).
+| `Minlos.lean` | proved (0 sorries, 0 axioms) |
+| `PietschBridge.lean` | 1 sorry, 10 axioms (bridge from Pietsch nuclearity) |
 
 ### Axioms (MeasurableModification.lean)
 
@@ -88,11 +83,35 @@
 - **`projection_embed_eq`** — P ∘ embed = id. Proved from above.
 - **`goodPaths_ae`** — proved from `qLinearPaths_ae` + `boundedPaths_ae`.
 
+### Axioms (PietschBridge.lean)
+
+6 public axioms (functional analysis infrastructure):
+1. **`hilbertianLift`** — Seminorm r(x) = √(Σₖ fₖ(x)²·cₖ) from nuclear factorization.
+2. **`hilbertianLift_apply`** — r(x)² = Σₖ fₖ(x)²·cₖ.
+3. **`hilbertianLift_isHilbertian`** — r satisfies parallelogram law.
+4. **`hilbertianLift_dominates`** — p(x) ≤ (Σcₖ)·r(x) via Cauchy-Schwarz.
+5. **`hilbertianLift_le_dominator`** — r(x) ≤ q(x) from |fₖ(x)| ≤ q(x).
+6. **`bessel_hilbertian`** — Bessel inequality for abstract Hilbertian seminorms.
+
+4 private axioms (recursive family construction):
+7. **`buildHilbertianFamily_isHilbertian`** — Each family member is Hilbertian.
+8. **`buildHilbertianFamily_dominates`** — Family dominates base seminorms.
+9. **`buildHilbertianFamily_hs`** — Adjacent family members have HS embeddings.
+10. **`buildHilbertianFamily_withSeminorms`** — Family generates the topology.
+
+1 sorry:
+- **`isHilbertSchmidtEmbedding_of_nuclear`** — Cauchy-Schwarz + Bessel assembly
+  for HS embedding from nuclear factorization.
+
+**Proved from axioms:**
+- **`nuclearSpace_of_pietsch`** — IsPietschNuclear E → NuclearSpace E.
+
 ### Key proofs (Minlos)
 
 | Lemma | Technique |
 |-------|-----------|
 | `marginalFamily_isProjective` | charFun uniqueness + sum reindexing over finset inclusions |
+| `h_cf_joint` | Factor through J.restrict, projective limit, finsetPiMeasEquiv, inner product rewrite, fiber-sum reindexing |
 | `minlos_theorem` (existence) | Kolmogorov extension + measurable pushforward P + CF verification |
 | `minlos_theorem` (uniqueness) | P ∘ embed = id + projective limit uniqueness + Measure.map factoring |
 | `gaussian_averaging_bound` | Pointwise bound Re(1-φ) ≤ ε + 2·qf + integral monotonicity + Gaussian·quadForm integrability via t·exp(-t) ≤ 1 |
@@ -138,6 +157,11 @@
 ## Notes
 
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
+- `#print axioms minlos_theorem` shows 4 axioms from MeasurableModification
+  (`extensionCLM`, `extensionCLM_eq_on_dense`, `measurable_measurableProjection`,
+  `projection_ae_eq`) + standard. No `sorryAx`.
+- `#print axioms nuclearSpace_of_pietsch` shows 4 private axioms from PietschBridge
+  (`buildHilbertianFamily_{isHilbertian,dominates,hs,withSeminorms}`) + standard.
 - The proof is structured through FejerPD.lean which proves `Re(𝓕φ(ξ)) ≥ 0` via
   Fejér-averaged double integrals and overlap-ratio kernels.
 - `pd_double_integral_re_nonneg` (formerly an axiom) proved via simple function
