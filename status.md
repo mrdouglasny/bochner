@@ -48,14 +48,14 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 7 sorries, 0 axioms
+## Minlos/ — 5 sorries, 0 axioms
 
 | File | Status |
 |------|--------|
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `MeasurableModification.lean` | 7 sorries (measurable projection infrastructure) |
+| `MeasurableModification.lean` | 5 sorries (measurable projection infrastructure) |
 | `Minlos.lean` | proved modulo MeasurableModification sorries (0 sorries, 0 axioms) |
 
 ### Sorries (MeasurableModification.lean)
@@ -65,19 +65,17 @@
    by uniform continuity to a ContinuousLinearMap.
 2. **`extensionCLM_eq_on_dense`** — Extension agrees with ω on dense sequence.
    Follows from the definition of the extension.
-3. **`embed_mem_goodPaths`** (boundedness) — Continuous linear functionals are
-   bounded by a NuclearSpace seminorm. Uses `Seminorm.bound_of_continuous`.
-4. **`extensionCLM_embed`** — Extension of embed(l) equals l.
-   Both are ContinuousLinearMaps agreeing on dense set, so equal by uniqueness.
-5. **`measurable_measurableProjection`** — P is measurable. Each eval P(ω)(f)
+3. **`measurable_measurableProjection`** — P is measurable. Each eval P(ω)(f)
    is a pointwise limit of measurable_pi_apply functions.
-6. **`goodPaths_ae`** — ν(goodPaths) = 1. ℚ-linearity via CF = Φ(0) = 1;
+4. **`goodPaths_ae`** — ν(goodPaths) = 1. ℚ-linearity via CF = Φ(0) = 1;
    boundedness via Markov + Φ continuity + NuclearSpace seminorms.
-7. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. Via convergence of
+5. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. Via convergence of
    ω(d_n) → ω(f) in probability (CF continuity) + ω(d_n) → P(ω)(f) a.s.
 
 **Proved from sorry'd lemmas:**
-- **`projection_embed_eq`** — P ∘ embed = id. Proved from (3) + (4).
+- **`embed_mem_goodPaths`** — proved (ℚ-linearity + Seminorm.bound_of_continuous).
+- **`extensionCLM_embed`** — proved via Continuous.ext_on density argument.
+- **`projection_embed_eq`** — P ∘ embed = id. Proved from above.
 
 ### Key proofs (Minlos)
 

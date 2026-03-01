@@ -94,20 +94,29 @@ lemma qLinearPaths_measurableSet (d : ℕ → E) :
 
 /-- The set of "bounded paths" on a sequence d : ℕ → E with respect to
     seminorms p : ℕ → Seminorm ℝ E.
-    ω is bounded: ∃ s : Finset ℕ, ∃ C : ℕ, ∀ i, |ω(d i)| ≤ C * (s.sup p)(d i).
+    ω is bounded on the ℚ-span: ∃ s : Finset ℕ, ∃ C : ℕ, for all
+    ℚ-linear combinations a • d i + b • d j,
+    |ω(a • d i + b • d j)| ≤ C * (s.sup p)(a • d i + b • d j).
 
-    This is a countable union of countable intersections of measurable sets,
-    since the Finset ℕ and ℕ parameters range over countable types. -/
+    Combined with ℚ-linearity, this gives uniform continuity:
+    |ω(d i) - ω(d j)| ≤ C * q(d i - d j).
+
+    This is measurable (countable ⋃/⋂ over ℕ × ℕ × ℚ × ℚ). -/
 def boundedPaths (d : ℕ → E) (p : ℕ → Seminorm ℝ E) : Set (E → ℝ) :=
-  ⋃ (s : Finset ℕ) (C : ℕ), ⋂ (i : ℕ),
-    { ω | |ω (d i)| ≤ (C : ℝ) * (s.sup p) (d i) }
+  ⋃ (s : Finset ℕ) (C : ℕ), ⋂ (i : ℕ) (j : ℕ) (a : ℚ) (b : ℚ),
+    { ω | |ω ((a : ℝ) • d i + (b : ℝ) • d j)| ≤
+        (C : ℝ) * (s.sup p) ((a : ℝ) • d i + (b : ℝ) • d j) }
 
 lemma boundedPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     MeasurableSet (boundedPaths d p) := by
   apply MeasurableSet.iUnion; intro s
   apply MeasurableSet.iUnion; intro C
   apply MeasurableSet.iInter; intro i
-  exact measurableSet_le (measurable_pi_apply (d i) |>.norm) measurable_const
+  apply MeasurableSet.iInter; intro j
+  apply MeasurableSet.iInter; intro a
+  apply MeasurableSet.iInter; intro b
+  exact measurableSet_le
+    ((measurable_pi_apply ((a : ℝ) • d i + (b : ℝ) • d j)).norm) measurable_const
 
 /-- The "good paths" set: ω that are ℚ-linear and bounded on the dense sequence.
     This is measurable (countable Boolean operations on measurable sets). -/
@@ -164,13 +173,14 @@ lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     obtain ⟨s, C, _, hC⟩ := Seminorm.bound_of_continuous hp_top _ hl_cont
     -- hC : (normSeminorm ℝ ℝ).comp l.toLinearMap ≤ C • s.sup p
     -- i.e., ‖l(x)‖ ≤ C * (s.sup p)(x) for all x
-    refine ⟨s, ⌈(C : ℝ)⌉₊, fun i => ?_⟩
-    have h := hC (d i)
+    refine ⟨s, ⌈(C : ℝ)⌉₊, fun i j a b => ?_⟩
+    set x := (a : ℝ) • d i + (b : ℝ) • d j
+    have h := hC x
     simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
       NNReal.smul_def] at h
-    calc |weakDualEmbed E l (d i)| = ‖l (d i)‖ := (Real.norm_eq_abs _).symm
-      _ ≤ (C : ℝ) * (s.sup p) (d i) := h
-      _ ≤ (↑⌈(C : ℝ)⌉₊ : ℝ) * (s.sup p) (d i) := by
+    calc |weakDualEmbed E l x| = ‖l x‖ := (Real.norm_eq_abs _).symm
+      _ ≤ (C : ℝ) * (s.sup p) x := h
+      _ ≤ (↑⌈(C : ℝ)⌉₊ : ℝ) * (s.sup p) x := by
           apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
           exact Nat.le_ceil _
 
