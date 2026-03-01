@@ -134,8 +134,21 @@ lemma goodPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     (by uniform continuity from boundedness + density of D + completeness of ℝ,
     then ℚ-linearity + continuity + density of ℚ in ℝ gives ℝ-linearity).
 
-    The construction uses `IsDenseInducing.extend` applied to the dense
-    inclusion of D into E, with ω|_D as the function to extend.
+    The construction uses `Dense.extend` applied to the dense set range(d)
+    with ω restricted to range(d) as the function to extend.
+
+    ## Construction details
+    1. **Continuous extension**: On good paths, ω restricted to range(d) satisfies
+       |ω(d_i) - ω(d_j)| ≤ C * q(d_i - d_j) (from ℚ-linearity + boundedness).
+       This gives uniform continuity w.r.t. the seminorm q, so Dense.extend gives
+       a continuous function g : E → ℝ with g(d_n) = ω(d_n).
+    2. **ℚ-linearity of g**: g(a•x + b•y) = a•g(x) + b•g(y) for a, b ∈ ℚ.
+       Both sides are continuous in x, y, and agree on range(d) × range(d)
+       (by ℚ-linearity of ω). Dense set in product → agree everywhere.
+    3. **ℝ-linearity**: g(r•x) = r•g(x) for r ∈ ℝ.
+       Fix x. Both sides are continuous in r. They agree for r ∈ ℚ (by step 2).
+       ℚ is dense in ℝ, both continuous → agree for all r ∈ ℝ.
+       Similarly for additivity: g(x+y) = g(x) + g(y).
 
     **Sorry**: the full construction of the ContinuousLinearMap. -/
 def extensionCLM [SeparableSpace E] [NuclearSpace E] [Nonempty E]
@@ -145,7 +158,12 @@ def extensionCLM [SeparableSpace E] [NuclearSpace E] [Nonempty E]
   sorry
 
 /-- The extension agrees with ω on the dense sequence.
-    This follows from the definition: on D, the extension equals ω|_D. -/
+    This follows from the construction: Dense.extend agrees with ω on range(d),
+    or equivalently, extensionCLM(ω)(d n) = ω(d n) for all n.
+
+    The proof uses `Dense.extend_eq_of_tendsto` which requires showing that
+    ω converges along the nhds filter at d n restricted to range(d).
+    On good paths, ω is uniformly continuous on range(d), so this holds. -/
 lemma extensionCLM_eq_on_dense [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ) :
@@ -288,9 +306,22 @@ private lemma qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
   rw [eventually_countable_forall]; intro a
   rw [eventually_countable_forall]; intro b
   -- For fixed i, j, a, b: show ω(a•d_i + b•d_j) = a*ω(d_i) + b*ω(d_j) a.e.
-  -- The random variable X = ω(a•d_i + b•d_j) - a*ω(d_i) - b*ω(d_j) has CF ≡ 1
-  -- (since t•(a•d_i+b•d_j) - ta•d_i - tb•d_j = 0, giving Φ(0) = 1)
-  -- A probability measure on ℝ with CF ≡ 1 is δ₀, hence X = 0 a.s.
+  -- Define the difference random variable X
+  set d := denseSeq E
+  set x := (a : ℝ) • d i + (b : ℝ) • d j
+  -- X(ω) = ω(x) - a*ω(d_i) - b*ω(d_j)
+  set X : (E → ℝ) → ℝ := fun ω => ω x - (a : ℝ) * ω (d i) - (b : ℝ) * ω (d j) with hX_def
+  -- Suffices: X = 0 a.e.
+  suffices h : ∀ᵐ ω ∂ν, X ω = 0 by
+    filter_upwards [h] with ω hω
+    linarith [hω]
+  -- The CF of X at t is:
+  -- E[e^{itX}] = E[e^{it(ω(x) - a·ω(d_i) - b·ω(d_j))}]
+  -- By the projective limit property, the joint distribution of (ω(x), ω(d_i), ω(d_j))
+  -- has CF Φ(s₁·x + s₂·d_i + s₃·d_j) at (s₁, s₂, s₃).
+  -- At (t, -ta, -tb): Φ(t·x - ta·d_i - tb·d_j) = Φ(0) = 1.
+  -- So charFun(ν.map X) ≡ 1 = charFun(Dirac 0), hence ν.map X = Dirac 0 by ext_of_charFun.
+  -- X = 0 a.e. follows from Dirac 0 concentrating at 0.
   sorry
 
 /-- Boundedness holds ν-a.e.
