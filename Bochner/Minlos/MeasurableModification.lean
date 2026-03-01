@@ -267,14 +267,39 @@ lemma projection_embed_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
   exact extensionCLM_embed (denseSeq E) (denseRange_denseSeq E)
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top l
 
-/-- The good paths have full ν-measure. This is the main probabilistic lemma.
+/-- ℚ-linearity holds ν-a.e.
 
-    Proof sketch:
-    - ℚ-linearity a.e.: For fixed i, j, a, b, the random variable
-      X(ω) = ω(a•d_i + b•d_j) - a•ω(d_i) - b•ω(d_j) has CF E[e^{itX}] = Φ(0) = 1,
-      so X = 0 a.s. Countable intersection preserves full measure.
-    - Boundedness a.e.: Φ continuous at 0 → for each d_i, P(|ω(d_i)| ≥ R) is small.
-      NuclearSpace gives uniform bounds via seminorms. -/
+    For fixed i, j ∈ ℕ and a, b ∈ ℚ, the random variable
+    X(ω) = ω(a•d_i + b•d_j) - a•ω(d_i) - b•ω(d_j)
+    has characteristic function E[e^{itX}] = Φ(t(a•d_i+b•d_j) - ta•d_i - tb•d_j) = Φ(0) = 1.
+    Hence X = 0 a.s. (a measure with CF ≡ 1 is δ₀).
+    Countable intersection over (i, j, a, b) ∈ ℕ × ℕ × ℚ × ℚ preserves full measure. -/
+private lemma qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+    (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_eq : ∀ f : E, ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν =
+      (fun f : E => ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν) f)
+    (h_cf_one : (fun f : E => ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
+    ∀ᵐ ω ∂ν, ω ∈ qLinearPaths (denseSeq E) := by
+  sorry
+
+/-- Boundedness holds ν-a.e.
+
+    For each element x = a•d_i + b•d_j, the Markov/Chebyshev inequality gives:
+    P(|ω(x)| ≥ R) ≤ (1 - Re(Φ(tx))) / (1 - cos(tR))
+    By continuity of Φ at 0, the numerator → 0 as x → 0.
+    NuclearSpace seminorms give uniform control. -/
+private lemma boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+    (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν))
+    (h_cf_one : (fun f : E => ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
+    ∀ᵐ ω ∂ν, ω ∈ boundedPaths (denseSeq E)
+      (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
+  sorry
+
+/-- The good paths have full ν-measure. Combines ℚ-linearity and boundedness a.e. -/
 lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
@@ -283,7 +308,10 @@ lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
       Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ goodPaths (denseSeq E)
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
-  sorry
+  have hq := qLinearPaths_ae ν (fun f => rfl) h_cf_one
+  have hb := boundedPaths_ae ν h_cf_cont h_cf_one
+  filter_upwards [hq, hb] with ω h1 h2
+  exact ⟨h1, h2⟩
 
 /-- For each f : E, P(ω)(f) = ω(f) for ν-a.e. ω.
 
