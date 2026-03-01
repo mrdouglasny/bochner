@@ -39,7 +39,7 @@ The 6 sorries are in MeasurableModification.lean:
 
 import Bochner.Minlos.MeasurableModification
 
-open BigOperators MeasureTheory Complex TopologicalSpace
+open BigOperators MeasureTheory Complex TopologicalSpace Classical
 
 noncomputable section
 
@@ -119,9 +119,53 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
   -- For any finite collection of test vectors and scalars, the joint CF equals Φ
   -- applied to the linear combination. Proved from the projective limit property
   -- (same structure as h_cf_eq but for a general Finset instead of a singleton).
+  -- Joint characteristic function: generalizes h_cf_eq to n-point marginals.
+  -- Strategy: factor through J = Finset.image x univ, use projective limit,
+  -- change variables through finsetPiMeasEquiv, fiber-sum reindex to charFun.
+  -- See PROVING_BLUEPRINT.md §1 for full details.
   have h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i) := by
+    intro n s x
+    set J := Finset.image x Finset.univ with J_def
+    have hx_mem : ∀ i, x i ∈ J :=
+      fun i => Finset.mem_image_of_mem x (Finset.mem_univ i)
+    -- The integrand depends on ω only at points in J
+    let g : (∀ j : ↥J, ℝ) → ℂ := fun y =>
+      Complex.exp (Complex.I * ↑(∑ i, s i * y ⟨x i, hx_mem i⟩))
+    have hg_cont : Continuous g :=
+      Complex.continuous_exp.comp (continuous_const.mul (continuous_ofReal.comp
+        (continuous_finset_sum _ (fun i _ => continuous_const.mul (continuous_apply _)))))
+    -- Step 1: Factor through J.restrict and use projective limit
+    change ∫ ω, g (J.restrict ω) ∂ν = Φ (∑ i, s i • x i)
+    rw [← integral_map (Finset.measurable_restrict J).aemeasurable
+      hg_cont.aestronglyMeasurable, hν_proj J, marginalFamily,
+      integral_map (finsetPiMeasEquiv J).symm.measurable.aemeasurable
+        hg_cont.aestronglyMeasurable]
+    -- fi maps each Fin n index to the position of x i in J's enumeration
+    set fi : Fin n → Fin J.card :=
+      fun i => J.equivFin ⟨x i, hx_mem i⟩ with fi_def
+    -- Step 2: Simplify g ∘ (finsetPiMeasEquiv J).symm
+    have h_simp : ∀ y : EuclideanSpace ℝ (Fin J.card),
+        g ((finsetPiMeasEquiv J).symm y) =
+        Complex.exp (Complex.I * ↑(∑ i : Fin n, s i * y (fi i))) := by
+      intro y; simp only [g, finsetPiMeasEquiv, trans_symm_apply_eq',
+        MeasurableEquiv.coe_toLp_symm, finsetReindexEquiv,
+        MeasurableEquiv.symm_mk, MeasurableEquiv.coe_mk, fi_def]; rfl
+    simp_rw [h_simp]
+    -- Step 3: Fiber infrastructure
+    have h_fiber_disj : Set.PairwiseDisjoint (Finset.univ : Finset (Fin J.card))
+        (fun k => Finset.univ.filter (fun i : Fin n => fi i = k)) := by
+      intro k₁ _ k₂ _ hk
+      exact Finset.disjoint_filter.mpr (fun i _ h₁ h₂ => hk (h₁.symm.trans h₂))
+    have h_fiber_cover : Finset.univ.biUnion (fun k : Fin J.card =>
+        Finset.univ.filter (fun i : Fin n => fi i = k)) = Finset.univ := by ext i; simp
+    have h_tv : ∀ i : Fin n, (J.equivFin.symm (fi i) : E) = x i := by
+      intro i; simp [fi_def]
+    -- Step 4: Connect to charFun via inner product and marginalCF
+    -- Remaining: rewrite ∑ i, sᵢ * y(fi i) as ⟪y, ξ⟫ for appropriate ξ,
+    -- apply charFun_apply + marginalMeasure_charFun, then show
+    -- marginalCF Φ (finsetTestVectors J) ξ = Φ(∑ i, sᵢ • xᵢ) via fiber reindex.
     sorry
   -- Step 3: Push forward ν through measurable projection P to get μ on WeakDual ℝ E
   have h_prob_map : IsProbabilityMeasure (ν.map measurableProjection) :=
