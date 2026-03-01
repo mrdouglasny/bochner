@@ -16,13 +16,18 @@ probability measure on the topological dual E' = WeakDual ℝ E.
    to `∀ j : J, ℝ` indexed by `Finset E`, forming an `IsProjectiveMeasureFamily`.
 3. **Kolmogorov extension** (imported from KolmogorovExtension4):
    `projectiveLimit` gives measure ν on E → ℝ.
-4. **Nuclear support** (axiom): nuclearity → ν concentrates on WeakDual image.
-5. **Descend** to WeakDual via measurable embedding (axiom).
+4. **Measurable projection** (MeasurableModification.lean): Push forward ν
+   through a measurable map P : (E → ℝ) → WeakDual ℝ E to get μ = ν.map P.
+5. **CF verification**: P(ω)(f) = ω(f) ν-a.e., so charFun(μ) = Φ.
+6. **Uniqueness**: P ∘ embed = id, so μ' = (μ'.map embed).map P = ν.map P = μ.
 
-## Axioms (2)
+## Sorries (6)
 
-1. `nuclear_support_concentration` — nuclearity → support in continuous dual
-2. `weakDual_measurableEmbedding` — evaluation embedding is measurable
+The 6 sorries are in MeasurableModification.lean:
+1. `measurableProjection` — construction of the extension map
+2. `measurable_measurableProjection` — measurability of P
+3. `projection_embed_eq` — P ∘ embed = id
+4. `projection_ae_eq` — P(ω)(f) = ω(f) ν-a.e.
 
 ## References
 
@@ -32,57 +37,11 @@ probability measure on the topological dual E' = WeakDual ℝ E.
 - Degenne-Pfaffelhuber, KolmogorovExtension4 (formalized Kolmogorov extension)
 -/
 
-import Bochner.Minlos.ProjectiveFamily
+import Bochner.Minlos.MeasurableModification
 
-open BigOperators MeasureTheory Complex
+open BigOperators MeasureTheory Complex TopologicalSpace
 
 noncomputable section
-
-/-! ## Axioms -/
-
-/-- **Nuclear support concentration.** On a nuclear space E, a probability
-    measure on E → ℝ whose characteristic functional is continuous on E
-    concentrates on the image of the continuous dual (WeakDual ℝ E).
-
-    The key hypothesis is continuity of the characteristic functional
-    φ(f) = ∫ exp(iω(f)) dν(ω). Nuclearity of E makes this sufficient
-    for concentration: the Hilbert-Schmidt condition on seminorm inclusions
-    provides enough tightness to exclude discontinuous functionals.
-
-    Without the continuity hypothesis, one can construct measures via Kolmogorov
-    extension that do NOT concentrate on the dual space, even for nuclear E.
-
-    **Proved in OSforGFF-matteo** (Matteo Barucco): the Gaussian case is proved
-    across `MinlosGaussianSupport*.lean` files using nuclear seminorm estimates,
-    Chebyshev-Borel-Cantelli, and measurable modification. The technique
-    generalizes to arbitrary continuous PD Φ (variance bounds are controlled
-    by continuity at 0, nuclear structure gives series convergence).
-
-    **Reference:** Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3,
-    Thm 3 (p. 320): "For L(φ) to be representable as ∫ exp(i(F,φ)) dμ(F) with μ
-    on Φ', it is necessary and sufficient that L(φ) be continuous on Φ."
-    Also: Vakhania-Tarieladze-Chobanyan, "Probability Distributions on Banach Spaces",
-    Ch. 5. **✅ Verified (Gemini, Gel'fand-Vilenkin Vol. 4 Thm 3)** -/
-axiom nuclear_support_concentration {E : Type*} [AddCommGroup E] [Module ℝ E]
-    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E]
-    (ν : ProbabilityMeasure (E → ℝ))
-    (h_cf_continuous : Continuous (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν.toMeasure)) :
-    ∀ᵐ ω ∂ν.toMeasure, ω ∈ Set.range (fun (l : WeakDual ℝ E) (f : E) => l f)
-
-/-- The evaluation embedding `WeakDual ℝ E → (E → ℝ)` sending a continuous linear
-    functional to its underlying function is a measurable embedding.
-
-    This allows descending a measure on E → ℝ (that concentrates on the image)
-    to a measure on `WeakDual ℝ E`.
-
-    **Reference:** Schwartz, "Radon Measures on Arbitrary Topological Spaces", Ch. I;
-    Bogachev, "Measure Theory" Vol. 2, §7.14, Appendix A Thm A.3.9.
-    **✅ Verified (Gemini, Bogachev Vol. 2 §7.14)** -/
-axiom weakDual_measurableEmbedding (E : Type*) [AddCommGroup E] [Module ℝ E]
-    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] :
-    MeasurableEmbedding (fun (l : WeakDual ℝ E) (f : E) => (l : E →L[ℝ] ℝ) f)
 
 private lemma trans_symm_apply_eq' {α β γ : Type*} [MeasurableSpace α] [MeasurableSpace β]
     [MeasurableSpace γ] (e₁ : α ≃ᵐ β) (e₂ : β ≃ᵐ γ) (z : γ) :
@@ -90,21 +49,23 @@ private lemma trans_symm_apply_eq' {α β γ : Type*} [MeasurableSpace α] [Meas
 
 /-! ## Main Theorem -/
 
-/-- **Minlos' Theorem** (existence and uniqueness): On a nuclear locally convex space E,
-    a continuous, positive definite, normalized functional Φ : E → ℂ is the characteristic
-    functional of a unique probability measure μ on the topological dual E':
+/-- **Minlos' Theorem** (existence and uniqueness): On a nuclear, separable,
+    locally convex space E, a continuous, positive definite, normalized functional
+    Φ : E → ℂ is the characteristic functional of a unique probability measure μ
+    on the topological dual E':
 
     Φ(f) = ∫_{E'} exp(i ω(f)) dμ(ω)
 
     **Proof**: Combine finite-dimensional Bochner (→ marginal measures), Kolmogorov
-    extension (→ measure on E → ℝ), nuclear support concentration (→ measure on
-    WeakDual ℝ E), and Bochner uniqueness (→ uniqueness of μ).
+    extension (→ measure ν on E → ℝ), measurable projection P (→ μ = ν.map P on
+    WeakDual ℝ E), CF verification (P(ω)(f) = ω(f) a.e.), and uniqueness
+    (P ∘ embed = id).
 
     **References**: Minlos (1959), Gel'fand-Vilenkin Vol. 4, Billingsley,
     Degenne-Pfaffelhuber (KolmogorovExtension4). -/
 theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E] [Nonempty E] (Φ : E → ℂ)
+    [NuclearSpace E] [SeparableSpace E] [Nonempty E] (Φ : E → ℂ)
     (h_continuous : Continuous Φ) (h_positive_definite : IsPositiveDefinite Φ)
     (h_normalized : Φ 0 = 1) :
     ∃! μ : ProbabilityMeasure (WeakDual ℝ E),
@@ -114,7 +75,6 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
   let ν := marginalProjectiveLimit Φ h_continuous h_positive_definite h_normalized
   have hν_prob : IsProbabilityMeasure ν :=
     marginalProjectiveLimit_isProbability Φ h_continuous h_positive_definite h_normalized
-  let ν_prob : ProbabilityMeasure (E → ℝ) := ⟨ν, hν_prob⟩
   -- Step 2: The CF of ν equals Φ (hence is continuous)
   have hν_proj := marginalProjectiveLimit_isProjectiveLimit Φ h_continuous
     h_positive_definite h_normalized
@@ -155,101 +115,20 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     simp_rw [h_inner, ← charFun_apply, marginalMeasure_charFun]
     -- Step 5: Simplify marginalCF for singleton
     simp [marginalCF, finsetTestVectors, EuclideanSpace.single_apply, idx_def]
-  have h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν) := by
-    have : (fun f : E => ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν) = Φ :=
-      funext h_cf_eq
-    rw [this]; exact h_continuous
-  -- Step 3: Nuclear support concentration — ν concentrates on WeakDual image
-  have h_support := nuclear_support_concentration ν_prob h_cf_cont
-  -- Step 4: Descend ν to μ on WeakDual ℝ E via measurable embedding
-  have h_embed := weakDual_measurableEmbedding E
-  -- Step 5: Construct μ on WeakDual ℝ E by pulling back ν through the embedding
-  let embed := fun (l : WeakDual ℝ E) (f : E) => (l : E →L[ℝ] ℝ) f
-  -- ν concentrates on range embed, so comap gives a probability measure
-  have h_prob_comap : IsProbabilityMeasure (ν.comap embed) :=
-    h_embed.isProbabilityMeasure_comap h_support
-  let μ : ProbabilityMeasure (WeakDual ℝ E) := ⟨ν.comap embed, h_prob_comap⟩
+  -- Step 3: Push forward ν through measurable projection P to get μ on WeakDual ℝ E
+  have h_prob_map : IsProbabilityMeasure (ν.map measurableProjection) :=
+    isProbabilityMeasure_map_projection ν
+  let μ : ProbabilityMeasure (WeakDual ℝ E) := ⟨ν.map measurableProjection, h_prob_map⟩
   -- Existence: μ has the right characteristic functional
   refine ⟨μ, ?_, ?_⟩
   · -- Show ∀ f, Φ f = ∫ ω, exp(I * ω f) ∂μ
-    intro f'
-    rw [← h_cf_eq f']
-    -- ∫ ω, exp(I * ω f') ∂ν = ∫ l, exp(I * l f') ∂(ν.comap embed)
-    -- via: integral_map + map_comap + restrict_eq_self_of_ae_mem
-    show ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f')) ∂ν =
-      ∫ l : WeakDual ℝ E, Complex.exp (Complex.I * ↑(l f')) ∂(ν.comap embed)
-    have hG_meas : Measurable (fun ω : E → ℝ => Complex.exp (Complex.I * ↑(ω f'))) :=
-      Complex.measurable_exp.comp
-        (measurable_const.mul (Complex.measurable_ofReal.comp (measurable_pi_apply f')))
-    have h_ae : ∀ᵐ ω ∂ν, ω ∈ Set.range embed := h_support
-    rw [← integral_map h_embed.measurable.aemeasurable hG_meas.aestronglyMeasurable,
-      h_embed.map_comap, Measure.restrict_eq_self_of_ae_mem h_ae]
-  · -- Uniqueness: μ' = μ via projective limit uniqueness + embedding injectivity
+    intro f
+    exact (charFunctional_map_projection Φ ν h_cf_eq h_continuous f).symm
+  · -- Uniqueness: μ' = μ via pushforward factoring through embed
     intro μ' hμ'
-    -- Step 1: μ.toMeasure.map embed = ν
-    have h_ae' : ∀ᵐ ω ∂ν, ω ∈ Set.range embed := h_support
-    have h_mu_embed : μ.toMeasure.map embed = ν := by
-      show (ν.comap embed).map embed = ν
-      rw [h_embed.map_comap, Measure.restrict_eq_self_of_ae_mem h_ae']
-    -- Step 2: μ'.toMeasure.map embed = ν (via projective limit uniqueness)
-    -- μ'.map embed is a projective limit: for each J, (μ'.map embed).map J.restrict = marginalFamily J
-    have h_mu'_proj : IsProjectiveLimit (μ'.toMeasure.map embed)
-        (marginalFamily Φ h_continuous h_positive_definite h_normalized) := by
-      intro J
-      simp only [marginalFamily]
-      -- Suffice: on EuclideanSpace, the measures agree
-      suffices key : ((μ'.toMeasure.map embed).map (Finset.restrict J)).map
-          (finsetPiMeasEquiv J) =
-          (marginalMeasure Φ h_continuous h_positive_definite h_normalized J :
-            Measure _) by
-        have := congr_arg (fun μ => μ.map (finsetPiMeasEquiv J).symm) key
-        simp only [Measure.map_map (finsetPiMeasEquiv J).symm.measurable
-          (finsetPiMeasEquiv J).measurable,
-          (finsetPiMeasEquiv J).symm_comp_self, Measure.map_id] at this
-        exact this
-      -- Prove by charFun uniqueness on EuclideanSpace
-      apply Measure.ext_of_charFun
-      ext ξ
-      rw [marginalMeasure_charFun]
-      -- Compose all maps into one
-      rw [Measure.map_map (finsetPiMeasEquiv J).measurable (Finset.measurable_restrict J),
-        Measure.map_map ((finsetPiMeasEquiv J).measurable.comp
-          (Finset.measurable_restrict J)) h_embed.measurable]
-      -- charFun of composed map = integral over μ'
-      rw [charFun_apply,
-        integral_map
-          (((finsetPiMeasEquiv J).measurable.comp (Finset.measurable_restrict J)).comp
-            h_embed.measurable).aemeasurable
-          (by fun_prop : AEStronglyMeasurable _ _)]
-      -- Inner product identity: ⟪(e ∘ J.restrict ∘ embed)(l), ξ⟫ = l(∑ k, ξ k • testVec J k)
-      have h_inner_eq : ∀ l : WeakDual ℝ E,
-          @inner ℝ _ _ (((⇑(finsetPiMeasEquiv J) ∘ Finset.restrict J) ∘ embed) l) ξ =
-          l (∑ k : Fin J.card, (ξ k) • finsetTestVectors J k) := by
-        intro l
-        simp only [PiLp.inner_apply, RCLike.inner_apply, conj_trivial,
-          finsetPiMeasEquiv, finsetReindexEquiv, finsetTestVectors,
-          MeasurableEquiv.trans_apply, MeasurableEquiv.coe_mk, Equiv.coe_fn_mk,
-          MeasurableEquiv.coe_toLp, Function.comp_apply, Finset.restrict, embed]
-        rw [map_sum]
-        simp_rw [map_smul, smul_eq_mul]
-      -- The goal has embed unfolded; rewrite h_inner_eq with embed unfolded too
-      have h_inner_eq' : ∀ l : WeakDual ℝ E,
-          @inner ℝ _ _ (((⇑(finsetPiMeasEquiv J) ∘ J.restrict) ∘
-            fun (l : WeakDual ℝ E) (f : E) => l f) l) ξ =
-          l (∑ k : Fin J.card, (ξ k) • finsetTestVectors J k) := h_inner_eq
-      simp_rw [h_inner_eq', mul_comm _ Complex.I]
-      -- Apply hμ' to get Φ(∑ ...) = marginalCF Φ (testVec J) ξ
-      rw [← hμ']
-      rfl
-    have h_mu'_embed : μ'.toMeasure.map embed = ν :=
-      marginalProjectiveLimit_unique Φ h_continuous h_positive_definite h_normalized
-        h_mu'_proj
-    -- Step 3: μ.map embed = μ'.map embed, so μ = μ' by MeasurableEmbedding.comap_map
-    have h_eq : μ.toMeasure = μ'.toMeasure := by
-      rw [← h_embed.comap_map μ.toMeasure, ← h_embed.comap_map μ'.toMeasure,
-        h_mu_embed, h_mu'_embed]
-    exact Subtype.ext h_eq.symm
+    have h_eq := uniqueness_via_projection Φ h_continuous h_positive_definite h_normalized
+      ν rfl μ' hμ'
+    exact h_eq
 
 /-! ## Derived results -/
 
@@ -257,7 +136,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     on a nuclear space must be equal. -/
 theorem minlos_uniqueness {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E] [Nonempty E]
+    [NuclearSpace E] [SeparableSpace E] [Nonempty E]
     {Φ : E → ℂ} (hΦ_cont : Continuous Φ)
     (hΦ_pd : IsPositiveDefinite Φ) (hΦ_norm : Φ 0 = 1)
     {μ₁ μ₂ : ProbabilityMeasure (WeakDual ℝ E)}

@@ -48,39 +48,35 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 0 sorries, 2 axioms
+## Minlos/ — 4 sorries, 0 axioms
 
 | File | Status |
 |------|--------|
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `Minlos.lean` | proved modulo 2 axioms (0 sorries) |
+| `MeasurableModification.lean` | 4 sorries (measurable projection infrastructure) |
+| `Minlos.lean` | proved modulo MeasurableModification sorries (0 sorries, 0 axioms) |
 
-### Axioms
+### Sorries (MeasurableModification.lean)
 
-1. **`nuclear_support_concentration`** — If E is a nuclear space and ν is a
-   probability measure on the algebraic dual E → ℝ whose characteristic
-   functional φ(f) = ∫ e^{iω(f)} dν(ω) is continuous on E, then ν-a.e.
-   ω is actually a *continuous* linear functional (i.e., ω ∈ E').
-   Informally: on nuclear spaces, continuity of the CF forces the measure
-   to live on the topological dual, not just the algebraic dual.
-   (Ref: Gel'fand-Vilenkin Vol. 4, Ch. IV, Thm 3)
-
-2. **`weakDual_measurableEmbedding`** — The natural map E' → (E → ℝ) sending
-   a continuous linear functional l to its underlying function f ↦ l(f) is
-   a measurable embedding. This means it is injective, measurable, and its
-   range is a measurable set — allowing us to transfer a measure from E → ℝ
-   (that concentrates on E') down to a measure on E'.
-   (Ref: Bogachev, "Measure Theory" Vol. 2, §7.14)
+1. **`measurableProjection`** — Construction of P : (E → ℝ) → WeakDual ℝ E.
+   On "good paths" (ℚ-linear + bounded on countable dense D), extend ω|_D
+   by uniform continuity to a ContinuousLinearMap.
+2. **`measurable_measurableProjection`** — P is measurable. Each eval P(ω)(f)
+   is a pointwise limit of measurable_pi_apply functions.
+3. **`projection_embed_eq`** — P ∘ embed = id. Continuous linear functionals
+   are ℚ-linear + bounded, so extension recovers original by uniqueness.
+4. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. Via convergence of
+   ω(d_n) → ω(f) in probability (CF continuity) + ω(d_n) → P(ω)(f) a.s.
 
 ### Key proofs (Minlos)
 
 | Lemma | Technique |
 |-------|-----------|
 | `marginalFamily_isProjective` | charFun uniqueness + sum reindexing over finset inclusions |
-| `minlos_theorem` (existence) | Kolmogorov extension + `MeasurableEmbedding.comap` + `map_comap` |
-| `minlos_theorem` (uniqueness) | `ext_of_charFun` on each marginal + projective limit uniqueness + `comap_map` injectivity |
+| `minlos_theorem` (existence) | Kolmogorov extension + measurable pushforward P + CF verification |
+| `minlos_theorem` (uniqueness) | P ∘ embed = id + projective limit uniqueness + Measure.map factoring |
 | `gaussian_averaging_bound` | Pointwise bound Re(1-φ) ≤ ε + 2·qf + integral monotonicity + Gaussian·quadForm integrability via t·exp(-t) ≤ 1 |
 | `gaussian_quadForm_integral_le` | Spectral decomposition + cosh bound (x²/2 ≤ cosh(x)-1) + ge_of_tendsto for (exp(tA)-1)/t → A + ULift reindex for universe bridging |
 
