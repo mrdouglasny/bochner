@@ -94,16 +94,17 @@ lemma qLinearPaths_measurableSet (d : ℕ → E) :
 
 /-- The set of "bounded paths" on a sequence d : ℕ → E with respect to
     seminorms p : ℕ → Seminorm ℝ E.
-    ω is bounded: ∃ n C, ∀ i, |ω(d i)| ≤ C * p n (d i).
+    ω is bounded: ∃ s : Finset ℕ, ∃ C : ℕ, ∀ i, |ω(d i)| ≤ C * (s.sup p)(d i).
 
-    This is a countable union of countable intersections of measurable sets. -/
+    This is a countable union of countable intersections of measurable sets,
+    since the Finset ℕ and ℕ parameters range over countable types. -/
 def boundedPaths (d : ℕ → E) (p : ℕ → Seminorm ℝ E) : Set (E → ℝ) :=
-  ⋃ (n : ℕ) (C : ℕ), ⋂ (i : ℕ),
-    { ω | |ω (d i)| ≤ (C : ℝ) * p n (d i) }
+  ⋃ (s : Finset ℕ) (C : ℕ), ⋂ (i : ℕ),
+    { ω | |ω (d i)| ≤ (C : ℝ) * (s.sup p) (d i) }
 
 lemma boundedPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     MeasurableSet (boundedPaths d p) := by
-  apply MeasurableSet.iUnion; intro n
+  apply MeasurableSet.iUnion; intro s
   apply MeasurableSet.iUnion; intro C
   apply MeasurableSet.iInter; intro i
   exact measurableSet_le (measurable_pi_apply (d i) |>.norm) measurable_const
@@ -154,7 +155,7 @@ lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     simp only [qLinearPaths, Set.mem_iInter, Set.mem_setOf_eq]
     intro i j a b
     simp only [weakDualEmbed, map_add, map_smul, smul_eq_mul]
-  · -- Boundedness: l is continuous, hence bounded by some p_n
+  · -- Boundedness: l is continuous, hence bounded by finitely many p_n
     simp only [boundedPaths, Set.mem_iUnion, Set.mem_iInter, Set.mem_setOf_eq]
     -- View |l(·)| as a continuous seminorm and apply bound_of_continuous
     have hl_cont : Continuous ((normSeminorm ℝ ℝ).comp l.toLinearMap) := by
@@ -162,15 +163,16 @@ lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
       exact continuous_norm.comp l.cont
     obtain ⟨s, C, _, hC⟩ := Seminorm.bound_of_continuous hp_top _ hl_cont
     -- hC : (normSeminorm ℝ ℝ).comp l.toLinearMap ≤ C • s.sup p
-    -- i.e., |l(x)| ≤ C * (s.sup p) x for all x
-    -- We need: ∃ n C', ∀ i, |l(d i)| ≤ C' * p n (d i)
-    -- Step 1: Find m dominating all seminorms in s via HS embedding monotonicity
-    -- For each n ∈ s, HS embedding gives ∃ m > n with p n ≤ p m
-    -- Iterating: for any N, ∃ m ≥ N with p n ≤ p m for all n ≤ N
-    -- Hence s.sup p ≤ p m for some m
-    -- Step 2: |l(d i)| = ‖l(d i)‖ ≤ C * (s.sup p)(d i) ≤ C * p m (d i)
-    -- Use ⌈C⌉ : ℕ as the natural number bound
-    sorry
+    -- i.e., ‖l(x)‖ ≤ C * (s.sup p)(x) for all x
+    refine ⟨s, ⌈(C : ℝ)⌉₊, fun i => ?_⟩
+    have h := hC (d i)
+    simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
+      NNReal.smul_def] at h
+    calc |weakDualEmbed E l (d i)| = ‖l (d i)‖ := (Real.norm_eq_abs _).symm
+      _ ≤ (C : ℝ) * (s.sup p) (d i) := h
+      _ ≤ (↑⌈(C : ℝ)⌉₊ : ℝ) * (s.sup p) (d i) := by
+          apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+          exact Nat.le_ceil _
 
 /-- The extension of embed(l) recovers l.
     Proof: both are ContinuousLinearMaps that agree on the dense set D,
@@ -181,12 +183,21 @@ lemma extensionCLM_embed [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (hp_top : WithSeminorms (fun n => p n))
     (l : WeakDual ℝ E) :
     extensionCLM d hd p (weakDualEmbed E l) (embed_mem_goodPaths d p hp_top l) = l := by
-  -- Both are ContinuousLinearMaps agreeing on d(ℕ) (dense), so they agree everywhere
+  -- Both are ContinuousLinearMaps: show they're equal as functions E → ℝ
   apply ContinuousLinearMap.ext
   intro f
-  -- extensionCLM agrees with ω on d(ℕ), and ω = embed(l), so extensionCLM(d n) = l(d n)
-  -- Both are continuous, d(ℕ) is dense, so they agree everywhere
-  sorry
+  -- Both sides are continuous functions E → ℝ that agree on range(d) (dense)
+  -- Use Continuous.ext_on: two continuous functions to T2 space agreeing on dense set are equal
+  have h_ext := Continuous.ext_on (show Dense (Set.range d) from hd)
+    (extensionCLM d hd p (weakDualEmbed E l) (embed_mem_goodPaths d p hp_top l) :
+      E →L[ℝ] ℝ).cont
+    (l : E →L[ℝ] ℝ).cont
+    (fun x hx => ?_)
+  exact congr_fun h_ext f
+  -- Show agreement on range(d): extensionCLM(embed(l))(d n) = l(d n)
+  obtain ⟨n, rfl⟩ := hx
+  exact extensionCLM_eq_on_dense d hd p (weakDualEmbed E l)
+    (embed_mem_goodPaths d p hp_top l) n
 
 /-! ## Measurable Projection -/
 
