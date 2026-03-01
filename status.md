@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 6 axioms (MeasurableModification.lean)**
+**Total: 1 sorry, 6 axioms (MeasurableModification.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -48,7 +48,7 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 0 sorries, 6 axioms
+## Minlos/ — 1 sorry, 6 axioms
 
 | File | Status |
 |------|--------|
@@ -56,7 +56,14 @@
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
 | `MeasurableModification.lean` | 0 sorries, 6 axioms (textbook results) |
-| `Minlos.lean` | proved modulo MeasurableModification axioms (0 sorries, 0 axioms) |
+| `Minlos.lean` | 1 sorry (`h_cf_joint`), 0 axioms |
+
+### Sorry (Minlos.lean)
+
+- **`h_cf_joint`** — Joint characteristic function: for any finite collection
+  of test vectors and scalars, ∫ exp(i∑ sₖ·ω(xₖ)) dν = Φ(∑ sₖ•xₖ).
+  Follows from projective limit property (same structure as h_cf_eq but
+  for general Finset instead of singleton).
 
 ### Axioms (MeasurableModification.lean)
 
@@ -65,8 +72,8 @@
 2. **`extensionCLM_eq_on_dense`** — Extension agrees with ω on dense sequence.
 3. **`measurable_measurableProjection`** — P is measurable (piecewise of
    pointwise limits of measurable functions). (Billingsley, §13)
-4. **`qLinearPaths_ae`** — ℚ-linearity a.e. CF ≡ 1 ⟹ X = 0 a.s. via
-   ext_of_charFun + countable intersection.
+4. **`qLinearPaths_ae`** — ℚ-linearity a.e. via joint CF → X = 0 a.s.
+   Uses Finsupp ℚ-combinations + ext_of_charFun.
    (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
 5. **`boundedPaths_ae`** — Boundedness a.e. via Markov/Chebyshev + CF
    continuity + NuclearSpace seminorms.

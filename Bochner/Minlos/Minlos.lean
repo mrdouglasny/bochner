@@ -115,6 +115,14 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     simp_rw [h_inner, ← charFun_apply, marginalMeasure_charFun]
     -- Step 5: Simplify marginalCF for singleton
     simp [marginalCF, finsetTestVectors, EuclideanSpace.single_apply, idx_def]
+  -- Step 2b: Joint characteristic function (generalizes h_cf_eq to n-point marginals)
+  -- For any finite collection of test vectors and scalars, the joint CF equals Φ
+  -- applied to the linear combination. Proved from the projective limit property
+  -- (same structure as h_cf_eq but for a general Finset instead of a singleton).
+  have h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i) := by
+    sorry
   -- Step 3: Push forward ν through measurable projection P to get μ on WeakDual ℝ E
   have h_prob_map : IsProbabilityMeasure (ν.map measurableProjection) :=
     isProbabilityMeasure_map_projection ν
@@ -123,7 +131,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
   refine ⟨μ, ?_, ?_⟩
   · -- Show ∀ f, Φ f = ∫ ω, exp(I * ω f) ∂μ
     intro f
-    exact (charFunctional_map_projection Φ ν h_cf_eq h_continuous f).symm
+    exact (charFunctional_map_projection Φ ν h_cf_joint h_continuous f).symm
   · -- Uniqueness: μ' = μ via pushforward factoring through embed
     intro μ' hμ'
     have h_eq := uniqueness_via_projection Φ h_continuous h_positive_definite h_normalized

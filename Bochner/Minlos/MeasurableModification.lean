@@ -14,8 +14,8 @@ P : (E → ℝ) → WeakDual ℝ E that agrees with the identity on "good paths"
 
 ## Main definitions
 
-- `qLinearPaths` — set of ω that are ℚ-linear on the dense sequence
-- `boundedPaths` — set of ω bounded by a NuclearSpace seminorm
+- `qLinearPaths` — set of ω that are ℚ-linear on the dense sequence (Finsupp version)
+- `boundedPaths` — set of ω bounded by a NuclearSpace seminorm (Finsupp version)
 - `goodPaths` — intersection (measurable, full measure under ν)
 - `measurableProjection` — P : (E → ℝ) → WeakDual ℝ E
 - `weakDualEmbed` — the embedding WeakDual ℝ E → (E → ℝ)
@@ -25,7 +25,7 @@ P : (E → ℝ) → WeakDual ℝ E that agrees with the identity on "good paths"
 1. `extensionCLM` — BLT: construct ContinuousLinearMap from good path
 2. `extensionCLM_eq_on_dense` — extension agrees with ω on dense sequence
 3. `measurable_measurableProjection` — P is measurable
-4. `qLinearPaths_ae` — ℚ-linearity a.e. (CF ≡ 1 ⟹ X = 0 a.s.)
+4. `qLinearPaths_ae` — ℚ-linearity a.e. (joint CF → X = 0 a.s.)
 5. `boundedPaths_ae` — boundedness a.e. (Markov + CF continuity)
 6. `projection_ae_eq` — P(ω)(f) = ω(f) ν-a.e.
 
@@ -37,8 +37,10 @@ P : (E → ℝ) → WeakDual ℝ E that agrees with the identity on "good paths"
 
 import Bochner.Minlos.ProjectiveFamily
 import Mathlib.Topology.Bases
+import Mathlib.Data.Finsupp.Basic
+import Mathlib.Data.Finsupp.Encodable
 
-open BigOperators MeasureTheory Complex TopologicalSpace Classical
+open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
 noncomputable section
 
@@ -70,53 +72,50 @@ lemma measurable_weakDualEmbed : Measurable (weakDualEmbed E) := by
   intro f
   exact (WeakDual.eval_continuous f).measurable
 
-/-! ## Good Paths -/
+/-! ## Good Paths (Finsupp version) -/
 
 /-- The set of "ℚ-linear paths" on a sequence d : ℕ → E.
-    ω is ℚ-linear on the range of d: for all i, j and rational a, b,
-    ω(a • d i + b • d j) = a * ω(d i) + b * ω(d j).
+    ω respects all finite ℚ-linear combinations:
+    ω(∑ cᵢ • d(i)) = ∑ cᵢ * ω(d(i)) for every c : ℕ →₀ ℚ.
 
-    This is a countable intersection of measurable sets. -/
+    This is a countable intersection (ℕ →₀ ℚ is countable) of measurable sets. -/
 def qLinearPaths (d : ℕ → E) : Set (E → ℝ) :=
-  ⋂ (i : ℕ) (j : ℕ) (a : ℚ) (b : ℚ),
-    { ω | ω ((a : ℝ) • d i + (b : ℝ) • d j) = (a : ℝ) * ω (d i) + (b : ℝ) * ω (d j) }
+  ⋂ (c : ℕ →₀ ℚ),
+    { ω | ω (c.sum fun i a => (a : ℝ) • d i) =
+      c.sum fun i a => (a : ℝ) * ω (d i) }
 
 lemma qLinearPaths_measurableSet (d : ℕ → E) :
     MeasurableSet (qLinearPaths d) := by
-  apply MeasurableSet.iInter; intro i
-  apply MeasurableSet.iInter; intro j
-  apply MeasurableSet.iInter; intro a
-  apply MeasurableSet.iInter; intro b
+  apply MeasurableSet.iInter; intro c
   apply measurableSet_eq_fun
   · exact measurable_pi_apply _
-  · exact ((measurable_pi_apply (d i)).const_mul _).add
-      ((measurable_pi_apply (d j)).const_mul _)
+  · simp only [Finsupp.sum]
+    apply Finset.measurable_sum
+    intro i _
+    exact (measurable_pi_apply (d i)).const_mul _
 
 /-- The set of "bounded paths" on a sequence d : ℕ → E with respect to
     seminorms p : ℕ → Seminorm ℝ E.
-    ω is bounded on the ℚ-span: ∃ s : Finset ℕ, ∃ C : ℕ, for all
-    ℚ-linear combinations a • d i + b • d j,
-    |ω(a • d i + b • d j)| ≤ C * (s.sup p)(a • d i + b • d j).
+    ω is bounded on all finite ℚ-linear combinations:
+    ∃ s : Finset ℕ, ∃ C : ℕ, ∀ c : ℕ →₀ ℚ,
+    |ω(∑ cᵢ • d(i))| ≤ C * (s.sup p)(∑ cᵢ • d(i)).
 
-    Combined with ℚ-linearity, this gives uniform continuity:
-    |ω(d i) - ω(d j)| ≤ C * q(d i - d j).
+    Combined with ℚ-linearity, this gives uniform continuity of ω on
+    the ℚ-span of range(d).
 
-    This is measurable (countable ⋃/⋂ over ℕ × ℕ × ℚ × ℚ). -/
+    This is measurable (countable ⋃/⋂ over ℕ × ℕ × (ℕ →₀ ℚ)). -/
 def boundedPaths (d : ℕ → E) (p : ℕ → Seminorm ℝ E) : Set (E → ℝ) :=
-  ⋃ (s : Finset ℕ) (C : ℕ), ⋂ (i : ℕ) (j : ℕ) (a : ℚ) (b : ℚ),
-    { ω | |ω ((a : ℝ) • d i + (b : ℝ) • d j)| ≤
-        (C : ℝ) * (s.sup p) ((a : ℝ) • d i + (b : ℝ) • d j) }
+  ⋃ (s : Finset ℕ) (C : ℕ), ⋂ (c : ℕ →₀ ℚ),
+    { ω | |ω (c.sum fun i a => (a : ℝ) • d i)| ≤
+        (C : ℝ) * (s.sup p) (c.sum fun i a => (a : ℝ) • d i) }
 
 lemma boundedPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     MeasurableSet (boundedPaths d p) := by
   apply MeasurableSet.iUnion; intro s
   apply MeasurableSet.iUnion; intro C
-  apply MeasurableSet.iInter; intro i
-  apply MeasurableSet.iInter; intro j
-  apply MeasurableSet.iInter; intro a
-  apply MeasurableSet.iInter; intro b
+  apply MeasurableSet.iInter; intro c
   exact measurableSet_le
-    ((measurable_pi_apply ((a : ℝ) • d i + (b : ℝ) • d j)).norm) measurable_const
+    ((measurable_pi_apply (c.sum fun i a => (a : ℝ) • d i)).norm) measurable_const
 
 /-- The "good paths" set: ω that are ℚ-linear and bounded on the dense sequence.
     This is measurable (countable Boolean operations on measurable sets). -/
@@ -159,17 +158,20 @@ axiom extensionCLM_eq_on_dense [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (extensionCLM d hd p ω hω : E →L[ℝ] ℝ) (d n) = ω (d n)
 
 /-- For a continuous linear functional l, embed(l) ∈ goodPaths.
-    Proof: l is ℝ-linear (hence ℚ-linear), and bounded by continuity. -/
+    Proof: l is ℝ-linear (hence ℚ-linear on all Finsupp combinations),
+    and bounded by continuity. -/
 lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (d : ℕ → E) (p : ℕ → Seminorm ℝ E)
     (hp_top : WithSeminorms (fun n => p n))
     (l : WeakDual ℝ E) :
     weakDualEmbed E l ∈ goodPaths d p := by
   constructor
-  · -- ℚ-linearity: l is ℝ-linear, hence ℚ-linear
+  · -- ℚ-linearity: l is ℝ-linear, so l(∑ cᵢ • d(i)) = ∑ cᵢ * l(d(i))
     simp only [qLinearPaths, Set.mem_iInter, Set.mem_setOf_eq]
-    intro i j a b
-    simp only [weakDualEmbed, map_add, map_smul, smul_eq_mul]
+    intro c
+    simp only [weakDualEmbed, Finsupp.sum]
+    rw [map_sum]
+    simp_rw [map_smul, smul_eq_mul]
   · -- Boundedness: l is continuous, hence bounded by finitely many p_n
     simp only [boundedPaths, Set.mem_iUnion, Set.mem_iInter, Set.mem_setOf_eq]
     -- View |l(·)| as a continuous seminorm and apply bound_of_continuous
@@ -179,8 +181,8 @@ lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     obtain ⟨s, C, _, hC⟩ := Seminorm.bound_of_continuous hp_top _ hl_cont
     -- hC : (normSeminorm ℝ ℝ).comp l.toLinearMap ≤ C • s.sup p
     -- i.e., ‖l(x)‖ ≤ C * (s.sup p)(x) for all x
-    refine ⟨s, ⌈(C : ℝ)⌉₊, fun i j a b => ?_⟩
-    set x := (a : ℝ) • d i + (b : ℝ) • d j
+    refine ⟨s, ⌈(C : ℝ)⌉₊, fun c => ?_⟩
+    set x := c.sum fun i a => (a : ℝ) • d i
     have h := hC x
     simp only [Seminorm.comp_apply, coe_normSeminorm, Seminorm.smul_apply,
       NNReal.smul_def] at h
@@ -269,26 +271,37 @@ lemma projection_embed_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
   exact extensionCLM_embed (denseSeq E) (denseRange_denseSeq E)
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top l
 
+/-! ## Almost-everywhere properties
+
+These axioms use the **joint characteristic function** hypothesis:
+  h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+    ∫ ω, exp(I * ↑(∑ i, s i * ω(x i))) dν = Φ(∑ i, s i • x i)
+
+This captures all finite-dimensional marginals of ν, not just the 1D marginals.
+It is provable from the projective limit property. -/
+
 /-- ℚ-linearity holds ν-a.e.
 
-    For fixed i, j ∈ ℕ and a, b ∈ ℚ, the random variable
-    X(ω) = ω(a•d_i + b•d_j) - a•ω(d_i) - b•ω(d_j)
-    has characteristic function E[e^{itX}] = Φ(t·x - ta·d_i - tb·d_j) = Φ(0) = 1.
+    For fixed c : ℕ →₀ ℚ, the random variable
+    X(ω) = ω(∑ cᵢ•dᵢ) - ∑ cᵢ*ω(dᵢ)
+    has CF E[e^{itX}] = Φ(t·∑cᵢ•dᵢ - t·∑cᵢ•dᵢ) = Φ(0) = 1
+    (using h_cf_joint with test vectors {∑cᵢ•dᵢ, d_{i₁}, ..., d_{iₖ}}
+    and scalars {t, -tc₁, ..., -tcₖ}).
     Hence X = 0 a.s. (by Measure.ext_of_charFun with δ₀).
-    Countable intersection preserves full measure.
+    Countable intersection over c ∈ ℕ →₀ ℚ preserves full measure.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3. -/
 axiom qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
-    (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
-    (h_cf_eq : ∀ f : E, ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν =
-      (fun f : E => ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν) f)
-    (h_cf_one : (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ qLinearPaths (denseSeq E)
 
 /-- Boundedness holds ν-a.e.
 
-    For each element x = a•d_i + b•d_j, the Markov/Chebyshev inequality gives:
+    For each element x in the ℚ-span, the Markov/Chebyshev inequality gives:
     P(|ω(x)| ≥ R) ≤ (1 - Re(Φ(tx))) / (1 - cos(tR))
     By continuity of Φ at 0, the numerator → 0 as x → 0.
     NuclearSpace seminorms give uniform control.
@@ -296,25 +309,33 @@ axiom qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3;
     also Billingsley, "Convergence of Probability Measures", §6. -/
 axiom boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
-    (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
-    (h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν))
-    (h_cf_one : (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_cont : Continuous Φ)
+    (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ boundedPaths (denseSeq E)
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
 
 /-- The good paths have full ν-measure. Combines ℚ-linearity and boundedness a.e. -/
 lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
-    (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
-    (h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν))
-    (h_cf_one : (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν) 0 = 1) :
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_cf_cont : Continuous Φ)
+    (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ goodPaths (denseSeq E)
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
-  have hq := qLinearPaths_ae ν (fun f => rfl) h_cf_one
-  have hb := boundedPaths_ae ν h_cf_cont h_cf_one
+  -- Derive the single-variable CF from the joint CF (n=1 case)
+  have h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f := by
+    intro f
+    have := h_cf_joint 1 (fun _ => 1) (fun _ => f)
+    simp at this
+    exact this
+  have hq := qLinearPaths_ae Φ ν h_cf_joint h_normalized
+  have hb := boundedPaths_ae Φ ν h_cf_cont h_cf_single h_normalized
   filter_upwards [hq, hb] with ω h1 h2
   exact ⟨h1, h2⟩
 
@@ -323,17 +344,17 @@ lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     On good paths (full measure by goodPaths_ae):
     - P(ω)(d_n) = ω(d_n) for all n (by extensionCLM_eq_on_dense)
     - P(ω) is continuous, so P(ω)(d_n) → P(ω)(f) for any d_n → f
-    - ω(d_n) → ω(f) in probability: CF of (ω(f) - ω(d_n)) is
-      Φ(t(f - d_n)) → Φ(0) = 1 by continuity of Φ
+    - ω(d_n) → ω(f) in probability: using h_cf_joint with test vectors (f, d_n)
+      and scalars (t, -t), CF = Φ(t(f-d_n)) → Φ(0) = 1 by continuity
     - A.s. + in-probability convergence to the same limit → P(ω)(f) = ω(f) a.e.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3. -/
 axiom projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
-    (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
-    (h_cf_eq : ∀ f : E, ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν =
-      (fun f : E => ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν) f)
-    (h_cf_cont : Continuous (fun f : E => ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν))
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_cf_cont : Continuous Φ)
     (f : E) :
     ∀ᵐ ω ∂ν, (measurableProjection ω : E →L[ℝ] ℝ) f = ω f
 
@@ -345,21 +366,27 @@ lemma isProbabilityMeasure_map_projection [SeparableSpace E] [NuclearSpace E] [N
     IsProbabilityMeasure (ν.map (measurableProjection (E := E))) :=
   Measure.isProbabilityMeasure_map measurable_measurableProjection.aemeasurable
 
-/-- The characteristic functional of ν.map P equals the CF of ν. -/
+/-- The characteristic functional of ν.map P equals Φ. -/
 lemma charFunctional_map_projection [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
-    (h_cf_eq : ∀ f : E, ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
     (h_cf_cont : Continuous Φ) :
     ∀ f : E, ∫ l : WeakDual ℝ E, Complex.exp (Complex.I * ↑(l f))
       ∂(ν.map measurableProjection) = Φ f := by
   intro f
+  -- Derive the single-variable CF
+  have h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f := by
+    intro f'
+    have := h_cf_joint 1 (fun _ => 1) (fun _ => f')
+    simp at this
+    exact this
   rw [integral_map measurable_measurableProjection.aemeasurable]
-  · have h_ae : ∀ᵐ ω ∂ν, (measurableProjection ω : E →L[ℝ] ℝ) f = ω f := by
-      apply projection_ae_eq
-      · intro f'; exact rfl
-      · rwa [show (fun f : E => ∫ ω : E → ℝ,
-          Complex.exp (Complex.I * ↑(ω f)) ∂ν) = Φ from funext h_cf_eq]
-    rw [← h_cf_eq f]
+  · have h_ae : ∀ᵐ ω ∂ν, (measurableProjection ω : E →L[ℝ] ℝ) f = ω f :=
+      projection_ae_eq Φ ν h_cf_joint h_cf_cont f
+    rw [← h_cf_single f]
     apply integral_congr_ae
     filter_upwards [h_ae] with ω hω
     simp [hω]
