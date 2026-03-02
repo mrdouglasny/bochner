@@ -526,55 +526,260 @@ theorem isHilbertSchmidtEmbedding_of_nuclear
 
 /-! ### Recursive Hilbertian Family Construction -/
 
-/-- Given Pietsch nuclearity and a countable seminorm family generating the topology,
-construct a family of Hilbertian seminorms with HS embeddings.
+/-- Bound a nuclear sum by `(∑ cₖ) · q(x)` when each functional is dominated by `q`. -/
+private lemma nuclear_le_sumC_mul_Q
+    (F : ℕ → (E →L[ℝ] ℝ)) (C : ℕ → ℝ) (hC_nn : ∀ n, 0 ≤ C n) (hC_sum : Summable C)
+    (Q : Seminorm ℝ E) (hFQ : ∀ n x, |F n x| ≤ Q x) (x : E) :
+    ∑' n, |F n x| * C n ≤ (∑' n, C n) * Q x := by
+  have h1 : Summable (fun n => |F n x| * C n) :=
+    .of_nonneg_of_le (fun n => mul_nonneg (abs_nonneg _) (hC_nn n))
+      (fun n => mul_le_mul_of_nonneg_right (hFQ n x) (hC_nn n)) (hC_sum.mul_left _)
+  calc ∑' n, |F n x| * C n ≤ ∑' n, Q x * C n :=
+        h1.tsum_mono (hC_sum.mul_left _) (fun n => mul_le_mul_of_nonneg_right (hFQ n x) (hC_nn n))
+    _ = (∑' n, C n) * Q x := by rw [tsum_mul_left]; ring
 
-The construction is recursive:
-- `r(0)` = hilbertianLift from Pietsch applied to `q₀(0)`
-- `r(n+1)` = hilbertianLift from Pietsch applied to `sup(q₀(n+1), r(n))`
+/-- Scaling a Hilbertian seminorm by `K : NNReal` preserves the parallelogram law. -/
+private lemma hilbertian_smul (K : NNReal) (R : Seminorm ℝ E) (hR : R.IsHilbertian) :
+    (K • R).IsHilbertian := by
+  intro x y
+  have h1 : (K • R) (x + y) = ↑K * R (x + y) := rfl
+  have h2 : (K • R) (x - y) = ↑K * R (x - y) := rfl
+  have h3 : (K • R) x = ↑K * R x := rfl
+  have h4 : (K • R) y = ↑K * R y := rfl
+  rw [h1, h2, h3, h4, mul_pow, mul_pow, mul_pow, mul_pow]
+  nlinarith [hR x y, sq_nonneg (↑K : ℝ),
+             mul_add ((↑K : ℝ) ^ 2) (R (x + y) ^ 2) (R (x - y) ^ 2)]
 
-This ensures `q₀(n) ≤ C_n · r(n)` (so `r` generates the topology) and
-`r(n) ≤ C · r(n+1)` (needed for HS embedding). -/
+/-- **Double Pietsch step**: Apply `IsPietschNuclear` twice to produce a Hilbertian
+seminorm `r ≥ p` with a nuclear expansion whose functionals are bounded by `r`.
+
+This is the key construction: a single Pietsch application gives `|fₖ| ≤ q` but
+we need `|fₖ| ≤ r` for the Hilbertian lift `r`. Applying Pietsch twice and scaling
+by `K = max(Σ cₖ, 1) · √(Σ dₖ)` achieves both `p ≤ r` and `|fₖ| ≤ r`. -/
+private lemma doublePietsch_step
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E) (p : Seminorm ℝ E) (hp : Continuous p) :
+    ∃ (r : Seminorm ℝ E),
+      Continuous r ∧ r.IsHilbertian ∧ (∀ x, p x ≤ r x) ∧
+      ∃ (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ),
+        (∀ n, 0 ≤ c n) ∧ Summable c ∧
+        (∀ n x, |f n x| ≤ r x) ∧
+        (∀ x, p x ≤ ∑' n, |f n x| * c n) := by
+  -- Step A: Apply Pietsch to p
+  obtain ⟨QA, hQA_cont, hpQA, FA, CA, hCA_nn, hCA_sum, hFA_QA, hp_nuc⟩ := hPN p hp
+  -- Step B: Apply Pietsch to QA
+  obtain ⟨QB, hQB_cont, hQAQB, G, D, hD_nn, hD_sum, hG_QB, hQA_nuc⟩ := hPN QA hQA_cont
+  -- Build R = hilbertianLift(G, D, QB) — Hilbertian seminorm from second expansion
+  set R := hilbertianLift G D hD_nn hD_sum QB hG_QB with hR_def
+  have hR_hilb := hilbertianLift_isHilbertian G D hD_nn hD_sum QB hG_QB
+  -- Key domination bounds
+  -- QA ≤ √(ΣD)·R via: QA ≤ Σ|G|D (nuclear) ≤ √(ΣD)·R (hilbertianLift_dominates)
+  have hQA_le_sqD_R : ∀ x, QA x ≤ Real.sqrt (∑' n, D n) * R x :=
+    fun x => le_trans (hQA_nuc x)
+      (hilbertianLift_dominates G D hD_nn hD_sum QB hG_QB x)
+  have hR_le_sqD_QB : ∀ x, R x ≤ Real.sqrt (∑' n, D n) * QB x :=
+    hilbertianLift_le_dominator G D hD_nn hD_sum QB hG_QB
+  -- Scaling factor K = max(∑ CA, 1) · √(∑ D)
+  have hsqrtD_nn := Real.sqrt_nonneg (∑' n, D n)
+  set K_val := max (∑' n, CA n) 1 * Real.sqrt (∑' n, D n) with hK_def
+  have hK_nn : 0 ≤ K_val :=
+    mul_nonneg (le_trans zero_le_one (le_max_right _ _)) hsqrtD_nn
+  set K : NNReal := ⟨K_val, hK_nn⟩
+  -- Witness: r = K • R
+  refine ⟨K • R, ?_, hilbertian_smul K R hR_hilb, ?_, FA, CA, hCA_nn, hCA_sum, ?_, hp_nuc⟩
+  · -- Continuity: K • R ≤ (K * √(∑D)) • QB, and QB is continuous
+    set L_val := K_val * Real.sqrt (∑' n, D n) with hL_def
+    have hL_nn : 0 ≤ L_val := mul_nonneg hK_nn hsqrtD_nn
+    set L : NNReal := ⟨L_val, hL_nn⟩
+    apply Seminorm.continuous_of_le (show Continuous (L • QB) from
+      show Continuous (fun x => L_val * QB x) from continuous_const.mul hQB_cont)
+    intro x
+    show K_val * R x ≤ L_val * QB x
+    calc K_val * R x ≤ K_val * (Real.sqrt (∑' n, D n) * QB x) :=
+          mul_le_mul_of_nonneg_left (hR_le_sqD_QB x) hK_nn
+      _ = L_val * QB x := by ring
+  · -- Domination: p ≤ K • R
+    intro x
+    show p x ≤ K_val * R x
+    -- p ≤ Σ|FA|CA ≤ (ΣCA)·QA ≤ (ΣCA)·√(ΣD)·R ≤ K·R
+    have hsC_nn : (0 : ℝ) ≤ ∑' (n : ℕ), CA n := tsum_nonneg hCA_nn
+    calc p x ≤ ∑' n, |FA n x| * CA n := hp_nuc x
+      _ ≤ (∑' n, CA n) * QA x := nuclear_le_sumC_mul_Q FA CA hCA_nn hCA_sum QA hFA_QA x
+      _ ≤ (∑' n, CA n) * (Real.sqrt (∑' n, D n) * R x) :=
+          mul_le_mul_of_nonneg_left (hQA_le_sqD_R x) hsC_nn
+      _ = ((∑' n, CA n) * Real.sqrt (∑' n, D n)) * R x := by ring
+      _ ≤ K_val * R x := by
+          apply mul_le_mul_of_nonneg_right _ (apply_nonneg R x)
+          exact mul_le_mul_of_nonneg_right (le_max_left _ _) hsqrtD_nn
+  · -- Functional bound: |FA n x| ≤ K • R x
+    intro n x
+    show |FA n x| ≤ K_val * R x
+    -- |FA n x| ≤ QA x ≤ √(ΣD) · R x ≤ K · R x
+    calc |FA n x| ≤ QA x := hFA_QA n x
+      _ ≤ Real.sqrt (∑' n, D n) * R x := hQA_le_sqD_R x
+      _ = 1 * (Real.sqrt (∑' n, D n) * R x) := (one_mul _).symm
+      _ ≤ max (∑' n, CA n) 1 * (Real.sqrt (∑' n, D n) * R x) :=
+          mul_le_mul_of_nonneg_right (le_max_right _ _)
+            (mul_nonneg hsqrtD_nn (apply_nonneg R x))
+      _ = K_val * R x := by ring
+
+/-- Helper: continuity of Seminorm.sup. -/
+private theorem seminorm_continuous_sup [IsTopologicalAddGroup E]
+    (p q : Seminorm ℝ E) (hp : Continuous p) (hq : Continuous q) :
+    Continuous (p ⊔ q) := by
+  show Continuous (fun x => (p ⊔ q) x)
+  simp only [Seminorm.sup_apply]; exact hp.sup hq
+
+/-- Bundled recursive construction carrying continuity for the next step. -/
+private noncomputable def buildHilbertianBundle
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n)) :
+    (n : ℕ) → { r : Seminorm ℝ E // Continuous r }
+  | 0 =>
+    ⟨(doublePietsch_step hPN (q₀ 0) (hq₀_cont 0)).choose,
+     (doublePietsch_step hPN (q₀ 0) (hq₀_cont 0)).choose_spec.1⟩
+  | n + 1 =>
+    let prev := buildHilbertianBundle hPN q₀ hq₀_cont n
+    let hp := seminorm_continuous_sup prev.val (q₀ (n + 1)) prev.property (hq₀_cont (n + 1))
+    ⟨(doublePietsch_step hPN (prev.val ⊔ q₀ (n + 1)) hp).choose,
+     (doublePietsch_step hPN (prev.val ⊔ q₀ (n + 1)) hp).choose_spec.1⟩
+
+/-- The recursive Hilbertian family. -/
 private noncomputable def buildHilbertianFamily
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     (hPN : IsPietschNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n)) :
-    ℕ → Seminorm ℝ E := by
-  intro n
-  induction n with
-  | zero =>
-    -- Apply Pietsch to q₀(0): get dominating q with nuclear factorization
-    -- Then build hilbertianLift from the factorization
-    -- For now, use q (the dominating seminorm) as placeholder
-    exact (hPN (q₀ 0) (hq₀_cont 0)).choose
-  | succ m r_m =>
-    -- Apply Pietsch to sup(q₀(m+1), r_m) to get nuclear factorization
-    -- Then build hilbertianLift
-    -- For now, use q from Pietsch applied to q₀(m+1)
-    exact (hPN (q₀ (m + 1)) (hq₀_cont (m + 1))).choose
+    ℕ → Seminorm ℝ E :=
+  fun n => (buildHilbertianBundle hPN q₀ hq₀_cont n).val
 
-/-- The Hilbertian family members are Hilbertian. -/
-private axiom buildHilbertianFamily_isHilbertian
+/-- Helper: the sup input at step n+1. -/
+private noncomputable abbrev buildInput
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     (hPN : IsPietschNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
-    (n : ℕ) : (buildHilbertianFamily hPN q₀ hq₀_cont n).IsHilbertian
+    (n : ℕ) : Seminorm ℝ E :=
+  buildHilbertianFamily hPN q₀ hq₀_cont n ⊔ q₀ (n + 1)
 
-/-- Consecutive Hilbertian family members have HS embeddings. -/
-private axiom buildHilbertianFamily_hs
+private theorem buildInput_continuous
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
+    (n : ℕ) : Continuous (buildInput hPN q₀ hq₀_cont n) :=
+  seminorm_continuous_sup _ _ (buildHilbertianBundle hPN q₀ hq₀_cont n).property (hq₀_cont (n + 1))
+
+/-- Each family member is Hilbertian. -/
+private theorem buildHilbertianFamily_isHilbertian
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
+    (n : ℕ) : (buildHilbertianFamily hPN q₀ hq₀_cont n).IsHilbertian := by
+  cases n with
+  | zero => exact (doublePietsch_step hPN (q₀ 0) (hq₀_cont 0)).choose_spec.2.1
+  | succ m =>
+    exact (doublePietsch_step hPN (buildInput hPN q₀ hq₀_cont m)
+      (buildInput_continuous hPN q₀ hq₀_cont m)).choose_spec.2.1
+
+/-- Each family member is continuous. -/
+private theorem buildHilbertianFamily_continuous
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
+    (n : ℕ) : Continuous (buildHilbertianFamily hPN q₀ hq₀_cont n) :=
+  (buildHilbertianBundle hPN q₀ hq₀_cont n).property
+
+/-- Helper: the `doublePietsch_step` spec at step n+1. -/
+private theorem buildFamily_stepSucc_spec
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
+    (n : ℕ) :
+    let r := buildHilbertianFamily hPN q₀ hq₀_cont (n + 1)
+    let p := buildInput hPN q₀ hq₀_cont n
+    Continuous r ∧ r.IsHilbertian ∧ (∀ x, p x ≤ r x) ∧
+      ∃ (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ),
+        (∀ k, 0 ≤ c k) ∧ Summable c ∧
+        (∀ k x, |f k x| ≤ r x) ∧
+        (∀ x, p x ≤ ∑' k, |f k x| * c k) :=
+  (doublePietsch_step hPN (buildInput hPN q₀ hq₀_cont n)
+    (buildInput_continuous hPN q₀ hq₀_cont n)).choose_spec
+
+/-- `q₀(n) ≤ r(n)` pointwise. -/
+private theorem buildHilbertianFamily_dominates_q₀
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
+    (n : ℕ) (x : E) : q₀ n x ≤ buildHilbertianFamily hPN q₀ hq₀_cont n x := by
+  cases n with
+  | zero =>
+    exact (doublePietsch_step hPN (q₀ 0) (hq₀_cont 0)).choose_spec.2.2.1 x
+  | succ m =>
+    -- q₀(m+1) ≤ sup(r(m), q₀(m+1)) ≤ r(m+1)
+    have hsup : q₀ (m + 1) x ≤ (buildInput hPN q₀ hq₀_cont m) x := by
+      simp only [buildInput, Seminorm.sup_apply]; exact le_max_right _ _
+    exact le_trans hsup ((buildFamily_stepSucc_spec hPN q₀ hq₀_cont m).2.2.1 x)
+
+/-- `r(n) ≤ r(n+1)` pointwise (previous level is dominated by next). -/
+private theorem buildHilbertianFamily_monotone
+    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    (hPN : IsPietschNuclear E)
+    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
+    (n : ℕ) (x : E) :
+    buildHilbertianFamily hPN q₀ hq₀_cont n x ≤
+      buildHilbertianFamily hPN q₀ hq₀_cont (n + 1) x := by
+  -- r(n) ≤ sup(r(n), q₀(n+1)) ≤ r(n+1)
+  have hsup : buildHilbertianFamily hPN q₀ hq₀_cont n x ≤
+      (buildInput hPN q₀ hq₀_cont n) x := by
+    simp only [buildInput, Seminorm.sup_apply]; exact le_max_left _ _
+  exact le_trans hsup ((buildFamily_stepSucc_spec hPN q₀ hq₀_cont n).2.2.1 x)
+
+/-- Consecutive family members have Hilbert-Schmidt embeddings. -/
+private theorem buildHilbertianFamily_hs
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     (hPN : IsPietschNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : (buildHilbertianFamily hPN q₀ hq₀_cont (n + 1)).IsHilbertSchmidtEmbedding
-      (buildHilbertianFamily hPN q₀ hq₀_cont n)
+      (buildHilbertianFamily hPN q₀ hq₀_cont n) := by
+  -- Extract nuclear data from the doublePietsch step
+  have hspec := buildFamily_stepSucc_spec hPN q₀ hq₀_cont n
+  obtain ⟨_, hr_hilb, _, f, c, hc_nn, hc_sum, hf_le_r, hp_nuc⟩ := hspec
+  -- Apply isHilbertSchmidtEmbedding_of_nuclear
+  exact isHilbertSchmidtEmbedding_of_nuclear
+    (buildHilbertianFamily hPN q₀ hq₀_cont n)
+    (buildHilbertianFamily hPN q₀ hq₀_cont (n + 1))
+    hr_hilb
+    (buildHilbertianFamily_monotone hPN q₀ hq₀_cont n)
+    f c hc_nn hc_sum hf_le_r
+    (fun x => by
+      -- r(n) ≤ sup(r(n), q₀(n+1)) = p ≤ Σ|fₖ|cₖ
+      have hsup : buildHilbertianFamily hPN q₀ hq₀_cont n x ≤
+          (buildInput hPN q₀ hq₀_cont n) x := by
+        simp only [buildInput, Seminorm.sup_apply]; exact le_max_left _ _
+      exact le_trans hsup (hp_nuc x))
 
-/-- The Hilbertian family generates the same topology as q₀. -/
-private axiom buildHilbertianFamily_withSeminorms
+/-- The Hilbertian family generates the same topology as `q₀`.
+
+Uses `WithSeminorms.congr`: the two families are mutually bounded because
+`q₀(n) ≤ r(n)` and each `r(n)` is continuous in the `q₀`-topology. -/
+private theorem buildHilbertianFamily_withSeminorms
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     (hPN : IsPietschNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (hq₀ : WithSeminorms q₀) :
-    WithSeminorms (buildHilbertianFamily hPN q₀ hq₀_cont)
+    WithSeminorms (buildHilbertianFamily hPN q₀ hq₀_cont) := by
+  apply hq₀.congr
+  · -- IsBounded q₀ r id: each r(n) is bounded by finitely many q₀(k)'s
+    intro n
+    obtain ⟨s, C, _, hle⟩ := Seminorm.bound_of_continuous hq₀
+      (buildHilbertianFamily hPN q₀ hq₀_cont n)
+      (buildHilbertianFamily_continuous hPN q₀ hq₀_cont n)
+    exact ⟨s, C, hle⟩
+  · -- IsBounded r q₀ id: each q₀(n) ≤ r(n) ≤ 1 • {n}.sup r
+    intro n
+    refine ⟨{n}, 1, ?_⟩
+    intro x
+    simp [Finset.sup_singleton]
+    exact buildHilbertianFamily_dominates_q₀ hPN q₀ hq₀_cont n x
 
 /-! ### Main Bridge Theorem -/
 

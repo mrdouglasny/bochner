@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 4 axioms (1 in MeasurableModification.lean, 3 in PietschBridge.lean)**
+**Total: 0 sorries, 1 axiom (in MeasurableModification.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -48,7 +48,7 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 0 sorries, 4 axioms
+## Minlos/ — 0 sorries, 1 axiom
 
 | File | Status |
 |------|--------|
@@ -58,7 +58,7 @@
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
 | `MeasurableModification.lean` | 0 sorries, 1 axiom |
 | `Minlos.lean` | proved (0 sorries, 0 axioms) |
-| `PietschBridge.lean` | 0 sorries, 3 axioms (bridge from Pietsch nuclearity) |
+| `PietschBridge.lean` | proved (0 sorries, 0 axioms) |
 
 ### Axiom (MeasurableModification.lean)
 
@@ -75,9 +75,9 @@
 - **`boundedPaths_ae`** — Boundedness a.e. (depends on `minlos_concentration`).
 - **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. via DCT + CF uniqueness.
 
-### Axioms (PietschBridge.lean)
+### PietschBridge.lean — fully proved (0 axioms)
 
-**Proved (7 former axioms/sorries → definitions/theorems):**
+**Proved (all 10 former axioms/sorries → definitions/theorems):**
 1. **`hilbertianLift`** — Defined via `Seminorm.of` with Minkowski triangle inequality.
 2. **`hilbertianLift_apply`** — rfl.
 3. **`hilbertianLift_isHilbertian`** — Parallelogram law from linearity of fₙ.
@@ -87,14 +87,15 @@
 7. **`bessel_hilbertian`** — Jordan-von Neumann bilinearity (additivity from
    parallelogram law, real scaling from `map_real_smul` + density of ℚ) +
    Pythagorean theorem + `S ≤ √S ⟹ S ≤ 1` via `nlinarith`.
+8. **`doublePietsch_step`** — Apply IsPietschNuclear twice + scale by
+   K = max(Σcₖ, 1)·√(Σdₖ) to get Hilbertian r ≥ p with |fₖ| ≤ r.
+9. **`buildHilbertianFamily_isHilbertian`** — From doublePietsch_step at each level.
+10. **`buildHilbertianFamily_hs`** — isHilbertSchmidtEmbedding_of_nuclear + monotone family.
+11. **`buildHilbertianFamily_withSeminorms`** — WithSeminorms.congr + bound_of_continuous
+    + pointwise domination q₀(n) ≤ r(n).
 
-3 private axioms (recursive family construction):
-8. **`buildHilbertianFamily_isHilbertian`** — Each family member is Hilbertian.
-9. **`buildHilbertianFamily_hs`** — Adjacent family members have HS embeddings.
-10. **`buildHilbertianFamily_withSeminorms`** — Family generates the topology.
-
-**Proved from axioms:**
-- **`nuclearSpace_of_pietsch`** — IsPietschNuclear E → NuclearSpace E.
+**Proved:**
+- **`nuclearSpace_of_pietsch`** — IsPietschNuclear E → NuclearSpace E (0 custom axioms).
 
 ### Key proofs (Minlos)
 
@@ -149,8 +150,7 @@
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
 - `#print axioms minlos_theorem` shows 1 axiom from MeasurableModification
   (`minlos_concentration`) + standard. No `sorryAx`.
-- `#print axioms nuclearSpace_of_pietsch` shows 3 private axioms from PietschBridge
-  (`buildHilbertianFamily_{isHilbertian,hs,withSeminorms}`) + standard. No `sorryAx`.
+- `#print axioms nuclearSpace_of_pietsch` shows only: `propext`, `Classical.choice`, `Quot.sound`.
 - The proof is structured through FejerPD.lean which proves `Re(𝓕φ(ξ)) ≥ 0` via
   Fejér-averaged double integrals and overlap-ratio kernels.
 - `pd_double_integral_re_nonneg` (formerly an axiom) proved via simple function
