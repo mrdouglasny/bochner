@@ -52,36 +52,152 @@ def IsPietschNuclear (E : Type*) [AddCommGroup E] [Module ℝ E]
 
 /-! ### Hilbertian Lift -/
 
+/-- Summability of the weighted square series: `∑ₙ fₙ(x)² · cₙ < ∞`.
+This uses the bound `|fₙ(x)| ≤ q(x)` to dominate by `q(x)² · ∑ cₙ`. -/
+lemma summable_sq_mul_of_bounded (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
+    (q : Seminorm ℝ E) (hfq : ∀ n x, |f n x| ≤ q x) (x : E) :
+    Summable (fun n => (f n x) ^ 2 * c n) := by
+  apply Summable.of_nonneg_of_le
+  · intro n; exact mul_nonneg (sq_nonneg _) (hc_nn n)
+  · intro n
+    have h1 : (f n x) ^ 2 ≤ (q x) ^ 2 := by
+      calc (f n x) ^ 2 = |f n x| ^ 2 := (sq_abs _).symm
+        _ ≤ (q x) ^ 2 := by
+          apply sq_le_sq'
+          · linarith [abs_nonneg (f n x), hfq n x, apply_nonneg q x]
+          · exact hfq n x
+    exact mul_le_mul_of_nonneg_right h1 (hc_nn n)
+  · exact (hc_sum.mul_left ((q x) ^ 2)).congr (fun n => by ring)
+
+/-- Nonnegativity of the weighted square series. -/
+lemma tsum_sq_mul_nonneg (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+    (hc_nn : ∀ n, 0 ≤ c n) (x : E) :
+    0 ≤ ∑' n, (f n x) ^ 2 * c n :=
+  tsum_nonneg (fun n => mul_nonneg (sq_nonneg _) (hc_nn n))
+
 /-- The **Hilbertian lift** of a nuclear expansion: `r(x) = √(Σₖ fₖ(x)² · cₖ)`.
 This seminorm satisfies the parallelogram law and dominates the original
-seminorm via Cauchy-Schwarz. -/
-axiom hilbertianLift (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
-    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c) : Seminorm ℝ E
+seminorm via Cauchy-Schwarz.
+
+The bound `|fₙ(x)| ≤ q(x)` ensures the series converges and the
+triangle inequality holds (Minkowski's inequality for weighted ℓ²). -/
+def hilbertianLift (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
+    (q : Seminorm ℝ E) (hfq : ∀ n x, |f n x| ≤ q x) : Seminorm ℝ E :=
+  Seminorm.of
+    (fun x => Real.sqrt (∑' n, (f n x) ^ 2 * c n))
+    (fun x y => by
+      -- Triangle inequality: Minkowski for weighted ℓ²
+      -- √(Σ(fₙ(x+y))²cₙ) ≤ √(Σfₙ(x)²cₙ) + √(Σfₙ(y)²cₙ)
+      sorry)
+    (fun a x => by
+      -- Homogeneity: √(Σ(fₙ(a•x))²cₙ) = ‖a‖ · √(Σfₙ(x)²cₙ)
+      simp_rw [map_smul, smul_eq_mul]
+      have : (fun n => (a * f n x) ^ 2 * c n) = (fun n => a ^ 2 * ((f n x) ^ 2 * c n)) :=
+        funext (fun n => by ring)
+      rw [this, tsum_mul_left, Real.sqrt_mul (sq_nonneg a),
+        Real.sqrt_sq_eq_abs, Real.norm_eq_abs])
 
 /-- The Hilbertian lift evaluates as `r(x) = √(Σₖ fₖ(x)² · cₖ)`. -/
-axiom hilbertianLift_apply (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
-    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c) (x : E) :
-    hilbertianLift f c hc_nn hc_sum x = Real.sqrt (∑' n, (f n x) ^ 2 * c n)
+theorem hilbertianLift_apply (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
+    (q : Seminorm ℝ E) (hfq : ∀ n x, |f n x| ≤ q x) (x : E) :
+    hilbertianLift f c hc_nn hc_sum q hfq x = Real.sqrt (∑' n, (f n x) ^ 2 * c n) :=
+  rfl
 
-/-- The Hilbertian lift satisfies the parallelogram law. -/
-axiom hilbertianLift_isHilbertian (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
-    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c) :
-    (hilbertianLift f c hc_nn hc_sum).IsHilbertian
+/-- The Hilbertian lift satisfies the parallelogram law.
+
+Proof: `fₙ(x+y)² + fₙ(x-y)² = (fₙx + fₙy)² + (fₙx - fₙy)² = 2(fₙx² + fₙy²)`
+for each `n` (using linearity of `fₙ`), then sum and take √. -/
+theorem hilbertianLift_isHilbertian (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
+    (q : Seminorm ℝ E) (hfq : ∀ n x, |f n x| ≤ q x) :
+    (hilbertianLift f c hc_nn hc_sum q hfq).IsHilbertian := by
+  intro x y
+  simp only [hilbertianLift_apply]
+  have hAB := summable_sq_mul_of_bounded f c hc_nn hc_sum q hfq
+  -- r(x+y)² + r(x-y)² = 2(r(x)² + r(y)²)
+  rw [Real.sq_sqrt (tsum_sq_mul_nonneg f c hc_nn (x + y)),
+      Real.sq_sqrt (tsum_sq_mul_nonneg f c hc_nn (x - y)),
+      Real.sq_sqrt (tsum_sq_mul_nonneg f c hc_nn x),
+      Real.sq_sqrt (tsum_sq_mul_nonneg f c hc_nn y)]
+  -- Combine the tsum's
+  rw [← (hAB (x + y)).tsum_add (hAB (x - y))]
+  conv_rhs => rw [mul_add, ← (hAB x).tsum_mul_left 2, ← (hAB y).tsum_mul_left 2,
+    ← ((hAB x).mul_left 2).tsum_add ((hAB y).mul_left 2)]
+  congr 1
+  ext n
+  simp only [map_add, map_sub]
+  ring
 
 /-- Cauchy-Schwarz: the nuclear expansion is bounded by `√(Σcₖ) · r(x)`.
   `Σₖ |fₖ(x)|·cₖ ≤ √(Σₖ fₖ(x)²·cₖ) · √(Σₖ cₖ) = √(Σcₖ) · r(x)` -/
-axiom hilbertianLift_dominates (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
-    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
-    (x : E) :
-    ∑' n, |f n x| * c n ≤ Real.sqrt (∑' n, c n) * hilbertianLift f c hc_nn hc_sum x
-
-/-- Functionals bounded by a dominating seminorm `q` are also bounded by the
-Hilbertian lift: `r(x) ≤ √(Σcₖ) · q(x)`. -/
-axiom hilbertianLift_le_dominator (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+theorem hilbertianLift_dominates (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
     (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
     (q : Seminorm ℝ E) (hfq : ∀ n x, |f n x| ≤ q x)
     (x : E) :
-    hilbertianLift f c hc_nn hc_sum x ≤ Real.sqrt (∑' n, c n) * q x
+    ∑' n, |f n x| * c n ≤
+      Real.sqrt (∑' n, c n) * hilbertianLift f c hc_nn hc_sum q hfq x := by
+  rw [hilbertianLift_apply, mul_comm]
+  -- Goal: ∑' n, |f n x| * c n ≤ √(∑' n, (f n x)² * c n) * √(∑' n, c n)
+  -- Strategy: bound every finite partial sum, then pass to tsum
+  apply Real.tsum_le_of_sum_le (fun n => mul_nonneg (abs_nonneg _) (hc_nn n))
+  intro s
+  -- Rewrite: |f n x| * c n = (|f n x| * √(c n)) * √(c n)
+  have hrewrite : ∀ n ∈ s, |f n x| * c n = (|f n x| * Real.sqrt (c n)) * Real.sqrt (c n) := by
+    intro n _; rw [mul_assoc]; congr 1; exact (Real.mul_self_sqrt (hc_nn n)).symm
+  rw [Finset.sum_congr rfl hrewrite]
+  -- Simplification lemmas for squares
+  have hsq_ab : ∀ n, (|f n x| * Real.sqrt (c n)) ^ 2 = (f n x) ^ 2 * c n := by
+    intro n; rw [mul_pow, sq_abs, Real.sq_sqrt (hc_nn n)]
+  have hsq_b : ∀ n, Real.sqrt (c n) ^ 2 = c n := fun n => Real.sq_sqrt (hc_nn n)
+  -- Summability of the rewritten terms
+  have hsum_sq : Summable (fun n => (f n x) ^ 2 * c n) :=
+    summable_sq_mul_of_bounded f c hc_nn hc_sum q hfq x
+  -- Apply finite Cauchy-Schwarz, then bound partial sums by tsum
+  calc ∑ n ∈ s, (|f n x| * √(c n)) * √(c n)
+      ≤ √(∑ n ∈ s, (|f n x| * √(c n)) ^ 2) * √(∑ n ∈ s, (√(c n)) ^ 2) :=
+        Real.sum_mul_le_sqrt_mul_sqrt s _ _
+    _ = √(∑ n ∈ s, (f n x) ^ 2 * c n) * √(∑ n ∈ s, c n) := by
+        simp_rw [hsq_ab, hsq_b]
+    _ ≤ √(∑' n, (f n x) ^ 2 * c n) * √(∑' n, c n) := by
+        apply mul_le_mul
+        · exact Real.sqrt_le_sqrt
+            (hsum_sq.sum_le_tsum s (fun n _ => mul_nonneg (sq_nonneg _) (hc_nn n)))
+        · exact Real.sqrt_le_sqrt (hc_sum.sum_le_tsum s (fun n _ => hc_nn n))
+        · exact Real.sqrt_nonneg _
+        · exact Real.sqrt_nonneg _
+
+/-- Functionals bounded by a dominating seminorm `q` are also bounded by the
+Hilbertian lift: `r(x) ≤ √(Σcₖ) · q(x)`. -/
+theorem hilbertianLift_le_dominator (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
+    (hc_nn : ∀ n, 0 ≤ c n) (hc_sum : Summable c)
+    (q : Seminorm ℝ E) (hfq : ∀ n x, |f n x| ≤ q x)
+    (x : E) :
+    hilbertianLift f c hc_nn hc_sum q hfq x ≤ Real.sqrt (∑' n, c n) * q x := by
+  rw [hilbertianLift_apply]
+  -- r(x)² = Σfₙ(x)²cₙ ≤ Σq(x)²cₙ = q(x)²·Σcₙ, take √
+  have hqx : 0 ≤ q x := apply_nonneg q x
+  have hsq := summable_sq_mul_of_bounded f c hc_nn hc_sum q hfq x
+  have hdom : Summable (fun n => (q x) ^ 2 * c n) :=
+    (hc_sum.mul_left ((q x) ^ 2)).congr (fun n => by ring)
+  calc Real.sqrt (∑' n, (f n x) ^ 2 * c n)
+      ≤ Real.sqrt (∑' n, (q x) ^ 2 * c n) := by
+        apply Real.sqrt_le_sqrt
+        exact hsq.tsum_mono hdom (fun n => by
+          have h1 : (f n x) ^ 2 ≤ (q x) ^ 2 := by
+            calc (f n x) ^ 2 = |f n x| ^ 2 := (sq_abs _).symm
+              _ ≤ (q x) ^ 2 := by
+                apply sq_le_sq'
+                · linarith [abs_nonneg (f n x), hfq n x]
+                · exact hfq n x
+          exact mul_le_mul_of_nonneg_right h1 (hc_nn n))
+    _ = Real.sqrt ((q x) ^ 2 * ∑' n, c n) := by
+        rw [tsum_mul_left]
+    _ = q x * Real.sqrt (∑' n, c n) := by
+        rw [Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq hqx]
+    _ = Real.sqrt (∑' n, c n) * q x := mul_comm _ _
 
 /-! ### Bessel Inequality for Hilbertian Seminorms -/
 
@@ -93,11 +209,12 @@ then for any finite R-orthonormal sequence `{eⱼ}`, we have `Σⱼ φ(eⱼ)² �
 Proof sketch: let `w = Σⱼ φ(vⱼ)·vⱼ`. By orthonormality, `R(w)² = Σⱼ φ(vⱼ)²`.
 Also `φ(w) = Σⱼ φ(vⱼ)²` and `|φ(w)| ≤ R(w)`.
 So `S := Σⱼ φ(vⱼ)² ≤ R(w) = √S`, giving `S ≤ 1`. -/
-axiom bessel_hilbertian {N : ℕ}
+theorem bessel_hilbertian {N : ℕ}
     (R : Seminorm ℝ E) (hR : R.IsHilbertian)
     (φ : E →L[ℝ] ℝ) (hφ : ∀ x, |φ x| ≤ R x)
     (v : Fin N → E) (hv : R.IsOrthonormalSeq v) :
-    ∑ j, (φ (v j)) ^ 2 ≤ 1
+    ∑ j, (φ (v j)) ^ 2 ≤ 1 := by
+  sorry
 
 /-! ### HS Embedding from Nuclear Factorization -/
 
