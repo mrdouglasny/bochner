@@ -76,7 +76,7 @@ class NuclearSpace (E : Type*) [AddCommGroup E] [Module ℝ E] [TopologicalSpace
     ∃ (p : ℕ → Seminorm ℝ E),
       (∀ n, (p n).IsHilbertian) ∧
       (WithSeminorms (fun n => p n)) ∧
-      (∀ n, ∃ m, n < m ∧ (p m).IsHilbertSchmidtEmbedding (p n))
+      (∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
 
 /-! ### Measurable Structure on WeakDual -/
 

@@ -831,7 +831,7 @@ private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonem
   have hp'_data := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec
   have hp'_hilb : ∀ n, (p' n).IsHilbertian := hp'_data.1
   have hp'_top : WithSeminorms (fun n => p' n) := hp'_data.2.1
-  have hp'_hs : ∀ n, ∃ m, n < m ∧ (p' m).IsHilbertSchmidtEmbedding (p' n) := hp'_data.2.2
+  have hp'_hs : ∀ n, (p' (n + 1)).IsHilbertSchmidtEmbedding (p' n) := hp'_data.2.2
   -- Apply concentration axiom to nuclear seminorms
   obtain ⟨m, C, hC⟩ := minlos_concentration (E := E) Φ ν h_cf_cont h_cf_joint h_normalized
     d p' hp'_top hp'_hilb hp'_hs ε hε

@@ -29,7 +29,7 @@ theorem minlos_theorem [NuclearSpace E] [SeparableSpace E] [Nonempty E]
 
 On a nuclear, separable, locally convex space E, a continuous positive-definite normalized functional Φ : E → ℂ is the characteristic functional of a unique probability measure on the topological dual E' = WeakDual ℝ E.
 
-**Status**: 0 sorries, 1 axiom (`nuclear_cylindrical_concentration` — the Gel'fand-Vilenkin concentration bound for Hilbertian seminorms with Hilbert-Schmidt embeddings).
+**Status**: 0 sorries, 1 axiom (`nuclear_cylindrical_concentration` — Gel'fand-Vilenkin Vol.4, Ch.IV §3.3 concentration bound).
 
 **Proof strategy**:
 1. **Finite-dimensional marginals**: For each finite set {f₁,...,fₙ} ⊂ E, apply Bochner's theorem to get a measure μ_F on ℝⁿ.
@@ -54,7 +54,7 @@ class NuclearSpace (E : Type*) [AddCommGroup E] [Module ℝ E]
     ∃ (p : ℕ → Seminorm ℝ E),
       (∀ n, (p n).IsHilbertian) ∧
       (WithSeminorms (fun n => p n)) ∧
-      (∀ n, ∃ m, n < m ∧ (p m).IsHilbertSchmidtEmbedding (p n))
+      (∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
 ```
 
 This is the characterization from Gel'fand-Vilenkin and Trèves (Ch. 50). The Hilbert-Schmidt condition means the sum ∑ q(eₖ)² is uniformly bounded over all finite p-orthonormal sequences {eₖ}.
@@ -114,14 +114,14 @@ Bochner/
 | Bochner.lean | 1297 | 0 | 0 |
 | Sazonov.lean | 193 | 0 | 0 |
 | Minlos/NuclearSpace.lean | 99 | 0 | 0 |
-| Minlos/PietschBridge.lean | 812 | 0 | 0 |
+| Minlos/PietschBridge.lean | 810 | 0 | 0 |
 | Minlos/FinDimMarginals.lean | 96 | 0 | 0 |
 | Minlos/ProjectiveFamily.lean | 262 | 0 | 0 |
 | Minlos/SazonovTightness.lean | 1061 | 0 | 0 |
-| Minlos/MinlosConcentration.lean | 181 | 1 | 0 |
+| Minlos/MinlosConcentration.lean | 215 | 1 | 0 |
 | Minlos/MeasurableModification.lean | 1135 | 0 | 0 |
 | Minlos/Minlos.lean | 220 | 0 | 0 |
-| **Total** | **6168** | **1** | **0** |
+| **Total** | **6200** | **1** | **0** |
 
 ## Building
 

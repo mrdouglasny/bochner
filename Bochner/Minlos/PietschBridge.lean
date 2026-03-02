@@ -805,8 +805,6 @@ theorem nuclearSpace_of_pietsch
     · -- The family r generates the topology
       exact buildHilbertianFamily_withSeminorms hPN q₀ hq₀_cont hq₀
     · -- Consecutive members have HS embeddings
-      intro n
-      exact ⟨n + 1, Nat.lt_succ_iff.mpr le_rfl,
-        buildHilbertianFamily_hs hPN q₀ hq₀_cont n⟩
+      exact buildHilbertianFamily_hs hPN q₀ hq₀_cont
 
 end

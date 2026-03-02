@@ -45,8 +45,8 @@ Bochner/
 
 ## Proof Architecture (completed)
 
-All sorries are filled. 1 custom axiom remains (`nuclear_cylindrical_concentration`
-in MinlosConcentration.lean).
+1 custom axiom (`nuclear_cylindrical_concentration` in MinlosConcentration.lean).
+0 sorries.
 
 ### Bochner's Theorem (0 sorries, 0 axioms)
 
@@ -68,9 +68,10 @@ in MinlosConcentration.lean).
 - **MeasurableModification.lean**: Measurable modification P of cylindrical paths
   (extensionCLM + ℚ-linearity + boundedness a.e.)
 - **Minlos.lean**: Main theorem (Kolmogorov extension + P pushforward + CF verification)
-- **MinlosConcentration.lean**: Helper lemmas + textbook axiom + wrapper theorem
+- **MinlosConcentration.lean**: Helper lemmas + monotonicity + textbook axiom
+  `nuclear_cylindrical_concentration` (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3)
 - **Axiom**: `nuclear_cylindrical_concentration` — Minlos concentration bound
-  for Hilbertian seminorms with HS embeddings (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3)
+  via Gaussian averaging + HS summability + Chebyshev on ℚ-span
 
 ### PietschBridge (0 sorries, 0 axioms)
 

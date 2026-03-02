@@ -63,13 +63,12 @@
 
 ### Axiom (MinlosConcentration.lean)
 
-1. **`nuclear_cylindrical_concentration`** — Nuclear cylindrical concentration
-   bound (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3): for Hilbertian seminorms `p`
-   with Hilbert-Schmidt embeddings generating the topology, and a cylindrical
-   probability measure with continuous CF, there exist m, C bounding paths
-   by C · (p m) on ℚ-linear combinations. Takes explicit `IsHilbertian` and
-   `IsHilbertSchmidtEmbedding` hypotheses (not `NuclearSpace` typeclass).
-   `minlos_concentration` is a trivial wrapper applying this axiom.
+1. **`nuclear_cylindrical_concentration`** — The analytical core of
+   Gel'fand-Vilenkin Vol.4, Ch.IV §3.3: for Hilbertian seminorms with consecutive
+   Hilbert-Schmidt embeddings generating the topology, a cylindrical probability
+   measure with continuous CF satisfies the concentration bound. The proof outline:
+   CF continuity at 0 → seminorm ball, quadratic bound, Gaussian averaging on
+   orthonormal bases, HS summability, Chebyshev + Bessel for ℚ-linear combinations.
 
 **Proved (5 former axioms → definitions/theorems):**
 - **`extensionCLM`** — BLT theorem via continuous extension from dense subset.
@@ -152,8 +151,8 @@
 ## Notes
 
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
-- `#print axioms minlos_theorem` shows 1 axiom (`nuclear_cylindrical_concentration`)
-  + standard 3 (propext, Classical.choice, Quot.sound). No `sorryAx`.
+- `#print axioms minlos_theorem` shows `nuclear_cylindrical_concentration`
+  + standard 3 (propext, Classical.choice, Quot.sound). No sorries.
 - `#print axioms nuclearSpace_of_pietsch` shows only: `propext`, `Classical.choice`, `Quot.sound`.
 - The proof is structured through FejerPD.lean which proves `Re(𝓕φ(ξ)) ≥ 0` via
   Fejér-averaged double integrals and overlap-ratio kernels.

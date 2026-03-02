@@ -4,20 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Minlos Concentration Bound
 
-States `nuclear_cylindrical_concentration` (the analytical core of Minlos'
-theorem) as a textbook axiom, and provides `minlos_concentration` as a
-convenience wrapper.
+States `nuclear_cylindrical_concentration` as a textbook axiom and provides
+`minlos_concentration` as a convenience wrapper.
 
 ## Architecture
 
 1. **Helper lemmas** (proved): pointwise CF estimates (`cf_norm_le_one`,
    `cf_nhds_ball`, `one_sub_re_nonneg`, `quadratic_bound_outside`).
 
-2. **Textbook axiom** `nuclear_cylindrical_concentration`: for Hilbertian
-   seminorms with Hilbert-Schmidt embeddings, the concentration bound holds.
-   This is the analytical core of Gel'fand-Vilenkin Vol.4, Ch.IV §3.3.
+2. **Monotonicity lemmas** (proved): `seminorm_mono_of_le`, `finset_sup_le_of_mono`
+   derive seminorm monotonicity from consecutive HS embeddings.
 
-3. **Theorem** `minlos_concentration`: trivial wrapper applying the axiom.
+3. **Textbook axiom** `nuclear_cylindrical_concentration`: for Hilbertian
+   seminorms with consecutive Hilbert-Schmidt embeddings, the concentration
+   bound holds. This is the analytical core of Gel'fand-Vilenkin Vol.4,
+   Ch.IV §3.3.
+
+4. **Theorem** `minlos_concentration`: trivial wrapper applying the axiom.
 
 ## References
 
@@ -113,22 +116,55 @@ lemma cf_nhds_ball
   rw [Seminorm.ball_zero_eq]; exact hx
 
 
+/-! ## Monotonicity from consecutive HS embeddings -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- From consecutive HS embeddings, `p n ≤ p m` whenever `n ≤ m`. -/
+lemma seminorm_mono_of_le (p : ℕ → Seminorm ℝ E)
+    (hp_hs : ∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
+    {n m : ℕ} (h : n ≤ m) : p n ≤ p m := by
+  induction m with
+  | zero => simp [Nat.le_zero.mp h]
+  | succ k ih =>
+    rcases Nat.eq_or_lt_of_le h with rfl | hlt
+    · exact le_refl _
+    · exact le_trans (ih (Nat.lt_succ_iff.mp hlt)) (hp_hs k).1
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- For a finite set of indices, `s.sup p ≤ p m` when `m` dominates every index in `s`
+    (which holds when `m ≥ max s`, given monotonicity). -/
+lemma finset_sup_le_of_mono (p : ℕ → Seminorm ℝ E)
+    (hp_hs : ∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
+    (s : Finset ℕ) (m : ℕ) (hm : ∀ n ∈ s, n ≤ m) :
+    s.sup p ≤ p m := by
+  apply Finset.sup_le
+  intro n hn
+  exact seminorm_mono_of_le p hp_hs (hm n hn)
+
+
 /-! ## Textbook axiom -/
 
 /-- **Nuclear cylindrical concentration** (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3).
 
-Given Hilbertian seminorms `p` with Hilbert-Schmidt embeddings generating the
-topology of a separable space E, and a cylindrical probability measure `ν` with
-continuous characteristic functional `Φ` satisfying `Φ(0) = 1`: for any `ε > 0`,
-there exist `m, C : ℕ` such that
+Given:
+- A separable, nonempty locally convex space `E`,
+- Hilbertian seminorms `p` with consecutive Hilbert-Schmidt embeddings
+  (`(p (n+1)).IsHilbertSchmidtEmbedding (p n)`) generating the topology,
+- A cylindrical probability measure `ν` with continuous characteristic
+  functional `Φ` satisfying `Φ(0) = 1` and the joint CF condition
+  `∫ exp(i ∑ sⱼ ω(xⱼ)) dν = Φ(∑ sⱼ xⱼ)`,
+- A dense sequence `d : ℕ → E`,
+
+the conclusion is: for any `ε > 0`, there exist `m, C : ℕ` such that
   `ν {ω | ∃ c : ℕ →₀ ℚ, |ω(x_c)| > C · (p m)(x_c)} < ε`.
 
 **Proof outline** (not yet formalized):
-1. CF continuity at 0 → seminorm ball where `‖1 - Φ‖ < ε'`.
-2. Quadratic bound: `1 - Re Φ(x) ≤ ε'/2 + (2/r²) · q(x)²` globally.
-3. Gaussian averaging on `(p m)`-orthonormal `{eⱼ}` +
-   HS bound `∑ q(eⱼ)² ≤ C_HS` → tail control.
-4. Chebyshev + Bessel inequality for ℚ-linear combinations.
+1. CF continuity at 0 → seminorm ball where `‖1 - Φ‖ < ε/2`.
+2. Quadratic bound: `1 - Re Φ(x) ≤ ε/2 + (2/r²) · (p m₀)(x)²`.
+3. Gaussian averaging on `(p m₁)`-orthonormal `{eⱼ}`:
+   `𝔼[1 - exp(-σ² ω(eⱼ)²/2)] ≤ ε/2 + 2σ²(2/r²)(p m₀)(eⱼ)²`.
+4. Sum over `j` using HS bound `∑ (p m₀)(eⱼ)² ≤ C_HS` → tail control.
+5. Chebyshev + Bessel inequality for ℚ-linear combinations.
 
 **References:**
 - Gel'fand & Vilenkin, *Generalized Functions* Vol. 4, Ch. IV, §3.3
@@ -146,7 +182,7 @@ axiom nuclear_cylindrical_concentration
     (h_normalized : Φ 0 = 1)
     (d : ℕ → E) (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (hp_hilb : ∀ n, (p n).IsHilbertian)
-    (hp_hs : ∀ n, ∃ m, n < m ∧ (p m).IsHilbertSchmidtEmbedding (p n))
+    (hp_hs : ∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
     (ε : ℝ) (hε : 0 < ε) :
     ∃ (m C : ℕ),
       ν {ω | ∃ c : ℕ →₀ ℚ,
@@ -156,10 +192,8 @@ axiom nuclear_cylindrical_concentration
 
 /-! ## Main theorem -/
 
-/-- **Minlos concentration bound** — convenience wrapper around
-`nuclear_cylindrical_concentration` that takes the Hilbertian and
-Hilbert-Schmidt hypotheses explicitly. The call site extracts these
-from `NuclearSpace E`. -/
+/-- **Minlos concentration bound** — wrapper around
+`nuclear_cylindrical_concentration`. -/
 theorem minlos_concentration [SeparableSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
@@ -169,7 +203,7 @@ theorem minlos_concentration [SeparableSpace E] [Nonempty E]
     (h_normalized : Φ 0 = 1)
     (d : ℕ → E) (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (hp_hilb : ∀ n, (p n).IsHilbertian)
-    (hp_hs : ∀ n, ∃ m, n < m ∧ (p m).IsHilbertSchmidtEmbedding (p n))
+    (hp_hs : ∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
     (ε : ℝ) (hε : 0 < ε) :
     ∃ (m C : ℕ),
       ν {ω | ∃ c : ℕ →₀ ℚ,
