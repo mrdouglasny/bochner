@@ -812,8 +812,8 @@ theorem qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 /-- **Minlos concentration** (core nuclear-space-specific bound).
 
     For a nuclear space with seminorms p and a cylindrical measure ν whose
-    CF Φ is continuous at 0 with Φ(0) = 1: for any ε > 0 and HS embedding
-    index m, there exists C : ℕ such that
+    CF Φ is continuous at 0 with Φ(0) = 1: for any ε > 0, there exist
+    m, C : ℕ such that
 
       ν {ω | ∃ c : ℕ →₀ ℚ, |ω(x_c)| > C · (p m)(x_c)} < ε
 
@@ -828,13 +828,13 @@ axiom minlos_concentration {E : Type*} [AddCommGroup E] [Module ℝ E]
     [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
-    (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1)
     (d : ℕ → E) (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
-    (m : ℕ) (hm_hs : (p m).IsHilbertSchmidtEmbedding (p 0))
     (ε : ℝ) (hε : 0 < ε) :
-    ∃ (C : ℕ),
+    ∃ (m C : ℕ),
       ν {ω | ∃ c : ℕ →₀ ℚ,
         ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
           (C : ℝ) * (p m) (c.sum fun i a => (a : ℝ) • d i))} < ENNReal.ofReal ε
@@ -842,8 +842,9 @@ axiom minlos_concentration {E : Type*} [AddCommGroup E] [Module ℝ E]
 private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
-    (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1)
     (d : ℕ → E) (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ε : ℝ) (hε : 0 < ε) :
@@ -854,10 +855,9 @@ private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonem
   set p' := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
   have hp'_top : WithSeminorms (fun n => p' n) :=
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
-  obtain ⟨m, _, hm_hs⟩ :=
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.2 0
-  obtain ⟨C, hC⟩ := minlos_concentration (E := E) Φ ν h_cf_cont h_cf_single h_normalized
-    d p' hp'_top m hm_hs ε hε
+  -- Directly extract m and C from the corrected axiom
+  obtain ⟨m, C, hC⟩ := minlos_concentration (E := E) Φ ν h_cf_cont h_cf_joint h_normalized
+    d p' hp'_top ε hε
   have h_pm_cont : Continuous (p' m) := hp'_top.continuous_seminorm m
   obtain ⟨s₀, C', _, hC'⟩ := Seminorm.bound_of_continuous hp_top _ h_pm_cont
   refine ⟨s₀, C * ⌈C'⌉₊, ?_⟩
@@ -894,8 +894,9 @@ private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonem
 theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
-    (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ boundedPaths (denseSeq E)
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
@@ -910,7 +911,7 @@ theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
   have hε₀_pos : 0 < ε₀ := by
     rw [hε₀_def]
     exact ENNReal.toReal_pos (ne_of_gt h_pos) (measure_ne_top ν _)
-  obtain ⟨s, C, hC⟩ := boundedPaths_tail_bound Φ ν h_cf_cont h_cf_single
+  obtain ⟨s, C, hC⟩ := boundedPaths_tail_bound Φ ν h_cf_cont h_cf_joint
     h_normalized d p hp_top ε₀ hε₀_pos
   have h_subset : {ω | ω ∉ boundedPaths d p} ⊆
       {ω | ∃ c : ℕ →₀ ℚ,
@@ -934,15 +935,8 @@ lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ goodPaths (denseSeq E)
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
-  -- Derive the single-variable CF from the joint CF (n=1 case)
-  have h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
-      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f := by
-    intro f
-    have := h_cf_joint 1 (fun _ => 1) (fun _ => f)
-    simp at this
-    exact this
   have hq := qLinearPaths_ae Φ ν h_cf_joint h_normalized
-  have hb := boundedPaths_ae Φ ν h_cf_cont h_cf_single h_normalized
+  have hb := boundedPaths_ae Φ ν h_cf_cont h_cf_joint h_normalized
   filter_upwards [hq, hb] with ω h1 h2
   exact ⟨h1, h2⟩
 

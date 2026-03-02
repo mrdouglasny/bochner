@@ -27,95 +27,53 @@ After filling sorries or making changes:
 
 ```
 Bochner/
-  PositiveDefinite.lean   -- IsPositiveDefinite definition + basic properties
-  Bochner.lean            -- Main theorem (Phases 1-5)
+  PositiveDefinite.lean          -- IsPositiveDefinite definition + Schur product
+  FejerPD.lean                   -- Fejér-averaged PD integrals → 𝓕φ ≥ 0
+  Bochner.lean                   -- Main Bochner theorem (existence + uniqueness)
+  Sazonov.lean                   -- Sazonov topology via trace-class seminorms
+  TestFubini.lean                -- Auxiliary Fubini lemmas
+  Minlos/
+    NuclearSpace.lean            -- Nuclear space definitions (Hilbertian, HS embeddings)
+    FinDimMarginals.lean         -- Finite-dimensional marginal measures
+    ProjectiveFamily.lean        -- Kolmogorov projective family construction
+    SazonovTightness.lean        -- Sazonov CF continuity → tightness
+    MeasurableModification.lean  -- Measurable modification of cylindrical measure
+    Minlos.lean                  -- Main Minlos theorem
+    PietschBridge.lean           -- Pietsch nuclearity → NuclearSpace
 ```
 
-## Proof Architecture and Dependency Order
+## Proof Architecture (completed)
 
-Fill sorries in this order — each phase depends on the previous ones.
+All sorries are filled. 1 custom axiom remains (`minlos_concentration`
+in MeasurableModification.lean).
 
-### Layer 0: PD Basics (PositiveDefinite.lean)
+### Bochner's Theorem (0 sorries, 0 axioms)
 
-These are independent of each other and can be done in parallel:
+- **Layer 0** (PositiveDefinite.lean): PD basics + Schur product `IsPositiveDefinite.mul`
+- **Layer 1** (FejerPD.lean → Bochner.lean): `pd_l1_fourier_nonneg` via Fejér averaging,
+  double integral PD, overlap-ratio kernels
+- **Layer 2** (Bochner.lean): Gaussian regularization (PD, integrable, tendsto)
+- **Layer 3** (Bochner.lean): `measure_of_pd_l1` via Fourier inversion + withDensity
+- **Layer 4** (Bochner.lean): `gaussianRegularize_measures_tight` + `bochner_theorem`
+  (Prokhorov + weak convergence + charFun limit)
+- **Layer 5** (Bochner.lean): Uniqueness via `Measure.ext_of_charFun`
 
-1. **`eval_zero_nonneg`** — Easy. Specialize PD definition with m=1, x₁=0, c₁=1.
-2. **`conj_symm`** — Easy. Use m=2, compare PD condition for (x,0) vs (0,x).
-3. **`bounded_by_zero`** — Easy-Medium. Apply PD to the 2×2 matrix
-   [φ(0), φ(x); φ(-x), φ(0)] and use Cauchy-Schwarz (det ≥ 0).
-4. **`IsPositiveDefinite.mul`** — Medium. Schur product theorem for functions:
-   if A_{ij} = c̄ᵢcⱼφ(xᵢ-xⱼ) and B_{ij} = c̄ᵢcⱼψ(xᵢ-xⱼ) are PSD, then
-   their Hadamard product is PSD. Use `Matrix.PosSemidef` from Mathlib.
-5. **`isPositiveDefinite_gaussian`** — Medium. Show exp(-ε‖x‖²) is PD.
-   Strategy: exp(-ε‖x-y‖²) = exp(-ε‖x‖²)exp(-ε‖y‖²)exp(2ε⟨x,y⟩).
-   The matrix exp(2ε⟨xᵢ,xⱼ⟩) is PSD (it's a Gram-like matrix via the
-   power series of exp). Alternatively, it's the characteristic function of
-   a Gaussian measure (forward direction of Bochner, which is easy).
+### Minlos' Theorem (0 sorries, 1 axiom)
 
-### Layer 1: Phase 1 — Nonneg Fourier Transform (Bochner.lean)
+- **SazonovTightness.lean**: Sazonov CF continuity → tightness of marginals
+  (Chebyshev + Gaussian averaging + spectral decomposition)
+- **ProjectiveFamily.lean**: Kolmogorov projective family from cylindrical measure
+- **FinDimMarginals.lean**: Finite-dimensional marginal consistency
+- **MeasurableModification.lean**: Measurable modification P of cylindrical paths
+  (extensionCLM + ℚ-linearity + boundedness a.e.)
+- **Minlos.lean**: Main theorem (Kolmogorov extension + P pushforward + CF verification)
+- **Axiom**: `minlos_concentration` — Minlos concentration bound (joint CF, ∃ m C)
+  via Chebyshev + Gaussian averaging + Parseval + Hilbert-Schmidt norms
 
-6. **`pd_l1_fourier_nonneg`** — Medium. Key lemma. Strategy:
-   - For each ξ₀, define g_a(x) = exp(-a‖x‖²) exp(-i⟨ξ₀,x⟩)
-   - PD condition gives: 0 ≤ ∫∫ ḡ_a(x) g_a(y) φ(x-y) dx dy
-   - Rewrite as ∫ |ĝ_a(ξ)|² φ̂(ξ) dξ (convolution theorem)
-   - ĝ_a is an explicit Gaussian centered at ξ₀ (use
-     `fourier_gaussian_innerProductSpace'` from Mathlib)
-   - |ĝ_a|² forms a Dirac sequence as a → 0⁺
-   - φ̂ is continuous (Riemann-Lebesgue: `fourierIntegral_continuous`)
-   - Therefore ∫ |ĝ_a|² φ̂ → φ̂(ξ₀) · (const) ≥ 0
+### PietschBridge (0 sorries, 0 axioms)
 
-### Layer 2: Phase 2 — Gaussian Regularization (Bochner.lean)
-
-Depends on Layer 0 (mul, gaussian PD).
-
-7. **`gaussianRegularize_pd`** — Easy once `mul` and `isPositiveDefinite_gaussian`
-   are done. NOTE: direct `hpd.mul (isPositiveDefinite_gaussian ε hε)` may fail
-   due to definitional mismatch between `gaussianRegularize` and the gaussian PD
-   lemma. Use `show` or `convert` to align the types, or unfold `gaussianRegularize`.
-8. **`gaussianRegularize_integrable`** — Easy-Medium. φ is bounded by φ(0)
-   (from `bounded_by_zero`), so ‖φ_ε(x)‖ ≤ φ(0) · exp(-ε‖x‖²). The Gaussian
-   is integrable on ℝⁿ. Use `Integrable.of_norm_le` or similar.
-9. **`gaussianRegularize_tendsto`** — Easy. exp(-ε‖x‖²) → 1 as ε → 0⁺,
-   so φ(x) · exp(-ε‖x‖²) → φ(x). Use `tendsto_const_mul` or explicit limit.
-
-### Layer 3: Phase 3 — Construct Measures (Bochner.lean)
-
-Depends on Layers 1 and 2.
-
-10. **`measure_of_pd_l1`** — Medium. Given φ ∈ L¹ PD with φ(0) = 1 and φ̂ ∈ L¹:
-    - φ̂ ≥ 0 from `pd_l1_fourier_nonneg`
-    - Define dμ = φ̂ · dλ (Lebesgue measure with density φ̂)
-    - Total mass: ∫ φ̂ = φ(0) = 1 (by Fourier inversion at 0)
-    - So μ is a probability measure
-    - charFun(μ)(ξ) = ∫ exp(i⟨x,ξ⟩) φ̂(x) dx = 𝓕⁻(φ̂)(ξ) = φ(ξ)
-    - Use `Measure.withDensity` from Mathlib for the density construction
-    - Use `fourierInv_fourier_eq` for the inversion step
-
-### Layer 4: Phase 4 — Tightness and Weak Limit (Bochner.lean)
-
-Depends on Layer 3. This is the most complex layer.
-
-11. **`tightness_from_charfun`** — Medium. Standard Fourier tightness inequality.
-    Proof sketch: 1 - Re(charFun(μ)(ξ)) = ∫ (1 - cos⟨x,ξ⟩) dμ(x).
-    Average over ξ in a ball: ∫_ball (1 - cos⟨x,ξ⟩) dξ ≥ c·min(1, R²‖x‖²).
-    This gives the tail bound.
-12. **`gaussianRegularize_measures_tight`** — Medium. NOTE: the current statement
-    is a placeholder (`∀ η > 0, ∃ R > 0, ∀ ε > 0, True`). You need to:
-    - First construct the measures μ_ε (from `measure_of_pd_l1` applied to φ_ε)
-    - State: for all η > 0, ∃ K compact, ∀ ε > 0, μ_ε(Kᶜ) < η
-    - Prove using `tightness_from_charfun` + charFun(μ_ε) = φ_ε → φ
-    - φ continuous at 0 with φ(0) = 1 gives the uniform bound
-13. **`bochner_theorem` existence** — Medium. Assembly:
-    - Apply Prokhorov (`Mathlib.MeasureTheory.Measure.Prokhorov`) to get
-      weakly convergent subsequence μ_{ε_k} → μ
-    - Show charFun(μ)(ξ) = lim charFun(μ_{ε_k})(ξ) = lim φ_{ε_k}(ξ) = φ(ξ)
-    - Testing against bounded continuous x ↦ exp(i⟨ξ,x⟩) transfers charFun
-      through the weak limit
-
-### Layer 5: Uniqueness (already done)
-
-The uniqueness half of `bochner_theorem` is proved, delegating to
-Mathlib's `Measure.ext_of_charFun`.
+- **PietschBridge.lean**: `IsPietschNuclear E → NuclearSpace E` via double Pietsch
+  construction, hilbertianLift, Bessel inequality, WithSeminorms.congr
 
 ## Key Mathlib Lemmas
 

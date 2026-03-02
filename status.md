@@ -63,8 +63,9 @@
 ### Axiom (MeasurableModification.lean)
 
 1. **`minlos_concentration`** — Minlos concentration bound: for a cylindrical
-   measure on a nuclear space with continuous CF, paths are bounded by
-   Hilbertian seminorms (Chebyshev + Gaussian averaging + Parseval + HS).
+   measure on a nuclear space with continuous CF (joint CF hypothesis), there
+   exist m, C such that paths are bounded by C · (p m) on ℚ-linear combinations
+   (Chebyshev + Gaussian averaging + Parseval + HS).
    (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
 
 **Proved (5 former axioms → definitions/theorems):**
