@@ -560,14 +560,6 @@ private axiom buildHilbertianFamily_isHilbertian
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : (buildHilbertianFamily hPN q₀ hq₀_cont n).IsHilbertian
 
-/-- Each original seminorm is bounded by a multiple of the
-corresponding Hilbertian family member. -/
-private axiom buildHilbertianFamily_dominates
-    [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
-    (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
-    (n : ℕ) : ∃ C > 0, ∀ x, q₀ n x ≤ C * buildHilbertianFamily hPN q₀ hq₀_cont n x
-
 /-- Consecutive Hilbertian family members have HS embeddings. -/
 private axiom buildHilbertianFamily_hs
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]

@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 9 axioms (6 in MeasurableModification.lean, 3 in PietschBridge.lean)**
+**Total: 0 sorries, 4 axioms (1 in MeasurableModification.lean, 3 in PietschBridge.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -48,7 +48,7 @@
 | `bochner_theorem` (existence) | Prokhorov + weak convergence + charFun limit |
 | `bochner_theorem` (uniqueness) | Mathlib's `Measure.ext_of_charFun` |
 
-## Minlos/ — 0 sorries, 15 axioms
+## Minlos/ — 0 sorries, 4 axioms
 
 | File | Status |
 |------|--------|
@@ -56,32 +56,24 @@
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `MeasurableModification.lean` | 0 sorries, 6 axioms (textbook results) |
+| `MeasurableModification.lean` | 0 sorries, 1 axiom |
 | `Minlos.lean` | proved (0 sorries, 0 axioms) |
 | `PietschBridge.lean` | 0 sorries, 3 axioms (bridge from Pietsch nuclearity) |
 
-### Axioms (MeasurableModification.lean)
+### Axiom (MeasurableModification.lean)
 
-1. **`extensionCLM`** — BLT theorem: ℚ-linear bounded function on dense
-   subset extends to ContinuousLinearMap. (Rudin, Functional Analysis, Thm 1.18)
-2. **`extensionCLM_eq_on_dense`** — Extension agrees with ω on dense sequence.
-3. **`measurable_measurableProjection`** — P is measurable (piecewise of
-   pointwise limits of measurable functions). (Billingsley, §13)
-4. **`qLinearPaths_ae`** — ℚ-linearity a.e. via joint CF → X = 0 a.s.
-   Uses Finsupp ℚ-combinations + ext_of_charFun.
-   (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
-5. **`boundedPaths_ae`** — Boundedness a.e. via Markov/Chebyshev + CF
-   continuity + NuclearSpace seminorms.
-   (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
-6. **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. via convergence in
-   probability + a.s. convergence.
+1. **`minlos_concentration`** — Minlos concentration bound: for a cylindrical
+   measure on a nuclear space with continuous CF, paths are bounded by
+   Hilbertian seminorms (Chebyshev + Gaussian averaging + Parseval + HS).
    (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
 
-**Proved from axioms:**
-- **`embed_mem_goodPaths`** — proved (ℚ-linearity + `Seminorm.bound_of_continuous`).
-- **`extensionCLM_embed`** — proved via `Continuous.ext_on` density argument.
-- **`projection_embed_eq`** — P ∘ embed = id. Proved from above.
-- **`goodPaths_ae`** — proved from `qLinearPaths_ae` + `boundedPaths_ae`.
+**Proved (5 former axioms → definitions/theorems):**
+- **`extensionCLM`** — BLT theorem via continuous extension from dense subset.
+- **`extensionCLM_eq_on_dense`** — Extension agrees with ω on dense sequence.
+- **`measurable_measurableProjection`** — P is measurable (pointwise limits).
+- **`qLinearPaths_ae`** — ℚ-linearity a.e. via `ae_eq_zero_of_charfun_eq_one`.
+- **`boundedPaths_ae`** — Boundedness a.e. (depends on `minlos_concentration`).
+- **`projection_ae_eq`** — P(ω)(f) = ω(f) ν-a.e. via DCT + CF uniqueness.
 
 ### Axioms (PietschBridge.lean)
 
@@ -155,9 +147,8 @@
 ## Notes
 
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
-- `#print axioms minlos_theorem` shows 4 axioms from MeasurableModification
-  (`extensionCLM`, `extensionCLM_eq_on_dense`, `measurable_measurableProjection`,
-  `projection_ae_eq`) + standard. No `sorryAx`.
+- `#print axioms minlos_theorem` shows 1 axiom from MeasurableModification
+  (`minlos_concentration`) + standard. No `sorryAx`.
 - `#print axioms nuclearSpace_of_pietsch` shows 3 private axioms from PietschBridge
   (`buildHilbertianFamily_{isHilbertian,hs,withSeminorms}`) + standard. No `sorryAx`.
 - The proof is structured through FejerPD.lean which proves `Re(𝓕φ(ξ)) ≥ 0` via
