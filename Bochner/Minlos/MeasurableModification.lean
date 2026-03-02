@@ -102,12 +102,12 @@ lemma weakDualEmbed_injective : Function.Injective (weakDualEmbed E) := by
   have : ∀ f, (l₁ : E →L[ℝ] ℝ) f = (l₂ : E →L[ℝ] ℝ) f := congr_fun h
   exact ContinuousLinearMap.ext this
 
-/-- The embedding is measurable: each coordinate l ↦ l(f) is continuous
-    in the weak-* topology, hence measurable. -/
+/-- The embedding is measurable: each coordinate l ↦ l(f) is measurable
+    w.r.t. the cylinder σ-algebra (by definition). -/
 lemma measurable_weakDualEmbed : Measurable (weakDualEmbed E) := by
   apply measurable_pi_lambda
   intro f
-  exact (WeakDual.eval_continuous f).measurable
+  exact WeakDual.eval_measurable f
 
 /-! ## Good Paths (Finsupp version) -/
 
@@ -610,21 +610,85 @@ def measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
 
+/-- For each f : E, the evaluation ω ↦ P(ω)(f) is measurable as a function (E → ℝ) → ℝ.
+    On goodPaths, P(ω)(f) = lim ω(dₙ) for dₙ → f (pointwise limit of measurable functions).
+    On badPaths, P(ω)(f) = 0 (constant, measurable). -/
+private lemma measurable_eval_comp_projection
+    [SeparableSpace E] [NuclearSpace E] [Nonempty E] (f : E) :
+    Measurable (fun ω : E → ℝ => (measurableProjection (E := E) ω : E →L[ℝ] ℝ) f) := by
+  set d := denseSeq E
+  set p := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  have hp_top : WithSeminorms (fun n => p n) :=
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+  haveI : FirstCountableTopology E := hp_top.firstCountableTopology
+  -- Get a sequence d(φ(k)) → f from the dense set
+  have hf_mem : f ∈ closure (Set.range d) :=
+    (denseRange_denseSeq E).closure_eq ▸ Set.mem_univ f
+  obtain ⟨seq, hseq_mem, hseq_tendsto⟩ := mem_closure_iff_seq_limit.mp hf_mem
+  choose φ hφ_eq using hseq_mem
+  have hφ : Filter.Tendsto (fun k => d (φ k)) Filter.atTop (nhds f) := by
+    convert hseq_tendsto using 1; ext k; exact hφ_eq k
+  set gP := goodPaths d p
+  have hgP_meas : MeasurableSet gP := goodPaths_measurableSet d p
+  -- Define the target function
+  set g : (E → ℝ) → ℝ := fun ω => (measurableProjection (E := E) ω : E →L[ℝ] ℝ) f
+  -- Define approximating functions: F_k(ω) = if ω ∈ goodPaths then ω(d(φ(k))) else 0
+  set F : ℕ → (E → ℝ) → ℝ := fun k ω => if ω ∈ gP then ω (d (φ k)) else 0
+  have hF_meas : ∀ k, Measurable (F k) := fun k =>
+    Measurable.ite hgP_meas (measurable_pi_apply _) measurable_const
+  -- Show F_k → g pointwise (as functions in the function space)
+  have hF_tendsto : Filter.Tendsto F Filter.atTop (nhds g) := by
+    rw [tendsto_pi_nhds]
+    intro ω
+    show Filter.Tendsto (fun k => F k ω) Filter.atTop (nhds (g ω))
+    change Filter.Tendsto (fun k => F k ω) Filter.atTop
+      (nhds ((measurableProjectionAux d (denseRange_denseSeq E) p hp_top ω : E →L[ℝ] ℝ) f))
+    by_cases hω : ω ∈ gP
+    · -- On good paths: F_k(ω) = ω(d(φ(k))) → extensionFun(f) = P(ω)(f)
+      simp only [F, if_pos hω]
+      -- Unfold measurableProjectionAux using dif_pos
+      have h_unfold : (measurableProjectionAux d (denseRange_denseSeq E) p hp_top ω
+          : E →L[ℝ] ℝ) f = extensionFun d (denseRange_denseSeq E) p ω hω f := by
+        unfold measurableProjectionAux
+        rw [dif_pos hω]
+        rfl
+      rw [h_unfold]
+      have hcont := extensionFun_continuous d (denseRange_denseSeq E) p hp_top ω hω
+      have htend := hcont.continuousAt.tendsto.comp hφ
+      -- extensionFun agrees with ω on d(φ(k))
+      convert htend using 1
+      ext k
+      exact (extensionFun_eq d (denseRange_denseSeq E) p hp_top ω hω (φ k)).symm
+    · -- On bad paths: F_k(ω) = 0 → 0 = P(ω)(f)
+      simp only [F, if_neg hω]
+      have h_unfold : (measurableProjectionAux d (denseRange_denseSeq E) p hp_top ω
+          : E →L[ℝ] ℝ) f = 0 := by
+        unfold measurableProjectionAux
+        rw [dif_neg hω]
+        rfl
+      rw [h_unfold]
+      exact tendsto_const_nhds
+  exact measurable_of_tendsto_metrizable hF_meas hF_tendsto
+
 /-- The projection map is measurable.
-    For each f : E, ω ↦ P(ω)(f) is measurable because:
-    - goodPaths is measurable (countable ⋂/⋃)
-    - On goodPaths, P(ω)(f) = lim ω(d_n) for d_n → f (pointwise limit of measurable functions)
-    - On badPaths, P(ω)(f) = 0 (constant)
-    - Piecewise of measurable functions on measurable sets is measurable
+    Strategy: The MeasurableSpace on WeakDual is the cylinder σ-algebra (generated
+    by evaluations). So measurability of P : (E → ℝ) → WeakDual reduces to showing
+    each composition eval_f ∘ P is measurable, which is measurable_eval_comp_projection.
 
     Ref: standard measurability of piecewise + pointwise limits (Billingsley, §13). -/
 theorem measurable_measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
     Measurable (measurableProjection (E := E)) := by
-  -- For each f : E, ω ↦ P(ω)(f) is measurable:
-  -- On goodPaths: P(ω)(f) = extendFrom (range d) ω f = lim ω(dₙ) for dₙ → f
-  -- On bad paths: P(ω)(f) = 0
-  -- Piecewise of measurable functions on measurable sets is measurable.
-  sorry
+  -- Measurable means: comap P (cylinder σ-algebra) ≤ MeasurableSpace.pi
+  -- Cylinder = ⨆_f comap eval_f (borel ℝ)
+  -- comap P (⨆_f comap eval_f) = ⨆_f comap (eval_f ∘ P) (by comap_iSup)
+  -- Each eval_f ∘ P is pi-measurable (measurable_eval_comp_projection).
+  rw [measurable_iff_comap_le]
+  show (⨆ (f : E), (borel ℝ).comap (fun l : WeakDual ℝ E =>
+    (l : E →L[ℝ] ℝ) f)).comap measurableProjection ≤ MeasurableSpace.pi
+  rw [MeasurableSpace.comap_iSup]
+  exact iSup_le fun f => by
+    rw [MeasurableSpace.comap_comp]
+    exact (measurable_eval_comp_projection f).comap_le
 
 /-- The projection composed with the embedding is the identity on WeakDual ℝ E.
     For l ∈ WeakDual ℝ E, embed(l) ∈ goodPaths (l is linear + bounded), and
@@ -745,12 +809,85 @@ theorem qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
   -- X(ω) = 0 means ω(y) = ∑ cᵢ * ω(dᵢ)
   linarith [show X ω = 0 from hω]
 
+/-- **Minlos concentration** (core nuclear-space-specific bound).
+
+    For a nuclear space with seminorms p and a cylindrical measure ν whose
+    CF Φ is continuous at 0 with Φ(0) = 1: for any ε > 0 and HS embedding
+    index m, there exists C : ℕ such that
+
+      ν {ω | ∃ c : ℕ →₀ ℚ, |ω(x_c)| > C · (p m)(x_c)} < ε
+
+    The proof combines Chebyshev-CF inequality, Gaussian averaging over the
+    p_m Hilbert space, Parseval's theorem, and Fubini's theorem. The HS
+    embedding condition makes the Gaussian integral summable.
+
+    Ref: Gel'fand-Vilenkin Vol. 4, Ch. IV, §3.3, Proposition 3;
+         Reed-Simon I, §IX.9; Bogachev, "Gaussian Measures", Ch. 2-3. -/
+axiom minlos_concentration {E : Type*} [AddCommGroup E] [Module ℝ E]
+    [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
+    [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_cont : Continuous Φ)
+    (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_normalized : Φ 0 = 1)
+    (d : ℕ → E) (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (m : ℕ) (hm_hs : (p m).IsHilbertSchmidtEmbedding (p 0))
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ (C : ℕ),
+      ν {ω | ∃ c : ℕ →₀ ℚ,
+        ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
+          (C : ℝ) * (p m) (c.sum fun i a => (a : ℝ) • d i))} < ENNReal.ofReal ε
+
+private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_cont : Continuous Φ)
+    (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
+      Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
+    (h_normalized : Φ 0 = 1)
+    (d : ℕ → E) (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ (s : Finset ℕ) (C : ℕ),
+      ν {ω | ∃ c : ℕ →₀ ℚ,
+        ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
+          (C : ℝ) * (s.sup p) (c.sum fun i a => (a : ℝ) • d i))} < ENNReal.ofReal ε := by
+  set p' := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  have hp'_top : WithSeminorms (fun n => p' n) :=
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+  obtain ⟨m, _, hm_hs⟩ :=
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.2 0
+  obtain ⟨C, hC⟩ := minlos_concentration (E := E) Φ ν h_cf_cont h_cf_single h_normalized
+    d p' hp'_top m hm_hs ε hε
+  have h_pm_cont : Continuous (p' m) := hp'_top.continuous_seminorm m
+  obtain ⟨s₀, C', _, hC'⟩ := Seminorm.bound_of_continuous hp_top _ h_pm_cont
+  refine ⟨s₀, C * ⌈C'⌉₊, ?_⟩
+  apply lt_of_le_of_lt _ hC
+  apply measure_mono
+  intro ω hω
+  simp only [Set.mem_setOf_eq] at hω ⊢
+  obtain ⟨c, hc⟩ := hω
+  refine ⟨c, fun h_le => hc ?_⟩
+  set x := c.sum fun i a => (a : ℝ) • d i
+  have h_pm_bound : (p' m) x ≤ C' * (s₀.sup p) x := by
+    have := hC' x
+    simp only [Seminorm.smul_apply, NNReal.smul_def] at this
+    exact this
+  calc |ω x| ≤ ↑C * (p' m) x := h_le
+    _ ≤ ↑C * (C' * (s₀.sup p) x) :=
+        mul_le_mul_of_nonneg_left h_pm_bound (Nat.cast_nonneg _)
+    _ = (↑C * C') * (s₀.sup p) x := by ring
+    _ ≤ (↑C * ↑⌈C'⌉₊) * (s₀.sup p) x := by
+        apply mul_le_mul_of_nonneg_right _ (apply_nonneg _ _)
+        exact mul_le_mul_of_nonneg_left (Nat.le_ceil _) (Nat.cast_nonneg _)
+    _ = (↑(C * ⌈C'⌉₊) : ℝ) * (s₀.sup p) x := by push_cast; ring
+
 /-- Boundedness holds ν-a.e.
 
     For each element x in the ℚ-span, the Markov/Chebyshev inequality gives:
-    P(|ω(x)| ≥ R) ≤ (1 - Re(Φ(tx))) / (1 - cos(tR))
-    By continuity of Φ at 0, the numerator → 0 as x → 0.
-    NuclearSpace seminorms give uniform control.
+    P(|ω(x)| ≥ R) ≤ 2(1 - Re(Φ(tx))) for appropriate t.
+    By continuity of Φ at 0, the numerator is small when x is in a seminorm ball.
+    NuclearSpace Hilbert-Schmidt embeddings give summability over countable
+    ℚ-linear combinations, and Borel-Cantelli yields the result.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3;
     also Billingsley, "Convergence of Probability Measures", §6. -/
@@ -762,10 +899,30 @@ theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ boundedPaths (denseSeq E)
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
-  -- Markov/Chebyshev + CF continuity at 0 + NuclearSpace seminorms.
-  -- For each ℚ-combo x, P(|ω(x)| ≥ R) ≤ (1 - Re(Φ(tx))) / (1 - cos(tR)).
-  -- Sum over countable ℚ-combos.
-  sorry
+  set d := denseSeq E
+  set p := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  have hp_top : WithSeminorms (fun n => p n) :=
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+  rw [ae_iff]
+  by_contra h_pos
+  rw [← Ne, ← pos_iff_ne_zero] at h_pos
+  set ε₀ := (ν {ω | ω ∉ boundedPaths d p}).toReal with hε₀_def
+  have hε₀_pos : 0 < ε₀ := by
+    rw [hε₀_def]
+    exact ENNReal.toReal_pos (ne_of_gt h_pos) (measure_ne_top ν _)
+  obtain ⟨s, C, hC⟩ := boundedPaths_tail_bound Φ ν h_cf_cont h_cf_single
+    h_normalized d p hp_top ε₀ hε₀_pos
+  have h_subset : {ω | ω ∉ boundedPaths d p} ⊆
+      {ω | ∃ c : ℕ →₀ ℚ,
+        ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
+          (C : ℝ) * (s.sup p) (c.sum fun i a => (a : ℝ) • d i))} := by
+    intro ω hω
+    simp only [Set.mem_setOf_eq, boundedPaths, Set.mem_iUnion, Set.mem_iInter] at hω ⊢
+    push_neg at hω ⊢
+    exact hω s C
+  have h_lt := lt_of_le_of_lt (measure_mono h_subset) hC
+  rw [hε₀_def, ENNReal.ofReal_toReal (measure_ne_top ν _)] at h_lt
+  exact absurd h_lt (lt_irrefl _)
 
 /-- The good paths have full ν-measure. Combines ℚ-linearity and boundedness a.e. -/
 lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
@@ -807,10 +964,106 @@ theorem projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (h_cf_cont : Continuous Φ)
     (f : E) :
     ∀ᵐ ω ∂ν, (measurableProjection ω : E →L[ℝ] ℝ) f = ω f := by
-  -- On good paths: P(ω)(dₙ) = ω(dₙ) and P(ω)(dₙ) → P(ω)(f).
-  -- ω(dₙ) → ω(f) in probability via CF convergence.
-  -- Both limits agree a.e.
-  sorry
+  -- Strategy: Define Z(ω) = P(ω)(f) - ω(f), show its CF is constantly 1,
+  -- then apply ae_eq_zero_of_charfun_eq_one to get Z = 0 a.e.
+  set d := denseSeq E
+  set p := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  have hp_top : WithSeminorms (fun n => p n) :=
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+  -- Step 0: Derive Φ(0) = 1 from h_cf_joint with n=1
+  have h_normalized : Φ 0 = 1 := by
+    have h1 := h_cf_joint 1 (fun _ => 0) (fun _ => (0 : E))
+    simp at h1
+    exact h1.symm
+  -- Step 1: Good paths have full measure
+  have h_good := goodPaths_ae Φ ν h_cf_joint h_cf_cont h_normalized
+  -- Step 2: Choose a sequence d(n_k) → f
+  haveI : FirstCountableTopology E := hp_top.firstCountableTopology
+  have hf_mem : f ∈ closure (Set.range d) :=
+    (denseRange_denseSeq E).closure_eq ▸ Set.mem_univ f
+  obtain ⟨seq, hseq_mem, hseq_tendsto⟩ := mem_closure_iff_seq_limit.mp hf_mem
+  choose φ hφ_eq using hseq_mem
+  have hφ : Filter.Tendsto (fun k => d (φ k)) Filter.atTop (nhds f) := by
+    convert hseq_tendsto using 1; ext k; exact hφ_eq k
+  -- Step 3: Define Z(ω) = P(ω)(f) - ω(f)
+  set Z : (E → ℝ) → ℝ := fun ω => (measurableProjection ω : E →L[ℝ] ℝ) f - ω f
+  -- Step 4: Z is measurable
+  have hZ_meas : Measurable Z := by
+    apply Measurable.sub
+    · exact (WeakDual.eval_measurable f).comp measurable_measurableProjection
+    · exact measurable_pi_apply f
+  -- Step 5: Define approximating sequence Y_k(ω) = ω(d(φ(k))) - ω(f)
+  set Y : ℕ → (E → ℝ) → ℝ := fun k ω => ω (d (φ k)) - ω f
+  -- Step 6: Show CF of Y_k equals Φ(t(d(φ(k)) - f))
+  have hY_cf : ∀ k t, ∫ ω, exp (I * ↑(t * Y k ω)) ∂ν = Φ (t • (d (φ k) - f)) := by
+    intro k t
+    have h2 := h_cf_joint 2 ![t, -t] ![d (φ k), f]
+    simp only [Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one] at h2
+    have h_lhs : ∀ ω', t * ω' (d (φ k)) + -t * ω' f = t * Y k ω' := by
+      intro ω'; simp only [Y]; ring
+    conv at h2 =>
+      lhs; arg 2; ext ω'
+      rw [show t * ω' (d (φ k)) + -t * ω' f = t * Y k ω' from h_lhs ω']
+    convert h2 using 2
+    rw [smul_sub, sub_eq_add_neg, neg_smul]
+  -- Step 7: On good paths, Y_k(ω) → Z(ω)
+  have hY_tendsto_Z : ∀ᵐ ω ∂ν, Filter.Tendsto (fun k => Y k ω) Filter.atTop (nhds (Z ω)) := by
+    filter_upwards [h_good] with ω hω
+    have h_mem : ω ∈ goodPaths d p := hω
+    have h_eq_dense : ∀ k, (measurableProjection ω : E →L[ℝ] ℝ) (d (φ k)) = ω (d (φ k)) := by
+      intro k
+      show (measurableProjectionAux d (denseRange_denseSeq E) p hp_top ω : E →L[ℝ] ℝ) (d (φ k)) =
+        ω (d (φ k))
+      simp only [measurableProjectionAux, dif_pos h_mem]
+      exact extensionCLM_eq_on_dense d (denseRange_denseSeq E) p hp_top ω h_mem (φ k)
+    have h_Pω_cont : Continuous (measurableProjection ω : E →L[ℝ] ℝ) :=
+      (measurableProjection ω : E →L[ℝ] ℝ).cont
+    have h_Pω_tendsto : Filter.Tendsto (fun k => (measurableProjection ω : E →L[ℝ] ℝ) (d (φ k)))
+        Filter.atTop (nhds ((measurableProjection ω : E →L[ℝ] ℝ) f)) :=
+      h_Pω_cont.continuousAt.tendsto.comp hφ
+    have h_ω_tendsto : Filter.Tendsto (fun k => ω (d (φ k)))
+        Filter.atTop (nhds ((measurableProjection ω : E →L[ℝ] ℝ) f)) := by
+      convert h_Pω_tendsto using 1
+      ext k; exact (h_eq_dense k).symm
+    exact Filter.Tendsto.sub h_ω_tendsto tendsto_const_nhds
+  -- Step 8: Apply DCT + CF convergence to show ∫ exp(it Z) = 1
+  have hZ_cf : ∀ t : ℝ, ∫ ω, exp (I * ↑(t * Z ω)) ∂ν = 1 := by
+    intro t
+    have h_F_meas : ∀ k, AEStronglyMeasurable (fun ω => exp (I * ↑(t * Y k ω))) ν := by
+      intro k
+      have hY_meas : Measurable (Y k) :=
+        (measurable_pi_apply (d (φ k))).sub (measurable_pi_apply f)
+      apply Measurable.aestronglyMeasurable
+      exact ((hY_meas.const_mul t).complex_ofReal.const_mul I).cexp
+    have h_bound : ∀ k, ∀ᵐ ω ∂ν, ‖exp (I * ↑(t * Y k ω))‖ ≤ (1 : ℝ) := by
+      intro k
+      filter_upwards with ω
+      simp [Complex.norm_exp, Complex.mul_re, Complex.I_re, Complex.I_im,
+        Complex.ofReal_re, Complex.ofReal_im]
+    have h_lim_ae : ∀ᵐ ω ∂ν, Filter.Tendsto (fun k => exp (I * ↑(t * Y k ω)))
+        Filter.atTop (nhds (exp (I * ↑(t * Z ω)))) := by
+      filter_upwards [hY_tendsto_Z] with ω hω
+      apply (Complex.continuous_exp.tendsto _).comp
+      apply Filter.Tendsto.const_mul
+      exact (Complex.continuous_ofReal.tendsto _).comp (hω.const_mul t)
+    have h_dct := tendsto_integral_of_dominated_convergence (fun _ => (1 : ℝ))
+      h_F_meas (integrable_const (1 : ℝ)) h_bound h_lim_ae
+    have h_cf_lim : Filter.Tendsto (fun k => ∫ ω, exp (I * ↑(t * Y k ω)) ∂ν)
+        Filter.atTop (nhds 1) := by
+      rw [show (fun k => ∫ ω, exp (I * ↑(t * Y k ω)) ∂ν) =
+        (fun k => Φ (t • (d (φ k) - f))) from funext (fun k => hY_cf k t)]
+      rw [← h_normalized]
+      apply h_cf_cont.continuousAt.tendsto.comp
+      have : Filter.Tendsto (fun k => d (φ k) - f) Filter.atTop (nhds 0) := by
+        rw [show (0 : E) = f - f from (sub_self f).symm]
+        exact Filter.Tendsto.sub hφ tendsto_const_nhds
+      have h_smul := Filter.Tendsto.const_smul this t
+      rwa [smul_zero] at h_smul
+    exact tendsto_nhds_unique h_dct h_cf_lim
+  -- Step 9: Apply ae_eq_zero_of_charfun_eq_one to get Z = 0 a.e.
+  have hZ_zero := ae_eq_zero_of_charfun_eq_one hZ_meas hZ_cf
+  filter_upwards [hZ_zero] with ω hω
+  linarith
 
 /-! ## Derived Properties -/
 
@@ -844,9 +1097,8 @@ lemma charFunctional_map_projection [SeparableSpace E] [NuclearSpace E] [Nonempt
     apply integral_congr_ae
     filter_upwards [h_ae] with ω hω
     simp [hω]
-  · exact (Complex.continuous_exp.comp
-      (continuous_const.mul (Complex.continuous_ofReal.comp
-        (WeakDual.eval_continuous f)))).aestronglyMeasurable
+  · exact ((Complex.measurable_ofReal.comp (WeakDual.eval_measurable f)).const_mul
+      Complex.I |>.cexp).aestronglyMeasurable
 
 /-- Uniqueness via pushforward factoring: μ' = ν.map P. -/
 lemma uniqueness_via_projection [SeparableSpace E] [NuclearSpace E] [Nonempty E]

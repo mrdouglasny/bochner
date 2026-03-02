@@ -7,7 +7,7 @@ package «Bochner» where
   ]
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "9227fd8e4957"
+  "https://github.com/leanprover-community/mathlib4.git" @ "6dc31c12d6ffdc9a63ebddee67264ea348cc06f8"
 
 require kolmogorov_extension4 from git
   "https://github.com/remydegenne/kolmogorov_extension4.git"
