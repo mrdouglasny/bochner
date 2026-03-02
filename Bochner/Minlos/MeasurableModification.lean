@@ -37,12 +37,49 @@ P : (E → ℝ) → WeakDual ℝ E that agrees with the identity on "good paths"
 
 import Bochner.Minlos.ProjectiveFamily
 import Mathlib.Topology.Bases
+import Mathlib.Topology.ExtendFrom
 import Mathlib.Data.Finsupp.Basic
 import Mathlib.Data.Finsupp.Encodable
 
 open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
 noncomputable section
+
+/-! ## Helper: CF constantly 1 implies random variable is 0 a.e. -/
+
+/-- If X : Ω → ℝ is measurable and ∫ exp(I * ↑(t * X(ω))) dν = 1 for all t ∈ ℝ,
+    then X = 0 ν-a.e.
+
+    Proof sketch: Re(1 - ∫ exp(itX)) = ∫ (1 - cos(tX)) = 0. Since 1 - cos ≥ 0,
+    cos(tX) = 1 a.e. for each t. Over countably many t ∈ ℚ simultaneously,
+    this forces X = 0. -/
+lemma ae_eq_zero_of_charfun_eq_one {Ω : Type*} [MeasurableSpace Ω]
+    {ν : Measure Ω} [IsProbabilityMeasure ν]
+    {X : Ω → ℝ} (hX : Measurable X)
+    (hcf : ∀ t : ℝ, ∫ ω, exp (I * ↑(t * X ω)) ∂ν = 1) :
+    ∀ᵐ ω ∂ν, X ω = 0 := by
+  -- Step 1: Show ν.map X = dirac 0 via charFun equality
+  have h_eq : ν.map X = Measure.dirac (0 : ℝ) := by
+    apply Measure.ext_of_charFun
+    funext t
+    rw [charFun_dirac]
+    simp only [inner_zero_left, zero_mul, exp_zero]
+    rw [charFun_apply, integral_map hX.aemeasurable
+      (by fun_prop : AEStronglyMeasurable (fun x => cexp (@inner ℝ ℝ _ x t * I)) _)]
+    -- Goal: ∫ ω, cexp(⟪X(ω), t⟫ * I) dν = 1
+    -- ⟪X(ω), t⟫_ℝ * I = I * ↑(t * X(ω))  (inner product on ℝ is multiplication)
+    have h_inner : ∀ ω, cexp (@inner ℝ ℝ _ (X ω) t * I) = exp (I * ↑(t * X ω)) := by
+      intro ω; congr 1
+      simp [RCLike.inner_apply, mul_comm I]
+    simp_rw [h_inner]
+    rw [hcf t]
+    simp [Complex.ofReal_zero, zero_mul, Complex.exp_zero]
+  -- Step 2: Deduce X = 0 a.e.
+  have h_ae : ∀ᵐ y ∂(ν.map X), y = 0 := by
+    rw [h_eq]; exact ae_dirac_iff (measurableSet_singleton 0) |>.mpr rfl
+  rw [show (∀ᵐ ω ∂ν, X ω = 0) ↔ ∀ᵐ y ∂(ν.map X), y = 0 from
+    (ae_map_iff hX.aemeasurable (measurableSet_singleton 0)).symm]
+  exact h_ae
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
@@ -128,34 +165,367 @@ lemma goodPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
 
 /-! ## Extension on Good Paths -/
 
-/-- On good paths, ω|_D is ℚ-linear and bounded by a continuous seminorm.
-    This data suffices to uniquely extend ω|_D to a ContinuousLinearMap on E
-    (by uniform continuity from boundedness + density of D + completeness of ℝ,
-    then ℚ-linearity + continuity + density of ℚ in ℝ gives ℝ-linearity).
+/-- The continuous extension function on good paths.
+    Uses extendFrom to continuously extend ω from range(d) to all of E.
 
     ## Construction (BLT / uniform extension theorem)
     1. **Continuous extension**: On good paths, ω restricted to range(d) satisfies
        |ω(d_i) - ω(d_j)| ≤ C * q(d_i - d_j) (from ℚ-linearity + boundedness).
-       This gives uniform continuity w.r.t. the seminorm q, so Dense.extend gives
+       This gives uniform continuity w.r.t. the seminorm q, so extendFrom gives
        a continuous function g : E → ℝ with g(d_n) = ω(d_n).
     2. **ℚ-linearity of g**: g(a•x + b•y) = a•g(x) + b•g(y) for a, b ∈ ℚ.
        Both sides are continuous in x, y, and agree on range(d) × range(d).
     3. **ℝ-linearity**: g(r•x) = r•g(x) for r ∈ ℝ by density of ℚ in ℝ.
 
     Ref: Rudin, *Functional Analysis*, Thm 1.18 (bounded linear extension). -/
-axiom extensionCLM [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+noncomputable def extensionFun [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
-    (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (hω : ω ∈ goodPaths d p) :
-    WeakDual ℝ E
+    (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (hω : ω ∈ goodPaths d p) : E → ℝ :=
+  extendFrom (Set.range d) ω
+
+private lemma extensionFun_eq (d : ℕ → E) (hd : DenseRange d)
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ)
+    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    extensionFun d hd p ω hω (d n) = ω (d n) := by
+  have h_cwat : ContinuousWithinAt ω (Set.range d) (d n) := by
+    obtain ⟨hql, hbd⟩ := hω
+    simp only [boundedPaths, Set.mem_iUnion, Set.mem_iInter, Set.mem_setOf_eq] at hbd
+    obtain ⟨s, C, hC⟩ := hbd
+    -- Key bound: |ω(d m) - ω(d n)| ≤ C * (s.sup p)(d m - d n)
+    have h_bound : ∀ m : ℕ, |ω (d m) - ω (d n)| ≤ (C : ℝ) * (s.sup p) (d m - d n) := by
+      intro m
+      let c : ℕ →₀ ℚ := Finsupp.single m 1 + Finsupp.single n (-1)
+      have hql_c := (Set.mem_iInter.mp hql) c
+      simp only [Set.mem_setOf_eq] at hql_c
+      have hbd_c := hC c
+      have h1 : c.sum (fun i a => (a : ℝ) • d i) = d m - d n := by
+        show (Finsupp.single m (1 : ℚ) + Finsupp.single n ((-1) : ℚ)).sum _ = _
+        rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_smul]),
+          Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+        simp [sub_eq_add_neg]
+      have h2 : c.sum (fun i a => (a : ℝ) * ω (d i)) = ω (d m) - ω (d n) := by
+        show (Finsupp.single m (1 : ℚ) + Finsupp.single n ((-1) : ℚ)).sum _ = _
+        rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_mul]),
+          Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+        ring
+      rw [h1] at hql_c hbd_c
+      rw [(hql_c.trans h2).symm]
+      exact hbd_c
+    -- Use the bound to prove ContinuousWithinAt
+    show Filter.Tendsto ω (nhdsWithin (d n) (Set.range d)) (nhds (ω (d n)))
+    rw [Metric.tendsto_nhds]
+    intro ε hε
+    have hCε : (0 : ℝ) < (C : ℝ) + 1 := by positivity
+    rw [Filter.Eventually, mem_nhdsWithin]
+    have h_cont_sp : Continuous (fun x : E => (s.sup p) x) := by
+      refine Seminorm.continuous_of_le ?_ (Seminorm.finset_sup_le_sum p s)
+      change Continuous (fun x => Seminorm.coeFnAddMonoidHom ℝ E (∑ i ∈ s, p i) x)
+      simp_rw [map_sum, Finset.sum_apply]
+      exact continuous_finset_sum _ (fun i _ => hp_top.continuous_seminorm i)
+    refine ⟨{x | (s.sup p) (x - d n) < ε / ((C : ℝ) + 1)},
+      isOpen_lt (h_cont_sp.comp (continuous_sub_right _)) continuous_const,
+      by simp only [Set.mem_setOf_eq, sub_self, map_zero]; exact div_pos hε hCε, ?_⟩
+    intro x ⟨hx_U, hx_range⟩
+    obtain ⟨m, rfl⟩ := hx_range
+    simp only [Set.mem_setOf_eq, Real.dist_eq] at hx_U ⊢
+    calc |ω (d m) - ω (d n)|
+        ≤ (↑C : ℝ) * (s.sup p) (d m - d n) := h_bound m
+      _ ≤ (↑C + 1) * (s.sup p) (d m - d n) := by
+          apply mul_le_mul_of_nonneg_right (by linarith) (apply_nonneg _ _)
+      _ < (↑C + 1) * (ε / (↑C + 1)) := by
+          exact mul_lt_mul_of_pos_left hx_U hCε
+      _ = ε := mul_div_cancel₀ ε (ne_of_gt hCε)
+  exact extendFrom_eq (subset_closure (Set.mem_range_self n)) h_cwat
+
+private lemma extensionFun_continuous (d : ℕ → E) (hd : DenseRange d)
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
+    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    Continuous (extensionFun d hd p ω hω) := by
+  apply continuous_extendFrom (show Dense (Set.range d) from hd)
+  intro x
+  obtain ⟨hql, hbd⟩ := hω
+  simp only [boundedPaths, Set.mem_iUnion, Set.mem_iInter, Set.mem_setOf_eq] at hbd
+  obtain ⟨s, C, hC⟩ := hbd
+  have h_bound : ∀ m n : ℕ, |ω (d m) - ω (d n)| ≤ (C : ℝ) * (s.sup p) (d m - d n) := by
+    intro m n
+    let c : ℕ →₀ ℚ := Finsupp.single m 1 + Finsupp.single n (-1)
+    have hql_c := (Set.mem_iInter.mp hql) c
+    simp only [Set.mem_setOf_eq] at hql_c
+    have hbd_c := hC c
+    have h1 : c.sum (fun i a => (a : ℝ) • d i) = d m - d n := by
+      show (Finsupp.single m (1 : ℚ) + Finsupp.single n ((-1) : ℚ)).sum _ = _
+      rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_smul]),
+        Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+      simp [sub_eq_add_neg]
+    have h2 : c.sum (fun i a => (a : ℝ) * ω (d i)) = ω (d m) - ω (d n) := by
+      show (Finsupp.single m (1 : ℚ) + Finsupp.single n ((-1) : ℚ)).sum _ = _
+      rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_mul]),
+        Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+      ring
+    rw [h1] at hql_c hbd_c; rw [(hql_c.trans h2).symm]; exact hbd_c
+  have h_cont_sp : Continuous (fun x : E => (s.sup p) x) := by
+    refine Seminorm.continuous_of_le ?_ (Seminorm.finset_sup_le_sum p s)
+    change Continuous (fun x => Seminorm.coeFnAddMonoidHom ℝ E (∑ i ∈ s, p i) x)
+    simp_rw [map_sum, Finset.sum_apply]
+    exact continuous_finset_sum _ (fun i _ => hp_top.continuous_seminorm i)
+  -- Image filter is Cauchy in ℝ, hence convergent by completeness
+  have h_cauchy : Cauchy (Filter.map ω (nhdsWithin x (Set.range d))) := by
+    haveI : (nhdsWithin x (Set.range d)).NeBot :=
+      mem_closure_iff_nhdsWithin_neBot.mp
+        ((show Dense (Set.range d) from hd).closure_eq ▸ Set.mem_univ _)
+    refine ⟨inferInstance, ?_⟩
+    rw [Filter.prod_map_map_eq]
+    intro V hV
+    rw [Filter.mem_map]
+    obtain ⟨ε, hε, hεV⟩ := Metric.mem_uniformity_dist.mp hV
+    have hCε : (0 : ℝ) < (C : ℝ) + 1 := by positivity
+    set δ := ε / (2 * ((C : ℝ) + 1)) with hδ_def
+    have hδ : 0 < δ := div_pos hε (mul_pos two_pos hCε)
+    set A := {y : E | (s.sup p) (y - x) < δ} ∩ Set.range d
+    have hA : A ∈ nhdsWithin x (Set.range d) :=
+      Filter.inter_mem
+        (mem_nhdsWithin_of_mem_nhds <|
+          (isOpen_lt (h_cont_sp.comp (continuous_sub_right x)) continuous_const).mem_nhds
+            (by simp [sub_self, map_zero, hδ]))
+        self_mem_nhdsWithin
+    exact Filter.mem_prod_iff.mpr ⟨A, hA, A, hA, fun ⟨a, b⟩ ⟨ha, hb⟩ => by
+      obtain ⟨m, rfl⟩ := ha.2
+      obtain ⟨n, rfl⟩ := hb.2
+      apply hεV
+      rw [Real.dist_eq]
+      calc |ω (d m) - ω (d n)|
+          ≤ (C : ℝ) * (s.sup p) (d m - d n) := h_bound m n
+        _ ≤ ((C : ℝ) + 1) * (s.sup p) (d m - d n) := by
+            apply mul_le_mul_of_nonneg_right (by linarith) (apply_nonneg _ _)
+        _ ≤ ((C : ℝ) + 1) * ((s.sup p) (d m - x) + (s.sup p) (d n - x)) := by
+            gcongr
+            calc (s.sup p) (d m - d n)
+                = (s.sup p) ((d m - x) + (x - d n)) := by congr 1; abel
+              _ ≤ (s.sup p) (d m - x) + (s.sup p) (x - d n) := (s.sup p).add_le' _ _
+              _ = (s.sup p) (d m - x) + (s.sup p) (d n - x) := by
+                  congr 1; rw [show x - d n = -(d n - x) from by abel, map_neg_eq_map]
+        _ < ((C : ℝ) + 1) * (δ + δ) := by
+            apply mul_lt_mul_of_pos_left (add_lt_add ha.1 hb.1) hCε
+        _ = ε := by rw [hδ_def]; field_simp; ring⟩
+  exact CompleteSpace.complete h_cauchy
+
+private lemma extensionFun_map_add (d : ℕ → E) (hd : DenseRange d)
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
+    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    ∀ x y, extensionFun d hd p ω hω (x + y) =
+      extensionFun d hd p ω hω x + extensionFun d hd p ω hω y := by
+  set g := extensionFun d hd p ω hω
+  have hg_cont := extensionFun_continuous d hd p hp_top ω hω
+  intro x y
+  have hg_eq : ∀ n, g (d n) = ω (d n) := fun n => extensionFun_eq d hd p hp_top ω hω n
+  have hql := hω.1
+  have hbd : ω ∈ boundedPaths d p := hω.2
+  simp only [boundedPaths, Set.mem_iUnion, Set.mem_iInter, Set.mem_setOf_eq] at hbd
+  obtain ⟨s, C, hC⟩ := hbd
+  have h_cont_sp : Continuous (fun x : E => (s.sup p) x) := by
+    refine Seminorm.continuous_of_le ?_ (Seminorm.finset_sup_le_sum p s)
+    change Continuous (fun x => Seminorm.coeFnAddMonoidHom ℝ E (∑ i ∈ s, p i) x)
+    simp_rw [map_sum, Finset.sum_apply]
+    exact continuous_finset_sum _ (fun i _ => hp_top.continuous_seminorm i)
+  -- g(d m + d n) = g(d m) + g(d n) via ℚ-linearity + extendFrom_eq
+  have hg_add_dense : ∀ m n, g (d m + d n) = g (d m) + g (d n) := by
+    intro m n
+    -- ℚ-linearity: ω(d m + d n) = ω(d m) + ω(d n)
+    let c : ℕ →₀ ℚ := Finsupp.single m 1 + Finsupp.single n 1
+    have hql_c := (Set.mem_iInter.mp hql) c
+    simp only [Set.mem_setOf_eq] at hql_c
+    have h1 : c.sum (fun i a => (a : ℝ) • d i) = d m + d n := by
+      show (Finsupp.single m (1 : ℚ) + Finsupp.single n (1 : ℚ)).sum _ = _
+      rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_smul]),
+        Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+      simp
+    have h2 : c.sum (fun i a => (a : ℝ) * ω (d i)) = ω (d m) + ω (d n) := by
+      show (Finsupp.single m (1 : ℚ) + Finsupp.single n (1 : ℚ)).sum _ = _
+      rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_mul]),
+        Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+      simp
+    rw [h1] at hql_c
+    -- hql_c : ω(d m + d n) = c.sum ... and h2 gives c.sum ... = ω(d m) + ω(d n)
+    -- Show g(d m + d n) = ω(d m + d n) using extendFrom_eq + Tendsto
+    have hg_at : g (d m + d n) = ω (d m + d n) := by
+      apply extendFrom_eq ((show Dense (Set.range d) from hd).closure_eq ▸ Set.mem_univ _)
+      rw [Metric.tendsto_nhds]
+      intro ε hε
+      have hCε : (0 : ℝ) < (C : ℝ) + 1 := by positivity
+      rw [Filter.Eventually, mem_nhdsWithin]
+      refine ⟨{z | (s.sup p) (z - (d m + d n)) < ε / ((C : ℝ) + 1)},
+        isOpen_lt (h_cont_sp.comp (continuous_sub_right _)) continuous_const,
+        by simp [sub_self, map_zero, div_pos hε hCε], ?_⟩
+      intro z ⟨hz_U, hz_range⟩
+      obtain ⟨k, rfl⟩ := hz_range
+      simp only [Set.mem_setOf_eq, Real.dist_eq] at hz_U ⊢
+      -- |ω(d k) - ω(d m + d n)| via Finsupp single k 1 + single m (-1) + single n (-1)
+      let c' : ℕ →₀ ℚ := Finsupp.single k 1 + Finsupp.single m (-1) + Finsupp.single n (-1)
+      have hql_c' := (Set.mem_iInter.mp hql) c'
+      simp only [Set.mem_setOf_eq] at hql_c'
+      have hbd_c' := hC c'
+      have h1' : c'.sum (fun i a => (a : ℝ) • d i) = d k - (d m + d n) := by
+        show (Finsupp.single k (1 : ℚ) + Finsupp.single m (-1 : ℚ) +
+          Finsupp.single n (-1 : ℚ)).sum _ = _
+        rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_smul]),
+          Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_smul]),
+          Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp),
+          Finsupp.sum_single_index (by simp)]
+        simp [sub_eq_add_neg, neg_smul]; abel
+      have h2' : c'.sum (fun i a => (a : ℝ) * ω (d i)) =
+          ω (d k) - ω (d m) - ω (d n) := by
+        show (Finsupp.single k (1 : ℚ) + Finsupp.single m (-1 : ℚ) +
+          Finsupp.single n (-1 : ℚ)).sum _ = _
+        rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_mul]),
+          Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_mul]),
+          Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp),
+          Finsupp.sum_single_index (by simp)]
+        push_cast; ring
+      rw [h1'] at hql_c' hbd_c'
+      -- ω(d m + d n) = ω(d m) + ω(d n) from hql_c
+      have h_ω_sum : ω (d m + d n) = ω (d m) + ω (d n) := hql_c.trans h2
+      calc |ω (d k) - ω (d m + d n)|
+          = |ω (d k - (d m + d n))| := by
+              have := hql_c'.trans h2'  -- ω(dk-(dm+dn)) = ω(dk) - ω(dm) - ω(dn)
+              rw [h_ω_sum]; congr 1; linarith
+        _ ≤ (C : ℝ) * (s.sup p) (d k - (d m + d n)) := hbd_c'
+        _ ≤ ((C : ℝ) + 1) * (s.sup p) (d k - (d m + d n)) := by
+            apply mul_le_mul_of_nonneg_right (by linarith) (apply_nonneg _ _)
+        _ < ((C : ℝ) + 1) * (ε / ((C : ℝ) + 1)) := mul_lt_mul_of_pos_left hz_U hCε
+        _ = ε := mul_div_cancel₀ ε (ne_of_gt hCε)
+    rw [hg_at, hql_c, h2, hg_eq, hg_eq]
+  -- For fixed y ∈ range(d), x ↦ g(x + y) and x ↦ g(x) + g(y) are continuous
+  -- and agree on range(d), hence equal everywhere.
+  have h_fix_y : ∀ n, ∀ x', g (x' + d n) = g x' + g (d n) := by
+    intro n
+    exact congr_fun (Continuous.ext_on (show Dense (Set.range d) from hd)
+      (hg_cont.comp (continuous_id.add continuous_const))
+      (hg_cont.add continuous_const)
+      (fun z hz => by obtain ⟨m, rfl⟩ := hz; exact hg_add_dense m n))
+  exact congr_fun (Continuous.ext_on (show Dense (Set.range d) from hd)
+    (hg_cont.comp (continuous_const.add continuous_id))
+    (continuous_const.add hg_cont)
+    (fun z hz => by obtain ⟨n, rfl⟩ := hz; exact h_fix_y n x)) y
+
+private lemma extensionFun_map_smul (d : ℕ → E) (hd : DenseRange d)
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
+    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    ∀ (r : ℝ) x, extensionFun d hd p ω hω (r • x) =
+      r * extensionFun d hd p ω hω x := by
+  set g := extensionFun d hd p ω hω
+  have hg_cont := extensionFun_continuous d hd p hp_top ω hω
+  have hg_eq : ∀ n, g (d n) = ω (d n) := fun n => extensionFun_eq d hd p hp_top ω hω n
+  have hql := hω.1
+  have hbd : ω ∈ boundedPaths d p := hω.2
+  simp only [boundedPaths, Set.mem_iUnion, Set.mem_iInter, Set.mem_setOf_eq] at hbd
+  obtain ⟨s, C, hC⟩ := hbd
+  -- Step 1: g(q • d n) = q * g(d n) for q : ℚ (from ℚ-linearity)
+  have hg_rat_smul : ∀ (q : ℚ) (n : ℕ), g ((q : ℝ) • d n) = (q : ℝ) * g (d n) := by
+    intro q n
+    -- ℚ-linearity gives ω(q • d n) = q * ω(d n)
+    let c : ℕ →₀ ℚ := Finsupp.single n q
+    have hql_c := (Set.mem_iInter.mp hql) c
+    simp only [Set.mem_setOf_eq] at hql_c
+    have h1 : c.sum (fun i a => (a : ℝ) • d i) = (q : ℝ) • d n := by
+      show (Finsupp.single n q).sum _ = _
+      rw [Finsupp.sum_single_index (by simp)]
+    have h2 : c.sum (fun i a => (a : ℝ) * ω (d i)) = (q : ℝ) * ω (d n) := by
+      show (Finsupp.single n q).sum _ = _
+      rw [Finsupp.sum_single_index (by simp)]
+    rw [h1] at hql_c
+    -- hql_c : ω(q • d n) = q * ω(d n) (after rw h2)
+    -- Need: g(q • d n) = q * g(d n)
+    -- Use extendFrom_eq to show g(q • d n) = ω(q • d n)
+    have hg_at : g ((q : ℝ) • d n) = ω ((q : ℝ) • d n) := by
+      show extendFrom (Set.range d) ω ((q : ℝ) • d n) = ω ((q : ℝ) • d n)
+      apply extendFrom_eq ((show Dense (Set.range d) from hd).closure_eq ▸ Set.mem_univ _)
+      -- Tendsto ω (nhdsWithin (q • d n) (range d)) (nhds (ω(q • d n)))
+      rw [Metric.tendsto_nhds]
+      intro ε hε
+      have hCε : (0 : ℝ) < (C : ℝ) + 1 := by positivity
+      rw [Filter.Eventually, mem_nhdsWithin]
+      have h_cont_sp : Continuous (fun x : E => (s.sup p) x) := by
+        refine Seminorm.continuous_of_le ?_ (Seminorm.finset_sup_le_sum p s)
+        change Continuous (fun x => Seminorm.coeFnAddMonoidHom ℝ E (∑ i ∈ s, p i) x)
+        simp_rw [map_sum, Finset.sum_apply]
+        exact continuous_finset_sum _ (fun i _ => hp_top.continuous_seminorm i)
+      refine ⟨{x | (s.sup p) (x - (q : ℝ) • d n) < ε / ((C : ℝ) + 1)},
+        isOpen_lt (h_cont_sp.comp (continuous_sub_right _)) continuous_const,
+        by simp [sub_self, map_zero, div_pos hε hCε], ?_⟩
+      intro x ⟨hx_U, hx_range⟩
+      obtain ⟨m, rfl⟩ := hx_range
+      simp only [Set.mem_setOf_eq, Real.dist_eq] at hx_U ⊢
+      -- Bound |ω(d m) - ω(q • d n)| using Finsupp single m 1 + single n (-q)
+      let c' : ℕ →₀ ℚ := Finsupp.single m 1 + Finsupp.single n (-q)
+      have hql_c' := (Set.mem_iInter.mp hql) c'
+      simp only [Set.mem_setOf_eq] at hql_c'
+      have hbd_c' := hC c'
+      have h1' : c'.sum (fun i a => (a : ℝ) • d i) = d m - (q : ℝ) • d n := by
+        show (Finsupp.single m (1 : ℚ) + Finsupp.single n (-q)).sum _ = _
+        rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_smul]),
+          Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+        simp [sub_eq_add_neg, neg_smul]
+      have h2' : c'.sum (fun i a => (a : ℝ) * ω (d i)) = ω (d m) - (q : ℝ) * ω (d n) := by
+        show (Finsupp.single m (1 : ℚ) + Finsupp.single n (-q)).sum _ = _
+        rw [Finsupp.sum_add_index (fun i => by simp) (fun i => by simp [add_mul]),
+          Finsupp.sum_single_index (by simp), Finsupp.sum_single_index (by simp)]
+        push_cast; ring
+      rw [h1'] at hql_c' hbd_c'
+      -- hql_c' : ω(dm - q•dn) = ω(dm) - q*ω(dn), hql_c : ω(q•dn) = q*ω(dn)
+      have h_ω_qn : ω ((q : ℝ) • d n) = (q : ℝ) * ω (d n) := hql_c.trans h2
+      calc |ω (d m) - ω ((q : ℝ) • d n)|
+          = |ω (d m) - (q : ℝ) * ω (d n)| := by rw [h_ω_qn]
+        _ = |ω (d m - (q : ℝ) • d n)| := by
+              have := hql_c'.trans h2'  -- ω(dm - q•dn) = ω(dm) - q*ω(dn)
+              congr 1; linarith
+        _ ≤ (C : ℝ) * (s.sup p) (d m - (q : ℝ) • d n) := hbd_c'
+        _ ≤ ((C : ℝ) + 1) * (s.sup p) (d m - (q : ℝ) • d n) := by
+            apply mul_le_mul_of_nonneg_right (by linarith) (apply_nonneg _ _)
+        _ < ((C : ℝ) + 1) * (ε / ((C : ℝ) + 1)) := mul_lt_mul_of_pos_left hx_U hCε
+        _ = ε := mul_div_cancel₀ ε (ne_of_gt hCε)
+    rw [hg_at, hql_c, h2, hg_eq]
+  -- Step 2: For fixed x ∈ range(d), r ↦ g(r • x) and r ↦ r * g(x) are continuous
+  -- and agree on ℚ (dense in ℝ), hence equal for all r ∈ ℝ.
+  have h_fix_x : ∀ n, ∀ r : ℝ, g (r • d n) = r * g (d n) := by
+    intro n
+    have h_dense : Dense (Set.range (fun q : ℚ => (q : ℝ))) := Rat.denseRange_cast
+    exact congr_fun (Continuous.ext_on h_dense
+      (hg_cont.comp (continuous_id.smul continuous_const))
+      (continuous_id.mul continuous_const)
+      (fun r hr => by obtain ⟨q, rfl⟩ := hr; exact hg_rat_smul q n))
+  -- Step 3: For all r, x ↦ g(r • x) and x ↦ r * g(x) are continuous and agree
+  -- on range(d), hence equal everywhere.
+  intro r
+  exact congr_fun (Continuous.ext_on (show Dense (Set.range d) from hd)
+    (hg_cont.comp (continuous_const.smul continuous_id))
+    (continuous_const.mul hg_cont)
+    (fun z hz => by obtain ⟨n, rfl⟩ := hz; exact h_fix_x n r))
+
+noncomputable def extensionCLM [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+    (d : ℕ → E) (hd : DenseRange d)
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ω : E → ℝ) (hω : ω ∈ goodPaths d p) :
+    WeakDual ℝ E :=
+  ⟨{ toFun := extensionFun d hd p ω hω
+     map_add' := extensionFun_map_add d hd p hp_top ω hω
+     map_smul' := fun r x => by
+       simp [extensionFun_map_smul d hd p hp_top ω hω r x, smul_eq_mul] },
+   extensionFun_continuous d hd p hp_top ω hω⟩
 
 /-- The extension agrees with ω on the dense sequence.
     Follows from the BLT construction: Dense.extend agrees with ω on range(d).
 
     Ref: follows from extensionCLM construction. -/
-axiom extensionCLM_eq_on_dense [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem extensionCLM_eq_on_dense [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
-    (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ) :
-    (extensionCLM d hd p ω hω : E →L[ℝ] ℝ) (d n) = ω (d n)
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ) :
+    (extensionCLM d hd p hp_top ω hω : E →L[ℝ] ℝ) (d n) = ω (d n) :=
+  extensionFun_eq d hd p hp_top ω hω n
 
 /-- For a continuous linear functional l, embed(l) ∈ goodPaths.
     Proof: l is ℝ-linear (hence ℚ-linear on all Finsupp combinations),
@@ -200,21 +570,21 @@ lemma extensionCLM_embed [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (p : ℕ → Seminorm ℝ E)
     (hp_top : WithSeminorms (fun n => p n))
     (l : WeakDual ℝ E) :
-    extensionCLM d hd p (weakDualEmbed E l) (embed_mem_goodPaths d p hp_top l) = l := by
+    extensionCLM d hd p hp_top (weakDualEmbed E l) (embed_mem_goodPaths d p hp_top l) = l := by
   -- Both are ContinuousLinearMaps: show they're equal as functions E → ℝ
   apply ContinuousLinearMap.ext
   intro f
   -- Both sides are continuous functions E → ℝ that agree on range(d) (dense)
   -- Use Continuous.ext_on: two continuous functions to T2 space agreeing on dense set are equal
   have h_ext := Continuous.ext_on (show Dense (Set.range d) from hd)
-    (extensionCLM d hd p (weakDualEmbed E l) (embed_mem_goodPaths d p hp_top l) :
+    (extensionCLM d hd p hp_top (weakDualEmbed E l) (embed_mem_goodPaths d p hp_top l) :
       E →L[ℝ] ℝ).cont
     (l : E →L[ℝ] ℝ).cont
     (fun x hx => ?_)
   exact congr_fun h_ext f
   -- Show agreement on range(d): extensionCLM(embed(l))(d n) = l(d n)
   obtain ⟨n, rfl⟩ := hx
-  exact extensionCLM_eq_on_dense d hd p (weakDualEmbed E l)
+  exact extensionCLM_eq_on_dense d hd p hp_top (weakDualEmbed E l)
     (embed_mem_goodPaths d p hp_top l) n
 
 /-! ## Measurable Projection -/
@@ -223,10 +593,11 @@ lemma extensionCLM_embed [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     On good paths, extends ω to a ContinuousLinearMap; on bad paths, returns 0. -/
 def measurableProjectionAux [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
-    (p : ℕ → Seminorm ℝ E) : (E → ℝ) → WeakDual ℝ E :=
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n)) :
+    (E → ℝ) → WeakDual ℝ E :=
   fun ω =>
     if hω : ω ∈ goodPaths d p then
-      extensionCLM d hd p ω hω
+      extensionCLM d hd p hp_top ω hω
     else 0
 
 /-- The measurable projection P : (E → ℝ) → WeakDual ℝ E.
@@ -237,6 +608,7 @@ def measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
     (E → ℝ) → WeakDual ℝ E :=
   measurableProjectionAux (denseSeq E) (denseRange_denseSeq E)
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
 
 /-- The projection map is measurable.
     For each f : E, ω ↦ P(ω)(f) is measurable because:
@@ -246,8 +618,13 @@ def measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
     - Piecewise of measurable functions on measurable sets is measurable
 
     Ref: standard measurability of piecewise + pointwise limits (Billingsley, §13). -/
-axiom measurable_measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
-    Measurable (measurableProjection (E := E))
+theorem measurable_measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    Measurable (measurableProjection (E := E)) := by
+  -- For each f : E, ω ↦ P(ω)(f) is measurable:
+  -- On goodPaths: P(ω)(f) = extendFrom (range d) ω f = lim ω(dₙ) for dₙ → f
+  -- On bad paths: P(ω)(f) = 0
+  -- Piecewise of measurable functions on measurable sets is measurable.
+  sorry
 
 /-- The projection composed with the embedding is the identity on WeakDual ℝ E.
     For l ∈ WeakDual ℝ E, embed(l) ∈ goodPaths (l is linear + bounded), and
@@ -256,13 +633,14 @@ lemma projection_embed_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
     (measurableProjection (E := E)) ∘ weakDualEmbed E = id := by
   ext l
   simp only [Function.comp_apply, id_eq]
-  -- Unfold to measurableProjectionAux
-  show measurableProjectionAux (denseSeq E) (denseRange_denseSeq E)
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose (weakDualEmbed E l) = l
   -- embed(l) ∈ goodPaths
   have hp_top : WithSeminorms (fun n =>
       (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose n) :=
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+  -- Unfold to measurableProjectionAux
+  show measurableProjectionAux (denseSeq E) (denseRange_denseSeq E)
+    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top
+    (weakDualEmbed E l) = l
   have h_mem := embed_mem_goodPaths (denseSeq E)
     (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top l
   -- dite picks the "if" branch
@@ -291,13 +669,81 @@ It is provable from the projective limit property. -/
     Countable intersection over c ∈ ℕ →₀ ℚ preserves full measure.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3. -/
-axiom qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1) :
-    ∀ᵐ ω ∂ν, ω ∈ qLinearPaths (denseSeq E)
+    ∀ᵐ ω ∂ν, ω ∈ qLinearPaths (denseSeq E) := by
+  -- For each c : ℕ →₀ ℚ, X(ω) = ω(∑ cᵢ•dᵢ) - ∑ cᵢ*ω(dᵢ) has CF = 1,
+  -- hence X = 0 a.s. Countable intersection over ℕ →₀ ℚ.
+  simp only [qLinearPaths, Set.mem_iInter, Set.mem_setOf_eq]
+  rw [ae_all_iff]
+  intro c
+  set d := denseSeq E
+  set y := c.sum (fun i a => (a : ℝ) • d i) with y_def
+  -- Define X(ω) = ω(y) - ∑ cᵢ * ω(dᵢ)
+  set X : (E → ℝ) → ℝ := fun ω => ω y - c.sum (fun i a => (a : ℝ) * ω (d i))
+  -- X is measurable (difference of coordinate projections)
+  have hX_meas : Measurable X := by
+    apply Measurable.sub (measurable_pi_apply y)
+    simp only [Finsupp.sum]
+    exact Finset.measurable_sum _ (fun i _ => (measurable_pi_apply (d i)).const_mul _)
+  -- Show CF of X is constantly 1, using h_cf_joint
+  have hX_cf : ∀ t : ℝ, ∫ ω, exp (I * ↑(t * X ω)) ∂ν = 1 := by
+    intro t
+    -- Construct test vectors and scalars using Fin.cons
+    set k := c.support.card with k_def
+    -- σ maps Fin k to the support elements
+    let σ : Fin k → ℕ := fun j => (c.support.equivFin.symm j : ℕ)
+    -- Test vectors: y followed by d(σ(j))
+    let x' : Fin (k + 1) → E := Fin.cons y (fun j => d (σ j))
+    -- Scalars: t followed by -t * c(σ(j))
+    let s' : Fin (k + 1) → ℝ := Fin.cons t (fun j => -t * (c (σ j) : ℝ))
+    -- Apply h_cf_joint
+    have h := h_cf_joint (k + 1) s' x'
+    -- Show ∑ sᵢ • xᵢ = 0 and ∑ sᵢ * ω(xᵢ) = t * X(ω)
+    have h_sum_x : ∑ i : Fin (k + 1), s' i • x' i = 0 := by
+      rw [Fin.sum_univ_succ]
+      simp only [Fin.cons_zero, Fin.cons_succ, s', x']
+      have h1 : ∑ j : Fin k, (-t * ↑(c (σ j))) • d (σ j) =
+          -(∑ j : Fin k, (t * ↑(c (σ j))) • d (σ j)) := by
+        rw [← Finset.sum_neg_distrib]; congr 1; ext j; simp [neg_smul, neg_mul]
+      rw [h1]
+      have h2 : ∑ j : Fin k, (t * ↑(c (σ j))) • d (σ j) =
+          ∑ i ∈ c.support, (t * ↑(c i)) • d i := by
+        simp only [← Finset.sum_coe_sort c.support, σ]
+        exact Fintype.sum_equiv c.support.equivFin.symm _ _ (fun _ => rfl)
+      rw [h2, y_def, Finsupp.sum]
+      rw [show t • ∑ a ∈ c.support, (↑(c a) : ℝ) • d a =
+          ∑ i ∈ c.support, (t * ↑(c i)) • d i from by
+        rw [Finset.smul_sum]; congr 1; ext i; rw [smul_smul]]
+      exact add_neg_cancel _
+    have h_sum_ω : ∀ ω', (∑ i : Fin (k + 1), s' i * ω' (x' i)) = t * X ω' := by
+      intro ω'
+      rw [Fin.sum_univ_succ]
+      simp only [Fin.cons_zero, Fin.cons_succ, s', x', X, mul_sub]
+      congr 1
+      have h1 : ∑ j : Fin k, -t * ↑(c (σ j)) * ω' (d (σ j)) =
+          -(t * ∑ j : Fin k, ↑(c (σ j)) * ω' (d (σ j))) := by
+        rw [Finset.mul_sum, ← Finset.sum_neg_distrib]; congr 1; ext j; ring
+      rw [h1]
+      have h2 : ∑ j : Fin k, ↑(c (σ j)) * ω' (d (σ j)) =
+          ∑ i ∈ c.support, ↑(c i) * ω' (d i) := by
+        simp only [← Finset.sum_coe_sort c.support, σ]
+        exact Fintype.sum_equiv c.support.equivFin.symm _ _ (fun _ => rfl)
+      rw [h2, Finsupp.sum]
+    rw [h_sum_x, h_normalized] at h
+    rw [show (fun ω' => exp (I * ↑(t * X ω'))) =
+      (fun ω' => exp (I * ↑(∑ i : Fin (k + 1), s' i * ω' (x' i)))) from by
+      funext ω'; congr 2; exact_mod_cast (h_sum_ω ω').symm]
+    exact h
+  -- Apply ae_eq_zero_of_charfun_eq_one
+  have := ae_eq_zero_of_charfun_eq_one hX_meas hX_cf
+  filter_upwards [this] with ω hω
+  -- X(ω) = 0 means ω(y) = ∑ cᵢ * ω(dᵢ)
+  linarith [show X ω = 0 from hω]
 
 /-- Boundedness holds ν-a.e.
 
@@ -308,14 +754,18 @@ axiom qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3;
     also Billingsley, "Convergence of Probability Measures", §6. -/
-axiom boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
     (h_cf_single : ∀ f : E, ∫ ω : E → ℝ,
       Complex.exp (Complex.I * ↑(ω f)) ∂ν = Φ f)
     (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ boundedPaths (denseSeq E)
-      (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+      (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
+  -- Markov/Chebyshev + CF continuity at 0 + NuclearSpace seminorms.
+  -- For each ℚ-combo x, P(|ω(x)| ≥ R) ≤ (1 - Re(Φ(tx))) / (1 - cos(tR)).
+  -- Sum over countable ℚ-combos.
+  sorry
 
 /-- The good paths have full ν-measure. Combines ℚ-linearity and boundedness a.e. -/
 lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
@@ -349,14 +799,18 @@ lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     - A.s. + in-probability convergence to the same limit → P(ω)(f) = ω(f) a.e.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3. -/
-axiom projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i))
     (h_cf_cont : Continuous Φ)
     (f : E) :
-    ∀ᵐ ω ∂ν, (measurableProjection ω : E →L[ℝ] ℝ) f = ω f
+    ∀ᵐ ω ∂ν, (measurableProjection ω : E →L[ℝ] ℝ) f = ω f := by
+  -- On good paths: P(ω)(dₙ) = ω(dₙ) and P(ω)(dₙ) → P(ω)(f).
+  -- ω(dₙ) → ω(f) in probability via CF convergence.
+  -- Both limits agree a.e.
+  sorry
 
 /-! ## Derived Properties -/
 
