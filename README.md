@@ -29,7 +29,7 @@ theorem minlos_theorem [NuclearSpace E] [SeparableSpace E] [Nonempty E]
 
 On a nuclear, separable, locally convex space E, a continuous positive-definite normalized functional Φ : E → ℂ is the characteristic functional of a unique probability measure on the topological dual E' = WeakDual ℝ E.
 
-**Status**: 1 sorry + 6 axioms in the measurable modification layer (textbook results in functional analysis).
+**Status**: 0 sorries, 1 axiom (`nuclear_cylindrical_concentration` — the Gel'fand-Vilenkin concentration bound for Hilbertian seminorms with Hilbert-Schmidt embeddings).
 
 **Proof strategy**:
 1. **Finite-dimensional marginals**: For each finite set {f₁,...,fₙ} ⊂ E, apply Bochner's theorem to get a measure μ_F on ℝⁿ.
@@ -86,7 +86,7 @@ theorem nuclearSpace_of_pietsch [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
     NuclearSpace E
 ```
 
-The bridge constructs Hilbertian seminorms via a **Hilbertian lift** r(x) = √(Σₖ fₖ(x)² · cₖ) from each nuclear expansion, then shows the inclusions are Hilbert-Schmidt using a Bessel inequality argument. Currently proved modulo axioms for the functional-analytic core (parallelogram law, Bessel inequality, Cauchy-Schwarz assembly).
+The bridge constructs Hilbertian seminorms via a **Hilbertian lift** r(x) = √(Σₖ fₖ(x)² · cₖ) from each nuclear expansion, then shows the inclusions are Hilbert-Schmidt using a Bessel inequality argument. **Fully proved** (0 sorries, 0 axioms).
 
 ## File structure
 
@@ -101,8 +101,9 @@ Bochner/
     PietschBridge.lean          -- IsPietschNuclear, bridge to NuclearSpace
     FinDimMarginals.lean        -- Finite-dimensional marginal measures via Bochner
     ProjectiveFamily.lean       -- Projective family construction
-    MeasurableModification.lean -- Measurable projection from (E → ℝ) to WeakDual
     SazonovTightness.lean       -- Sazonov tightness for nuclear spaces
+    MinlosConcentration.lean    -- Concentration axiom + helper lemmas
+    MeasurableModification.lean -- Measurable projection from (E → ℝ) to WeakDual
     Minlos.lean                 -- Minlos' theorem (main assembly)
 ```
 
@@ -112,14 +113,15 @@ Bochner/
 | FejerPD.lean | 612 | 0 | 0 |
 | Bochner.lean | 1297 | 0 | 0 |
 | Sazonov.lean | 193 | 0 | 0 |
-| Minlos/NuclearSpace.lean | 90 | 0 | 0 |
-| Minlos/PietschBridge.lean | 228 | 10 | 1 |
+| Minlos/NuclearSpace.lean | 99 | 0 | 0 |
+| Minlos/PietschBridge.lean | 812 | 0 | 0 |
 | Minlos/FinDimMarginals.lean | 96 | 0 | 0 |
 | Minlos/ProjectiveFamily.lean | 262 | 0 | 0 |
-| Minlos/MeasurableModification.lean | 458 | 6 | 0 |
 | Minlos/SazonovTightness.lean | 1061 | 0 | 0 |
-| Minlos/Minlos.lean | 201 | 0 | 1 |
-| **Total** | **4698** | **16** | **2** |
+| Minlos/MinlosConcentration.lean | 181 | 1 | 0 |
+| Minlos/MeasurableModification.lean | 1135 | 0 | 0 |
+| Minlos/Minlos.lean | 220 | 0 | 0 |
+| **Total** | **6168** | **1** | **0** |
 
 ## Building
 
