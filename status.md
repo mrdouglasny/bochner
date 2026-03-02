@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 1 sorry, 16 axioms (6 in MeasurableModification.lean, 10 in PietschBridge.lean)**
+**Total: 1 sorry, 10 axioms (6 in MeasurableModification.lean, 4 in PietschBridge.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -58,7 +58,7 @@
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
 | `MeasurableModification.lean` | 0 sorries, 6 axioms (textbook results) |
 | `Minlos.lean` | proved (0 sorries, 0 axioms) |
-| `PietschBridge.lean` | 1 sorry, 10 axioms (bridge from Pietsch nuclearity) |
+| `PietschBridge.lean` | 1 sorry, 4 axioms (bridge from Pietsch nuclearity) |
 
 ### Axioms (MeasurableModification.lean)
 
@@ -85,13 +85,16 @@
 
 ### Axioms (PietschBridge.lean)
 
-6 public axioms (functional analysis infrastructure):
-1. **`hilbertianLift`** — Seminorm r(x) = √(Σₖ fₖ(x)²·cₖ) from nuclear factorization.
-2. **`hilbertianLift_apply`** — r(x)² = Σₖ fₖ(x)²·cₖ.
-3. **`hilbertianLift_isHilbertian`** — r satisfies parallelogram law.
-4. **`hilbertianLift_dominates`** — p(x) ≤ (Σcₖ)·r(x) via Cauchy-Schwarz.
-5. **`hilbertianLift_le_dominator`** — r(x) ≤ q(x) from |fₖ(x)| ≤ q(x).
-6. **`bessel_hilbertian`** — Bessel inequality for abstract Hilbertian seminorms.
+**Proved (6 former axioms → definitions/theorems):**
+1. **`hilbertianLift`** — Defined via `Seminorm.of` with Minkowski triangle inequality.
+2. **`hilbertianLift_apply`** — rfl.
+3. **`hilbertianLift_isHilbertian`** — Parallelogram law from linearity of fₙ.
+4. **`hilbertianLift_dominates`** — Cauchy-Schwarz via `Real.tsum_le_of_sum_le` + finite CS.
+5. **`hilbertianLift_le_dominator`** — Pointwise bound `(f n x)² ≤ (q x)²` + sqrt monotonicity.
+6. **`isHilbertSchmidtEmbedding_of_nuclear`** — CS per j + finite/tsum swap + Bessel.
+
+1 sorry:
+- **`bessel_hilbertian`** — Bessel inequality (needs Jordan-von Neumann bilinearity).
 
 4 private axioms (recursive family construction):
 7. **`buildHilbertianFamily_isHilbertian`** — Each family member is Hilbertian.
@@ -99,11 +102,7 @@
 9. **`buildHilbertianFamily_hs`** — Adjacent family members have HS embeddings.
 10. **`buildHilbertianFamily_withSeminorms`** — Family generates the topology.
 
-1 sorry:
-- **`isHilbertSchmidtEmbedding_of_nuclear`** — Cauchy-Schwarz + Bessel assembly
-  for HS embedding from nuclear factorization.
-
-**Proved from axioms:**
+**Proved from axioms/sorries:**
 - **`nuclearSpace_of_pietsch`** — IsPietschNuclear E → NuclearSpace E.
 
 ### Key proofs (Minlos)
