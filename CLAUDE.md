@@ -37,6 +37,7 @@ Bochner/
     FinDimMarginals.lean         -- Finite-dimensional marginal measures
     ProjectiveFamily.lean        -- Kolmogorov projective family construction
     SazonovTightness.lean        -- Sazonov CF continuity → tightness
+    MinlosConcentration.lean     -- Concentration axiom + helper lemmas
     MeasurableModification.lean  -- Measurable modification of cylindrical measure
     Minlos.lean                  -- Main Minlos theorem
     PietschBridge.lean           -- Pietsch nuclearity → NuclearSpace
@@ -44,8 +45,8 @@ Bochner/
 
 ## Proof Architecture (completed)
 
-All sorries are filled. 1 custom axiom remains (`minlos_concentration`
-in MeasurableModification.lean).
+All sorries are filled. 1 custom axiom remains (`nuclear_cylindrical_concentration`
+in MinlosConcentration.lean).
 
 ### Bochner's Theorem (0 sorries, 0 axioms)
 
@@ -67,8 +68,9 @@ in MeasurableModification.lean).
 - **MeasurableModification.lean**: Measurable modification P of cylindrical paths
   (extensionCLM + ℚ-linearity + boundedness a.e.)
 - **Minlos.lean**: Main theorem (Kolmogorov extension + P pushforward + CF verification)
-- **Axiom**: `minlos_concentration` — Minlos concentration bound (joint CF, ∃ m C)
-  via Chebyshev + Gaussian averaging + Parseval + Hilbert-Schmidt norms
+- **MinlosConcentration.lean**: Helper lemmas + textbook axiom + wrapper theorem
+- **Axiom**: `nuclear_cylindrical_concentration` — Minlos concentration bound
+  for Hilbertian seminorms with HS embeddings (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3)
 
 ### PietschBridge (0 sorries, 0 axioms)
 

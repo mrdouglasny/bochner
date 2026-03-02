@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 1 axiom (in MeasurableModification.lean)**
+**Total: 0 sorries, 1 axiom (`nuclear_cylindrical_concentration` in MinlosConcentration.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -56,17 +56,20 @@
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `MeasurableModification.lean` | 0 sorries, 1 axiom |
+| `MinlosConcentration.lean` | 0 sorries, 1 axiom (`nuclear_cylindrical_concentration`) |
+| `MeasurableModification.lean` | proved (0 sorries, 0 axioms) |
 | `Minlos.lean` | proved (0 sorries, 0 axioms) |
 | `PietschBridge.lean` | proved (0 sorries, 0 axioms) |
 
-### Axiom (MeasurableModification.lean)
+### Axiom (MinlosConcentration.lean)
 
-1. **`minlos_concentration`** — Minlos concentration bound: for a cylindrical
-   measure on a nuclear space with continuous CF (joint CF hypothesis), there
-   exist m, C such that paths are bounded by C · (p m) on ℚ-linear combinations
-   (Chebyshev + Gaussian averaging + Parseval + HS).
-   (Gel'fand-Vilenkin, Vol. 4, Ch. IV, §3.3)
+1. **`nuclear_cylindrical_concentration`** — Nuclear cylindrical concentration
+   bound (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3): for Hilbertian seminorms `p`
+   with Hilbert-Schmidt embeddings generating the topology, and a cylindrical
+   probability measure with continuous CF, there exist m, C bounding paths
+   by C · (p m) on ℚ-linear combinations. Takes explicit `IsHilbertian` and
+   `IsHilbertSchmidtEmbedding` hypotheses (not `NuclearSpace` typeclass).
+   `minlos_concentration` is a trivial wrapper applying this axiom.
 
 **Proved (5 former axioms → definitions/theorems):**
 - **`extensionCLM`** — BLT theorem via continuous extension from dense subset.
@@ -149,8 +152,8 @@
 ## Notes
 
 - `#print axioms bochner_theorem` shows only: `propext`, `Classical.choice`, `Quot.sound`.
-- `#print axioms minlos_theorem` shows 1 axiom from MeasurableModification
-  (`minlos_concentration`) + standard. No `sorryAx`.
+- `#print axioms minlos_theorem` shows 1 axiom (`nuclear_cylindrical_concentration`)
+  + standard 3 (propext, Classical.choice, Quot.sound). No `sorryAx`.
 - `#print axioms nuclearSpace_of_pietsch` shows only: `propext`, `Classical.choice`, `Quot.sound`.
 - The proof is structured through FejerPD.lean which proves `Re(𝓕φ(ξ)) ≥ 0` via
   Fejér-averaged double integrals and overlap-ratio kernels.
