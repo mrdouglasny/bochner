@@ -28,6 +28,7 @@ expansion `p(x) ≤ Σₖ |fₖ(x)| · cₖ` with `|fₖ| ≤ q`), we:
 -/
 
 import Bochner.Minlos.NuclearSpace
+import Mathlib.Topology.Instances.RealVectorSpace
 
 open scoped BigOperators
 
@@ -265,22 +266,173 @@ theorem hilbertianLift_le_dominator (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ →
         rw [Real.sqrt_mul (sq_nonneg _), Real.sqrt_sq hqx]
     _ = Real.sqrt (∑' n, c n) * q x := mul_comm _ _
 
+/-! ### Bilinearity of Polarization Inner Product (Jordan-von Neumann) -/
+
+private lemma R_congr' (R : Seminorm ℝ E) {x y : E} (h : x = y) : R x = R y := by rw [h]
+
+/-- `ip(x, x) = R(x)²`. -/
+lemma Seminorm.innerProd_self (R : Seminorm ℝ E) (x : E) :
+    R.innerProd x x = R x ^ 2 := by
+  simp only [Seminorm.innerProd, sub_self, map_zero, sq, zero_mul, sub_zero]
+  rw [show x + x = (2 : ℝ) • x from by rw [two_smul], map_smul_eq_mul]
+  simp; ring
+
+/-- `ip(x, y) = ip(y, x)` (symmetry). -/
+lemma Seminorm.innerProd_comm (R : Seminorm ℝ E) (x y : E) :
+    R.innerProd x y = R.innerProd y x := by
+  simp only [Seminorm.innerProd]
+  have h1 : R (x + y) = R (y + x) := R_congr' R (by abel)
+  have h2 : R (x - y) = R (y - x) := by
+    rw [show x - y = -(y - x) from by abel, map_neg_eq_map]
+  rw [h1, h2]
+
+/-- `ip(-x, y) = -ip(x, y)`. -/
+lemma Seminorm.innerProd_neg_left (R : Seminorm ℝ E) (x y : E) :
+    R.innerProd (-x) y = -R.innerProd x y := by
+  simp only [Seminorm.innerProd]
+  have h1 : R (-x + y) = R (x - y) := by
+    rw [show -x + y = -(x - y) from by abel, map_neg_eq_map]
+  have h2 : R (-x - y) = R (x + y) := by
+    rw [show -x - y = -(x + y) from by abel, map_neg_eq_map]
+  rw [h1, h2]; ring
+
+/-- `ip(x₁ + x₂, y) = ip(x₁, y) + ip(x₂, y)` (additivity from parallelogram law).
+
+Uses four applications of the parallelogram identity with different argument pairs,
+then combines by linear arithmetic. -/
+lemma Seminorm.innerProd_add_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) (x₁ x₂ y : E) :
+    R.innerProd (x₁ + x₂) y = R.innerProd x₁ y + R.innerProd x₂ y := by
+  simp only [Seminorm.innerProd]
+  have p1 := hR (x₁ + y) x₂; have p2 := hR (x₁ - y) x₂
+  have p3 := hR (x₂ + y) x₁; have p4 := hR (x₂ - y) x₁
+  rw [R_congr' R (show x₁ + y + x₂ = x₁ + x₂ + y by abel),
+      R_congr' R (show x₁ + y - x₂ = x₁ - x₂ + y by abel)] at p1
+  rw [R_congr' R (show x₁ - y + x₂ = x₁ + x₂ - y by abel),
+      R_congr' R (show x₁ - y - x₂ = x₁ - x₂ - y by abel)] at p2
+  rw [R_congr' R (show x₂ + y + x₁ = x₁ + x₂ + y by abel)] at p3
+  rw [show x₂ + y - x₁ = -(x₁ - x₂ - y) from by abel, map_neg_eq_map] at p3
+  rw [R_congr' R (show x₂ - y + x₁ = x₁ + x₂ - y by abel)] at p4
+  rw [show x₂ - y - x₁ = -(x₁ - x₂ + y) from by abel, map_neg_eq_map] at p4
+  linarith
+
+/-- `ip(∑ xⱼ, y) = ∑ ip(xⱼ, y)` (finite sum in first argument). -/
+lemma Seminorm.innerProd_sum_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) {ι : Type*}
+    (s : Finset ι) (f : ι → E) (y : E) :
+    R.innerProd (∑ j ∈ s, f j) y = ∑ j ∈ s, R.innerProd (f j) y := by
+  induction s using Finset.cons_induction with
+  | empty => simp [Seminorm.innerProd, map_neg_eq_map]
+  | cons a s has ih => rw [Finset.sum_cons, R.innerProd_add_left hR, ih, Finset.sum_cons]
+
+/-- Continuity of `t ↦ R(t • x + y)` as a function `ℝ → ℝ` (Lipschitz with constant `R(x)`). -/
+private lemma Seminorm.continuous_smul_add (R : Seminorm ℝ E) (x y : E) :
+    Continuous (fun t : ℝ => R (t • x + y)) := by
+  rw [Metric.continuous_iff]
+  intro s ε hε
+  refine ⟨if R x = 0 then 1 else ε / R x, by split_ifs <;> positivity, fun t hst => ?_⟩
+  rw [Real.dist_eq]
+  have hst' : |t - s| < if R x = 0 then 1 else ε / R x := by
+    rwa [dist_eq_norm, Real.norm_eq_abs] at hst
+  calc |R (t • x + y) - R (s • x + y)|
+      ≤ R (t • x + y - (s • x + y)) := abs_sub_map_le_sub R _ _
+    _ = R ((t - s) • x) := by congr 1; rw [sub_smul]; abel
+    _ = |t - s| * R x := by rw [map_smul_eq_mul]; simp
+    _ < ε := by
+        by_cases hRx : R x = 0
+        · simp [hRx]; exact hε
+        · rw [if_neg hRx] at hst'
+          calc |t - s| * R x < ε / R x * R x :=
+                mul_lt_mul_of_pos_right hst' (lt_of_le_of_ne (apply_nonneg R x) (Ne.symm hRx))
+            _ = ε := div_mul_cancel₀ ε hRx
+
+/-- `ip(a • x, y) = a * ip(x, y)` (real homogeneity).
+
+Proof: `t ↦ ip(t•x, y)` is additive (from `innerProd_add_left`) and continuous
+(since `R` is Lipschitz). A continuous additive function `ℝ → ℝ` is ℝ-linear
+by `map_real_smul`. -/
+lemma Seminorm.innerProd_smul_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) (a : ℝ) (x y : E) :
+    R.innerProd (a • x) y = a * R.innerProd x y := by
+  let f : ℝ →+ ℝ := {
+    toFun := fun t => R.innerProd (t • x) y
+    map_zero' := by simp [Seminorm.innerProd, map_neg_eq_map]
+    map_add' := fun s t => by rw [add_smul]; exact R.innerProd_add_left hR _ _ _ }
+  have hf : Continuous f := by
+    show Continuous (fun t => R.innerProd (t • x) y)
+    simp only [Seminorm.innerProd]
+    have h1 := R.continuous_smul_add x y
+    have h2 : Continuous (fun t : ℝ => R (t • x - y)) := by
+      have := R.continuous_smul_add x (-y); simp [sub_eq_add_neg] at this ⊢; exact this
+    exact (h1.pow 2 |>.sub (h2.pow 2)).div_const 4
+  have hsmul := map_real_smul f hf a 1
+  simp [f] at hsmul; exact hsmul
+
 /-! ### Bessel Inequality for Hilbertian Seminorms -/
+
+/-- Pythagorean theorem: if `ip(x, y) = 0` then `R(x+y)² = R(x)² + R(y)²`. -/
+private lemma Seminorm.sq_add_of_innerProd_eq_zero (R : Seminorm ℝ E)
+    (hR : R.IsHilbertian) (x y : E) (hxy : R.innerProd x y = 0) :
+    R (x + y) ^ 2 = R x ^ 2 + R y ^ 2 := by
+  have h1 : R (x + y) ^ 2 = R (x - y) ^ 2 := by
+    simp only [Seminorm.innerProd] at hxy; linarith
+  linarith [hR x y]
+
+/-- `R(vⱼ) = 1` for an R-orthonormal sequence. -/
+private lemma R_orthonormal_norm (R : Seminorm ℝ E) {N : ℕ} (v : Fin N → E)
+    (hv : R.IsOrthonormalSeq v) (j : Fin N) : R (v j) = 1 := by
+  have h := hv j j; simp at h; rw [R.innerProd_self] at h
+  nlinarith [apply_nonneg R (v j)]
+
+/-- `R(∑ⱼ aⱼ • vⱼ)² = ∑ⱼ aⱼ²` for R-orthonormal `{vⱼ}` (by induction using Pythagoras). -/
+private lemma Seminorm.sq_sum_orthonormal (R : Seminorm ℝ E) (hR : R.IsHilbertian)
+    {N : ℕ} (v : Fin N → E) (hv : R.IsOrthonormalSeq v) (a : Fin N → ℝ) :
+    R (∑ j, a j • v j) ^ 2 = ∑ j, a j ^ 2 := by
+  induction N with
+  | zero => simp
+  | succ n ih =>
+    rw [Fin.sum_univ_castSucc, Fin.sum_univ_castSucc]
+    set u := ∑ j : Fin n, a (Fin.castSucc j) • v (Fin.castSucc j)
+    set w := a (Fin.last n) • v (Fin.last n)
+    have hv' : R.IsOrthonormalSeq (fun j : Fin n => v (Fin.castSucc j)) := by
+      intro i j
+      rw [show (if i = j then (1:ℝ) else 0) =
+            (if Fin.castSucc i = Fin.castSucc j then 1 else 0) by simp]
+      exact hv (Fin.castSucc i) (Fin.castSucc j)
+    have hIH : R u ^ 2 = ∑ j : Fin n, a (Fin.castSucc j) ^ 2 := ih _ hv' _
+    have hw : R w ^ 2 = a (Fin.last n) ^ 2 := by
+      simp [w, map_smul_eq_mul, sq_abs, R_orthonormal_norm R v hv (Fin.last n)]
+    have horth : R.innerProd u w = 0 := by
+      show R.innerProd (∑ j : Fin n, a (Fin.castSucc j) • v (Fin.castSucc j)) w = 0
+      rw [R.innerProd_sum_left hR]
+      apply Finset.sum_eq_zero; intro j _
+      rw [R.innerProd_smul_left hR, R.innerProd_comm, R.innerProd_smul_left hR,
+          R.innerProd_comm]
+      have h0 : R.innerProd (v (Fin.castSucc j)) (v (Fin.last n)) = 0 := by
+        have := hv (Fin.castSucc j) (Fin.last n)
+        rw [if_neg (Fin.castSucc_ne_last j)] at this; exact this
+      simp [h0]
+    rw [R.sq_add_of_innerProd_eq_zero hR u w horth, hIH, hw]
 
 /-- **Bessel inequality** for bounded functionals on Hilbertian seminorms.
 
 If `R` is a Hilbertian seminorm and `φ : E →L[ℝ] ℝ` satisfies `|φ(x)| ≤ R(x)`,
 then for any finite R-orthonormal sequence `{eⱼ}`, we have `Σⱼ φ(eⱼ)² ≤ 1`.
 
-Proof sketch: let `w = Σⱼ φ(vⱼ)·vⱼ`. By orthonormality, `R(w)² = Σⱼ φ(vⱼ)²`.
-Also `φ(w) = Σⱼ φ(vⱼ)²` and `|φ(w)| ≤ R(w)`.
-So `S := Σⱼ φ(vⱼ)² ≤ R(w) = √S`, giving `S ≤ 1`. -/
+Proof: let `w = Σⱼ φ(vⱼ)·vⱼ`. By orthonormality `R(w)² = Σⱼ φ(vⱼ)²`,
+by linearity `φ(w) = Σⱼ φ(vⱼ)²`, and `|φ(w)| ≤ R(w)`.
+So `S ≤ R(w) = √S`, giving `S ≤ 1`. -/
 theorem bessel_hilbertian {N : ℕ}
     (R : Seminorm ℝ E) (hR : R.IsHilbertian)
     (φ : E →L[ℝ] ℝ) (hφ : ∀ x, |φ x| ≤ R x)
     (v : Fin N → E) (hv : R.IsOrthonormalSeq v) :
     ∑ j, (φ (v j)) ^ 2 ≤ 1 := by
-  sorry
+  set S := ∑ j, (φ (v j)) ^ 2 with hS_def
+  set w := ∑ j : Fin N, (φ (v j)) • (v j)
+  have hw : φ w = S := by simp [w, map_sum, map_smul, smul_eq_mul, hS_def, sq]
+  have hS_le : S ≤ R w := calc
+    S = φ w := hw.symm
+    _ ≤ |φ w| := le_abs_self _
+    _ ≤ R w := hφ w
+  have hRw_sq : R w ^ 2 = S := R.sq_sum_orthonormal hR v hv (fun j => φ (v j))
+  nlinarith [sq_nonneg (R w), sq_nonneg (S - 1), apply_nonneg R w]
 
 /-! ### HS Embedding from Nuclear Factorization -/
 
