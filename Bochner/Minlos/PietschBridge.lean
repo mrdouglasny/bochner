@@ -318,7 +318,59 @@ theorem isHilbertSchmidtEmbedding_of_nuclear
           Finset.sum_le_sum (fun j _ => h_each j)
       _ ≤ (∑' n, c n) ^ 2 := by
           -- This step combines Cauchy-Schwarz for sums with Bessel
-          sorry
+          -- Summability of the square terms
+          have hSq : ∀ j : Fin N, Summable (fun n => (f n (e j)) ^ 2 * c n) :=
+            fun j => summable_sq_mul_of_bounded f c hc_nn hc_sum R hfR (e j)
+          -- Step A: Cauchy-Schwarz for each j
+          -- (∑' n, |f n (e j)| * c n)² ≤ (∑' n, c n) * (∑' n, (f n (e j))² * c n)
+          have hCS : ∀ j : Fin N,
+              (∑' n, |f n (e j)| * c n) ^ 2 ≤
+              (∑' n, c n) * (∑' n, (f n (e j)) ^ 2 * c n) := by
+            intro j
+            have h_le := hilbertianLift_dominates f c hc_nn hc_sum R hfR (e j)
+            rw [hilbertianLift_apply] at h_le
+            -- h_le : ∑' n, |f n (e j)| * c n ≤ √(∑' n, c n) * √(∑' n, (f n (e j))² * c n)
+            have h_nn : (0 : ℝ) ≤ ∑' n, |f n (e j)| * c n :=
+              tsum_nonneg (fun n => mul_nonneg (abs_nonneg _) (hc_nn n))
+            calc (∑' n, |f n (e j)| * c n) ^ 2
+                ≤ (Real.sqrt (∑' n, c n) *
+                    Real.sqrt (∑' n, (f n (e j)) ^ 2 * c n)) ^ 2 :=
+                  sq_le_sq' (by linarith) h_le
+              _ = (∑' n, c n) * (∑' n, (f n (e j)) ^ 2 * c n) := by
+                  rw [mul_pow, Real.sq_sqrt (tsum_nonneg hc_nn),
+                      Real.sq_sqrt (tsum_nonneg (fun n =>
+                        mul_nonneg (sq_nonneg _) (hc_nn n)))]
+          -- Step B: Sum CS over j, factor out (∑' n, c n)
+          calc ∑ j, (∑' n, |f n (e j)| * c n) ^ 2
+              ≤ ∑ j, (∑' n, c n) * (∑' n, (f n (e j)) ^ 2 * c n) :=
+                Finset.sum_le_sum (fun j _ => hCS j)
+            _ = (∑' n, c n) * ∑ j, (∑' n, (f n (e j)) ^ 2 * c n) := by
+                rw [← Finset.mul_sum]
+            _ = (∑' n, c n) * (∑' n, ∑ j, (f n (e j)) ^ 2 * c n) := by
+                -- Swap finite sum and tsum
+                congr 1
+                rw [← Summable.tsum_finsetSum (fun j _ => hSq j)]
+            _ = (∑' n, c n) * (∑' n, c n * ∑ j, (f n (e j)) ^ 2) := by
+                congr 1; congr 1; ext n; rw [← Finset.sum_mul]; ring
+            _ ≤ (∑' n, c n) * (∑' n, c n) := by
+                -- Bessel: ∑ j, (f n (e j))² ≤ 1 for each n
+                apply mul_le_mul_of_nonneg_left _ (tsum_nonneg hc_nn)
+                -- Summability of fun n => c n * ∑ j, (f n (e j)) ^ 2
+                have hSqSum : Summable (fun n => c n * ∑ j, (f n (e j)) ^ 2) := by
+                  apply Summable.of_nonneg_of_le
+                  · intro n; exact mul_nonneg (hc_nn n) (Finset.sum_nonneg (fun j _ => sq_nonneg _))
+                  · intro n
+                    have hbessel := bessel_hilbertian R hR (f n) (hfR n) e hv
+                    calc c n * ∑ j, (f n (e j)) ^ 2 ≤ c n * 1 :=
+                          mul_le_mul_of_nonneg_left hbessel (hc_nn n)
+                      _ = c n := mul_one _
+                  · exact hc_sum
+                exact hSqSum.tsum_mono hc_sum (fun n => by
+                  have hbessel := bessel_hilbertian R hR (f n) (hfR n) e hv
+                  calc c n * ∑ j, (f n (e j)) ^ 2
+                      ≤ c n * 1 := mul_le_mul_of_nonneg_left hbessel (hc_nn n)
+                    _ = c n := mul_one _)
+            _ = (∑' n, c n) ^ 2 := (sq (∑' n, c n)).symm
 
 /-! ### Recursive Hilbertian Family Construction -/
 
