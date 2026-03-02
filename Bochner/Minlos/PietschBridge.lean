@@ -90,7 +90,73 @@ def hilbertianLift (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ)
     (fun x y => by
       -- Triangle inequality: Minkowski for weighted ℓ²
       -- √(Σ(fₙ(x+y))²cₙ) ≤ √(Σfₙ(x)²cₙ) + √(Σfₙ(y)²cₙ)
-      sorry)
+      set A := ∑' n, (f n x) ^ 2 * c n
+      set B := ∑' n, (f n y) ^ 2 * c n
+      set S := ∑' n, (f n (x + y)) ^ 2 * c n
+      have hA_nn : 0 ≤ A := tsum_sq_mul_nonneg f c hc_nn x
+      have hB_nn : 0 ≤ B := tsum_sq_mul_nonneg f c hc_nn y
+      have hab_nn : 0 ≤ Real.sqrt A + Real.sqrt B :=
+        add_nonneg (Real.sqrt_nonneg A) (Real.sqrt_nonneg B)
+      -- Suffices: S ≤ (√A + √B)²
+      suffices hS : S ≤ (Real.sqrt A + Real.sqrt B) ^ 2 by
+        calc Real.sqrt S ≤ Real.sqrt ((Real.sqrt A + Real.sqrt B) ^ 2) :=
+              Real.sqrt_le_sqrt hS
+          _ = |Real.sqrt A + Real.sqrt B| := Real.sqrt_sq_eq_abs _
+          _ = Real.sqrt A + Real.sqrt B := abs_of_nonneg hab_nn
+      -- Summability hypotheses
+      have hSx := summable_sq_mul_of_bounded f c hc_nn hc_sum q hfq x
+      have hSy := summable_sq_mul_of_bounded f c hc_nn hc_sum q hfq y
+      -- Linearity: f n (x+y) = f n x + f n y
+      have hlin : ∀ n, f n (x + y) = f n x + f n y := fun n => map_add (f n) x y
+      -- Expand: (f n (x+y))² * c n = (f n x)² * c n + 2*(f n x * f n y * c n) + (f n y)² * c n
+      have hexpand : ∀ n, (f n (x + y)) ^ 2 * c n =
+          (f n x) ^ 2 * c n + 2 * (f n x * f n y * c n) + (f n y) ^ 2 * c n := by
+        intro n; rw [hlin]; ring
+      -- Summability of the cross term: |f_n(x) f_n(y) c_n| ≤ q(x) q(y) c_n
+      have hcross_summable : Summable (fun n => f n x * f n y * c n) := by
+        refine (Summable.of_norm ?_)
+        refine (Summable.of_nonneg_of_le (fun n => norm_nonneg _) (fun n => ?_)
+          (hc_sum.mul_left (q x * q y)))
+        simp only [norm_mul, Real.norm_eq_abs, abs_of_nonneg (hc_nn n)]
+        exact mul_le_mul_of_nonneg_right
+          (mul_le_mul (hfq n x) (hfq n y) (abs_nonneg _) (apply_nonneg q x)) (hc_nn n)
+      -- S = A + 2M + B where M = ∑' f n x * f n y * c n
+      have hS_eq : S = A + 2 * (∑' n, f n x * f n y * c n) + B := by
+        show ∑' n, (f n (x + y)) ^ 2 * c n = _
+        have : (fun n => (f n (x + y)) ^ 2 * c n) =
+            (fun n => (f n x) ^ 2 * c n + 2 * (f n x * f n y * c n) + (f n y) ^ 2 * c n) :=
+          funext hexpand
+        rw [this, (hSx.add (hcross_summable.mul_left 2)).tsum_add hSy,
+            hSx.tsum_add (hcross_summable.mul_left 2), tsum_mul_left]
+      -- (√A + √B)² = A + 2√A√B + B
+      have hrhs : (Real.sqrt A + Real.sqrt B) ^ 2 =
+          A + 2 * (Real.sqrt A * Real.sqrt B) + B := by
+        rw [add_sq, Real.sq_sqrt hA_nn, Real.sq_sqrt hB_nn]; ring
+      rw [hS_eq, hrhs]
+      -- Suffices: M ≤ √A * √B (Cauchy-Schwarz)
+      suffices hCS : ∑' n, f n x * f n y * c n ≤ Real.sqrt A * Real.sqrt B by linarith
+      -- Cauchy-Schwarz for tsum via finite CS + Summable.tsum_le_of_sum_le
+      apply hcross_summable.tsum_le_of_sum_le
+      intro u
+      calc ∑ i ∈ u, f i x * f i y * c i
+          = ∑ i ∈ u, (f i x * Real.sqrt (c i)) * (f i y * Real.sqrt (c i)) := by
+            apply Finset.sum_congr rfl; intro i _
+            rw [mul_mul_mul_comm, Real.mul_self_sqrt (hc_nn i)]
+        _ ≤ Real.sqrt (∑ i ∈ u, (f i x * Real.sqrt (c i)) ^ 2) *
+            Real.sqrt (∑ i ∈ u, (f i y * Real.sqrt (c i)) ^ 2) :=
+            Real.sum_mul_le_sqrt_mul_sqrt u _ _
+        _ = Real.sqrt (∑ i ∈ u, (f i x) ^ 2 * c i) *
+            Real.sqrt (∑ i ∈ u, (f i y) ^ 2 * c i) := by
+            congr 1 <;> (congr 1; apply Finset.sum_congr rfl; intro i _; rw [mul_pow,
+              Real.sq_sqrt (hc_nn i)])
+        _ ≤ Real.sqrt A * Real.sqrt B := by
+            apply mul_le_mul
+            · apply Real.sqrt_le_sqrt
+              exact hSx.sum_le_tsum u (fun n _ => mul_nonneg (sq_nonneg _) (hc_nn n))
+            · apply Real.sqrt_le_sqrt
+              exact hSy.sum_le_tsum u (fun n _ => mul_nonneg (sq_nonneg _) (hc_nn n))
+            · exact Real.sqrt_nonneg _
+            · exact Real.sqrt_nonneg _)
     (fun a x => by
       -- Homogeneity: √(Σ(fₙ(a•x))²cₙ) = ‖a‖ · √(Σfₙ(x)²cₙ)
       simp_rw [map_smul, smul_eq_mul]
