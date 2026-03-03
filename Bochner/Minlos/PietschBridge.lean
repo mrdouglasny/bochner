@@ -382,7 +382,7 @@ private lemma R_orthonormal_norm (R : Seminorm ℝ E) {N : ℕ} (v : Fin N → E
   nlinarith [apply_nonneg R (v j)]
 
 /-- `R(∑ⱼ aⱼ • vⱼ)² = ∑ⱼ aⱼ²` for R-orthonormal `{vⱼ}` (by induction using Pythagoras). -/
-private lemma Seminorm.sq_sum_orthonormal (R : Seminorm ℝ E) (hR : R.IsHilbertian)
+lemma Seminorm.sq_sum_orthonormal (R : Seminorm ℝ E) (hR : R.IsHilbertian)
     {N : ℕ} (v : Fin N → E) (hv : R.IsOrthonormalSeq v) (a : Fin N → ℝ) :
     R (∑ j, a j • v j) ^ 2 = ∑ j, a j ^ 2 := by
   induction N with

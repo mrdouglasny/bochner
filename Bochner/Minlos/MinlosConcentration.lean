@@ -31,6 +31,7 @@ States `nuclear_cylindrical_concentration` as a textbook axiom and provides
 
 import Bochner.Minlos.SazonovTightness
 import Bochner.Minlos.NuclearSpace
+import Bochner.Minlos.PietschBridge
 
 open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
@@ -54,7 +55,7 @@ lemma ae_eq_zero_of_charfun_eq_one {Ω : Type*} [MeasurableSpace Ω]
     apply Measure.ext_of_charFun
     funext t
     rw [charFun_dirac]
-    simp only [inner_zero_left, zero_mul]
+    simp only [inner_zero_left]
     rw [charFun_apply, integral_map hX.aemeasurable
       (by fun_prop : AEStronglyMeasurable (fun x => cexp (@inner ℝ ℝ _ x t * I)) _)]
     have h_inner : ∀ ω, cexp (@inner ℝ ℝ _ (X ω) t * I) = exp (I * ↑(t * X ω)) := by
@@ -262,6 +263,139 @@ lemma linear_combination_ae
   have := ae_eq_zero_of_charfun_eq_one hX_meas hX_cf
   filter_upwards [this] with ω hω
   linarith [show X ω = 0 from hω]
+
+
+/-! ## Pushforward CF for finite evaluation maps -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- The pushforward of ν to `Fin k → ℝ` via evaluation at vectors `e₀,...,e_{k-1}`
+    has characteristic function `v ↦ Φ(∑ vⱼ • eⱼ)`. This is a direct consequence
+    of `h_cf_joint` and `integral_map`. -/
+lemma pushforward_charfun_eq
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    {k : ℕ} (e : Fin k → E) (v : Fin k → ℝ) :
+    ∫ y : Fin k → ℝ, exp (I * ↑(∑ j, v j * y j))
+      ∂(ν.map (fun ω j => ω (e j))) = Φ (∑ j, v j • e j) := by
+  have hg : Measurable (fun ω : E → ℝ => (fun j => ω (e j) : Fin k → ℝ)) :=
+    measurable_pi_lambda _ (fun j => measurable_pi_apply (e j))
+  rw [integral_map hg.aemeasurable (Continuous.aestronglyMeasurable (by fun_prop))]
+  exact h_cf_joint k v e
+
+
+/-! ## Concentration on good set via Cauchy-Schwarz + Parseval -/
+
+/-- **Cauchy-Schwarz + Parseval concentration bound**: if ω is linear on combinations of
+    a p-orthonormal sequence `{eⱼ}` and `∑ ω(eⱼ)² ≤ R²`, then for any linear combination
+    `x = ∑ βⱼ eⱼ`, we have `|ω(x)| ≤ R · p(x)`.
+
+    This is the pointwise bound at the heart of the concentration argument:
+    ω in the "good set" (bounded evaluation norm) respects the seminorm. -/
+lemma bound_on_good_set
+    (p : Seminorm ℝ E) (hp : p.IsHilbertian)
+    {k : ℕ} (e : Fin k → E) (he : p.IsOrthonormalSeq e)
+    (R : ℝ) (hR : 0 < R)
+    (ω : E → ℝ)
+    (h_linear : ∀ (β : Fin k → ℝ), ω (∑ j, β j • e j) = ∑ j, β j * ω (e j))
+    (h_norm : ∑ j : Fin k, (ω (e j)) ^ 2 ≤ R ^ 2)
+    (β : Fin k → ℝ) :
+    |ω (∑ j, β j • e j)| ≤ R * p (∑ j, β j • e j) := by
+  rw [h_linear]
+  -- Parseval: p(∑ βⱼ eⱼ)² = ∑ βⱼ²
+  have h_parseval := Seminorm.sq_sum_orthonormal p hp e he β
+  -- Cauchy-Schwarz: (∑ βⱼ ω(eⱼ))² ≤ (∑ βⱼ²)(∑ ω(eⱼ)²)
+  have h_cs := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ β (fun j => ω (e j))
+  -- Combined: (∑ βⱼ ω(eⱼ))² ≤ (R · p(x))²
+  have h_sq : (∑ j : Fin k, β j * ω (e j)) ^ 2 ≤ (R * p (∑ j, β j • e j)) ^ 2 := by
+    calc (∑ j : Fin k, β j * ω (e j)) ^ 2
+        ≤ (∑ j, β j ^ 2) * (∑ j, (ω (e j)) ^ 2) := h_cs
+      _ = p (∑ j, β j • e j) ^ 2 * (∑ j, (ω (e j)) ^ 2) := by rw [h_parseval]
+      _ ≤ p (∑ j, β j • e j) ^ 2 * R ^ 2 :=
+          mul_le_mul_of_nonneg_left h_norm (sq_nonneg _)
+      _ = (R * p (∑ j, β j • e j)) ^ 2 := by ring
+  exact abs_le_of_sq_le_sq h_sq (by positivity)
+
+
+/-! ## Kernel elements vanish a.e. -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- If `p(z) = 0` and `p` dominates the CF (i.e., the CF at multiples of z
+    is always 1), then `ω(z) = 0` for ν-a.e. ω. Proof: the CF of ω(z)
+    is constantly 1, so ω(z) = 0 a.e. by `ae_eq_zero_of_charfun_eq_one`. -/
+lemma kernel_eval_ae_zero
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_normalized : Φ 0 = 1)
+    (p : Seminorm ℝ E) (z : E) (hz : p z = 0)
+    (h_cf_kernel : ∀ t : ℝ, Φ (t • z) = 1) :
+    ∀ᵐ ω ∂ν, ω z = 0 := by
+  apply ae_eq_zero_of_charfun_eq_one (measurable_pi_apply z)
+  intro t
+  have h := h_cf_joint 1 (fun _ => t) (fun _ => z)
+  simp only [Fin.sum_univ_one] at h
+  rw [h_cf_kernel t] at h; exact h
+
+
+/-! ## Bad set definitions for continuity from below -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- The "bad set" for the concentration bound: the set of ω where some
+    ℚ-linear combination of dense vectors violates the seminorm bound. -/
+def concentrationBadSet (d : ℕ → E) (p : Seminorm ℝ E) (C : ℝ) :
+    Set (E → ℝ) :=
+  {ω | ∃ c : ℕ →₀ ℚ,
+    ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
+      C * p (c.sum fun i a => (a : ℝ) • d i))}
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- The "restricted bad set" B_N: bad set restricted to ℚ-linear combinations
+    with support in `{0, ..., N-1}`. -/
+def concentrationBadSetN (d : ℕ → E) (p : Seminorm ℝ E) (C : ℝ) (N : ℕ) :
+    Set (E → ℝ) :=
+  {ω | ∃ c : ℕ →₀ ℚ, c.support ⊆ Finset.range N ∧
+    ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
+      C * p (c.sum fun i a => (a : ℝ) • d i))}
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- B_N ⊆ B_M when N ≤ M. -/
+lemma concentrationBadSetN_mono (d : ℕ → E) (p : Seminorm ℝ E) (C : ℝ)
+    {N M : ℕ} (h : N ≤ M) :
+    concentrationBadSetN d p C N ⊆ concentrationBadSetN d p C M := by
+  intro ω hω
+  obtain ⟨c, hc_supp, hc_bad⟩ := hω
+  exact ⟨c, hc_supp.trans (Finset.range_mono h), hc_bad⟩
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- The full bad set equals the union of the restricted bad sets.
+    Every `c : ℕ →₀ ℚ` has finite support contained in some `Finset.range N`. -/
+lemma concentrationBadSet_eq_iUnion (d : ℕ → E) (p : Seminorm ℝ E) (C : ℝ) :
+    concentrationBadSet d p C = ⋃ N, concentrationBadSetN d p C N := by
+  ext ω
+  simp only [concentrationBadSet, concentrationBadSetN, Set.mem_setOf_eq, Set.mem_iUnion]
+  constructor
+  · rintro ⟨c, hc⟩
+    refine ⟨c.support.sup id + 1, c, ?_, hc⟩
+    intro i hi
+    exact Finset.mem_range.mpr (by
+      have : i ≤ c.support.sup id := Finset.le_sup (f := id) hi
+      omega)
+  · rintro ⟨_, c, _, hc⟩
+    exact ⟨c, hc⟩
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- If `ν(B_N) ≤ δ` for all N, then `ν(full bad set) ≤ δ`.
+    Uses continuity of measure from below (`tendsto_measure_iUnion`). -/
+lemma concentrationBadSet_measure_le (d : ℕ → E) (p : Seminorm ℝ E) (C : ℝ)
+    (ν : Measure (E → ℝ)) (δ : ENNReal)
+    (h_bound : ∀ N, ν (concentrationBadSetN d p C N) ≤ δ) :
+    ν (concentrationBadSet d p C) ≤ δ := by
+  rw [concentrationBadSet_eq_iUnion]
+  exact le_of_tendsto' (tendsto_measure_iUnion_atTop
+    (fun _ _ h => concentrationBadSetN_mono d p C h)) h_bound
 
 
 /-! ## Textbook axiom -/
