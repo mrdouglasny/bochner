@@ -4,8 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # Measurable Modification for Minlos' Theorem
 
-Replaces the false axioms `nuclear_support_concentration` and
-`weakDual_measurableEmbedding` with a measurable **pushforward** construction.
+Constructs a measurable **pushforward** from the Kolmogorov extension to the
+topological dual.
 
 The key idea: instead of pulling back ν (a measure on E → ℝ) through the
 embedding E' ↪ (E → ℝ), we push forward ν through a measurable projection
@@ -776,9 +776,7 @@ theorem qLinearPaths_ae [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
   -- X(ω) = 0 means ω(y) = ∑ cᵢ * ω(dᵢ)
   linarith [show X ω = 0 from hω]
 
-/-- **Minlos concentration** — now proved in `Minlos.MinlosConcentration`. -/
--- Previously: axiom minlos_concentration
--- Now imported from MinlosConcentration.lean
+/-- **Minlos concentration** — see `Minlos.MinlosConcentration`. -/
 
 private lemma boundedPaths_tail_bound [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]

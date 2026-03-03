@@ -21,14 +21,6 @@ probability measure on the topological dual E' = WeakDual ℝ E.
 5. **CF verification**: P(ω)(f) = ω(f) ν-a.e., so charFun(μ) = Φ.
 6. **Uniqueness**: P ∘ embed = id, so μ' = (μ'.map embed).map P = ν.map P = μ.
 
-## Sorries (6)
-
-The 6 sorries are in MeasurableModification.lean:
-1. `measurableProjection` — construction of the extension map
-2. `measurable_measurableProjection` — measurability of P
-3. `projection_embed_eq` — P ∘ embed = id
-4. `projection_ae_eq` — P(ω)(f) = ω(f) ν-a.e.
-
 ## References
 
 - Minlos, "Generalized random processes and their extension to measures" (1959)
@@ -122,7 +114,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
   -- Joint characteristic function: generalizes h_cf_eq to n-point marginals.
   -- Strategy: factor through J = Finset.image x univ, use projective limit,
   -- change variables through finsetPiMeasEquiv, fiber-sum reindex to charFun.
-  -- See PROVING_BLUEPRINT.md §1 for full details.
+  -- Factor through J = Finset.image x univ, change vars through finsetPiMeasEquiv.
   have h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, Complex.exp (Complex.I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i) := by

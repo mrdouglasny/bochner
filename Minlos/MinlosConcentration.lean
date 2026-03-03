@@ -1119,9 +1119,7 @@ private lemma kernel_concentration_bound
   -- = ⋃_{finite S} {∃ c ∈ S, c.support ⊆ range N ∧ ω(z_c) ≠ 0}
   -- For each finite S, joint_kernel_bound_finite gives ν ≤ ofReal ε_q
   -- By continuity from below, ν(z_bad) ≤ ofReal ε_q
-  -- Step 5 is still the analytical core (sorry'd via joint_kernel_bound_finite)
-  -- For now, use the sorry'd joint_kernel_bound_finite
-  -- to establish ν(z_bad) ≤ ofReal ε_q
+  -- Step 5: joint_kernel_bound_finite establishes ν(z_bad) ≤ ofReal ε_q
   have h_z_bad_bound : ν z_bad ≤ ENNReal.ofReal ε_q := by
     -- z_bad = {ω | ∃ c, c.support ⊆ range N ∧ ω(z c) ≠ 0}
     -- Enumerate all (ℕ →₀ ℚ) elements: this type is countable
@@ -1753,9 +1751,7 @@ theorem nuclear_cylindrical_concentration
   -- Also need the kernel contribution ≤ ofReal(ε/4).
   -- Total: ε/4 + ε/4 = ε/2, and we need < ε.
   --
-  -- For now, we produce the witnesses m, C and use the sorry'd lemmas.
   -- Choose C large enough (exists by tail_bound_uniform).
-  -- The exact value comes from the analytical tail bound.
   suffices h_exists_C : ∃ C_real : ℝ, 0 < C_real ∧
       ∀ N, ν (concentrationBadSetN d (p m) C_real N) ≤
         ENNReal.ofReal (ε / 2) by
