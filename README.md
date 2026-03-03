@@ -118,10 +118,10 @@ Bochner/
 | Minlos/FinDimMarginals.lean | 96 | 0 | 0 |
 | Minlos/ProjectiveFamily.lean | 262 | 0 | 0 |
 | Minlos/SazonovTightness.lean | 1061 | 0 | 0 |
-| Minlos/MinlosConcentration.lean | 215 | 1 | 0 |
+| Minlos/MinlosConcentration.lean | 594 | 1 | 2 |
 | Minlos/MeasurableModification.lean | 1135 | 0 | 0 |
 | Minlos/Minlos.lean | 220 | 0 | 0 |
-| **Total** | **6200** | **1** | **0** |
+| **Total** | **6579** | **1** | **2** |
 
 ## Building
 

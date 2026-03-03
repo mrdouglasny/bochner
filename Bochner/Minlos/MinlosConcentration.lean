@@ -32,6 +32,7 @@ States `nuclear_cylindrical_concentration` as a textbook axiom and provides
 import Bochner.Minlos.SazonovTightness
 import Bochner.Minlos.NuclearSpace
 import Bochner.Minlos.PietschBridge
+import Mathlib.Data.Finsupp.Encodable
 
 open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
@@ -340,6 +341,41 @@ lemma kernel_eval_ae_zero
   rw [h_cf_kernel t] at h; exact h
 
 
+/-! ## ℚ-linearity for all Finsupp simultaneously -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- For ν-a.e. ω, the evaluation `ω(x_c)` equals the ℚ-linear combination
+    `∑ cᵢ ω(dᵢ)` for **all** `c : ℕ →₀ ℚ` simultaneously.
+
+    Uses countable intersection (`eventually_countable_forall`) since `ℕ →₀ ℚ`
+    is countable, plus `linear_combination_ae` for each individual `c`. -/
+lemma q_linear_ae_all
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_normalized : Φ 0 = 1)
+    (d : ℕ → E) :
+    ∀ᵐ ω ∂ν, ∀ c : ℕ →₀ ℚ,
+      ω (c.sum fun i a => (a : ℝ) • d i) = c.sum fun i a => (a : ℝ) * ω (d i) := by
+  rw [eventually_countable_forall]
+  intro c
+  -- Enumerate support: Fin-indexed vectors and coefficients
+  let e : Fin c.support.card → E := fun j => d (c.support.equivFin.symm j)
+  let β : Fin c.support.card → ℝ := fun j => (c (c.support.equivFin.symm j) : ℝ)
+  -- Apply linear_combination_ae with the Fin-indexed data
+  have := linear_combination_ae Φ ν h_cf_joint h_normalized e β
+  filter_upwards [this] with ω hω
+  -- Both sides equal the Fin-indexed sum, via sum_coe_sort + Equiv.sum_comp
+  show ω (∑ a ∈ c.support, (↑(c a) : ℝ) • d a) =
+    ∑ a ∈ c.support, (↑(c a) : ℝ) * ω (d a)
+  have h1 : (∑ a ∈ c.support, (↑(c a) : ℝ) • d a : E) = ∑ j, β j • e j := by
+    rw [← c.support.sum_coe_sort]; exact (Equiv.sum_comp c.support.equivFin.symm _).symm
+  have h2 : (∑ a ∈ c.support, (↑(c a) : ℝ) * ω (d a) : ℝ) = ∑ j, β j * ω (e j) := by
+    rw [← c.support.sum_coe_sort]; exact (Equiv.sum_comp c.support.equivFin.symm _).symm
+  rw [h1, h2]; exact hω
+
+
 /-! ## Bad set definitions for continuity from below -/
 
 omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
@@ -396,6 +432,93 @@ lemma concentrationBadSet_measure_le (d : ℕ → E) (p : Seminorm ℝ E) (C : �
   rw [concentrationBadSet_eq_iUnion]
   exact le_of_tendsto' (tendsto_measure_iUnion_atTop
     (fun _ _ h => concentrationBadSetN_mono d p C h)) h_bound
+
+
+/-! ## Seminorm Gram-Schmidt (sorry'd) -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- **Gram-Schmidt for Hilbertian seminorms**: given N vectors in E and a Hilbertian
+    seminorm p, there exist k ≤ N p-orthonormal vectors such that every element of
+    the span of the original vectors decomposes as a p-ONB combination plus a kernel
+    element (where p vanishes).
+
+    This is Gram-Schmidt applied to the positive semidefinite inner product
+    `p.innerProd`. The kernel elements arise from the semidefinite (vs definite) case.
+
+    **TODO**: Prove via explicit Gram-Schmidt construction using
+    `Seminorm.innerProd_add_left`, `Seminorm.innerProd_smul_left` from PietschBridge. -/
+lemma gram_schmidt_seminorm (p : Seminorm ℝ E) (hp : p.IsHilbertian)
+    (N : ℕ) (d : Fin N → E) :
+    ∃ (k : ℕ) (e : Fin k → E),
+      p.IsOrthonormalSeq e ∧
+      (∀ (β : Fin N → ℝ), ∃ (α : Fin k → ℝ),
+        p (∑ i, β i • d i - ∑ j, α j • e j) = 0 ∧
+        p (∑ i, β i • d i) ^ 2 = ∑ j, α j ^ 2) := by
+  sorry
+
+
+/-! ## Per-N concentration bound -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- For each N, the restricted bad set B_N has measure bounded by the tail probability
+    of the squared evaluation norm on a p-ONB.
+
+    Key argument: on the a.e. set where ℚ-linearity holds AND the kernel evaluations
+    vanish AND each linear combination decomposes correctly, Cauchy-Schwarz + Parseval
+    gives |ω(x_c)| ≤ R · p(x_c). So B_N is contained in {Σ ω(eⱼ)² > R²} modulo a
+    null set. -/
+lemma concentrationBadSetN_measure_bound
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_normalized : Φ 0 = 1)
+    (d : ℕ → E) (p : Seminorm ℝ E) (hp : p.IsHilbertian)
+    {k : ℕ} (e : Fin k → E) (he : p.IsOrthonormalSeq e)
+    (h_decomp : ∀ c : ℕ →₀ ℚ, ∃ (α : Fin k → ℝ),
+      p (c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j) = 0 ∧
+      p (c.sum (fun i a => (a : ℝ) • d i)) ^ 2 = ∑ j, α j ^ 2)
+    (R : ℝ) (hR : 0 < R) (N : ℕ) :
+    ν (concentrationBadSetN d p R N) ≤
+      ν {ω : E → ℝ | R ^ 2 < ∑ j : Fin k, (ω (e j)) ^ 2} := by
+  -- Step 1: Build the a.e. set where all decompositions hold
+  -- For each c, linear_combination_ae + kernel_eval_ae_zero give a.e. equalities
+  have h_qlin := q_linear_ae_all Φ ν h_cf_joint h_normalized d
+  -- For each c, decompose and get a.e. linearity on the ONB part
+  -- We need: for a.e. ω, for all c with supp ⊆ range N:
+  --   ω(x_c) = ∑ α_j ω(e_j)  (where x_c = ∑ α_j e_j + z, p(z) = 0)
+  -- This uses: ω(x_c) = Σ c_i ω(d_i) a.e. (q_linear_ae_all)
+  --   and: ω(∑ α_j e_j) = Σ α_j ω(e_j) a.e. (linear_combination_ae)
+  --   and: ω(z) = 0 a.e. (kernel_eval_ae_zero)
+  -- Countable intersection over all c with supp ⊆ range N
+
+  -- For each c, get the linear_combination_ae for the e-decomposition
+  have h_decomp_ae : ∀ᵐ ω ∂ν, ∀ c : ℕ →₀ ℚ,
+      ∀ (α : Fin k → ℝ), p (c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j) = 0 →
+      ω (c.sum (fun i a => (a : ℝ) • d i)) = ∑ j, α j * ω (e j) := by
+    -- Countable intersection over c
+    rw [eventually_countable_forall]; intro c
+    obtain ⟨α, hα_ker, _⟩ := h_decomp c
+    set z := c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j with z_def
+    -- ω(x_c) = Σ c_i ω(d_i) a.e. and ω(Σ α_j e_j + z) = Σ α_j ω(e_j) + ω(z) a.e.
+    have h_lin_e := linear_combination_ae Φ ν h_cf_joint h_normalized
+      (Fin.cons z e) (Fin.cons 1 α)
+    have h_ker_z : ∀ t : ℝ, Φ (t • z) = 1 := by
+      intro t
+      have : p (t • z) = 0 := by rw [map_smul_eq_mul]; simp [hα_ker]
+      -- CF at a kernel element is 1
+      -- From cf_nhds_ball or directly from combined_quadratic_bound
+      -- Actually we need this from the hypothesis. For now:
+      sorry
+    have h_z_zero := kernel_eval_ae_zero Φ ν h_cf_joint h_normalized p z hα_ker h_ker_z
+    have h_x_lin := linear_combination_ae Φ ν h_cf_joint h_normalized e α
+    filter_upwards [h_z_zero, h_x_lin] with ω hz hα_lin
+    intro α' hα'
+    -- We need: ω(x_c) = Σ α'_j ω(e_j) when p(x_c - Σ α'_j e_j) = 0
+    -- But we proved it for the specific α from h_decomp, not arbitrary α'
+    -- Actually, the α from h_decomp is the unique one (up to kernel)
+    sorry
+  sorry
 
 
 /-! ## Textbook axiom -/

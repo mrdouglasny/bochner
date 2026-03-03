@@ -1,6 +1,6 @@
 # Bochner's Theorem — Status
 
-**Total: 0 sorries, 1 axiom (`nuclear_cylindrical_concentration` in MinlosConcentration.lean)**
+**Total: 2 sorries, 1 axiom (`nuclear_cylindrical_concentration` in MinlosConcentration.lean)**
 
 ## PositiveDefinite.lean — 0 sorries
 
@@ -56,7 +56,7 @@
 | `FinDimMarginals.lean` | proved (0 sorries, 0 axioms) |
 | `ProjectiveFamily.lean` | proved (0 sorries, 0 axioms) |
 | `SazonovTightness.lean` | proved (0 sorries, 0 axioms) |
-| `MinlosConcentration.lean` | 0 sorries, 1 axiom (`nuclear_cylindrical_concentration`) |
+| `MinlosConcentration.lean` | 2 sorries, 1 axiom (`nuclear_cylindrical_concentration`) |
 | `MeasurableModification.lean` | proved (0 sorries, 0 axioms) |
 | `Minlos.lean` | proved (0 sorries, 0 axioms) |
 | `PietschBridge.lean` | proved (0 sorries, 0 axioms) |
@@ -69,6 +69,25 @@
    measure with continuous CF satisfies the concentration bound. The proof outline:
    CF continuity at 0 → seminorm ball, quadratic bound, Gaussian averaging on
    orthonormal bases, HS summability, Chebyshev + Bessel for ℚ-linear combinations.
+
+### Sorries (MinlosConcentration.lean) — toward proving the axiom
+
+| Lemma | Status | Description |
+|-------|--------|-------------|
+| `gram_schmidt_seminorm` | sorry | ONB construction for Hilbertian seminorms via Gram-Schmidt |
+| `concentrationBadSetN_measure_bound` | sorry | Per-N concentration bound: B_N ⊆ {Σ ω(eⱼ)² > R²} mod null set |
+
+### Proved helpers (MinlosConcentration.lean)
+
+| Lemma | Status | Description |
+|-------|--------|-------------|
+| `combined_quadratic_bound` | proved | 1 - Re(Φ(x)) ≤ ε + K·(p m₀)(x)² from CF continuity |
+| `linear_combination_ae` | proved | ω(Σ βⱼ eⱼ) = Σ βⱼ ω(eⱼ) a.e. from h_cf_joint |
+| `pushforward_charfun_eq` | proved | Pushforward CF = marginalFun from h_cf_joint |
+| `bound_on_good_set` | proved | Cauchy-Schwarz + Parseval: \|ω(x)\| ≤ R·p(x) on good set |
+| `kernel_eval_ae_zero` | proved | ω(z) = 0 a.e. when p(z) = 0 and Φ(t·z) = 1 |
+| `q_linear_ae_all` | proved | ℚ-linearity for all c : ℕ →₀ ℚ simultaneously |
+| `concentrationBadSet_measure_le` | proved | Continuity from below: ν(⋃ B_N) ≤ δ |
 
 **Proved (5 former axioms → definitions/theorems):**
 - **`extensionCLM`** — BLT theorem via continuous extension from dense subset.
