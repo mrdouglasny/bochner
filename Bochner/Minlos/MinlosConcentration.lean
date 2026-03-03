@@ -36,6 +36,40 @@ open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
 noncomputable section
 
+/-! ## CF constantly 1 implies random variable is 0 a.e. -/
+
+/-- If X : Ω → ℝ is measurable and ∫ exp(I * ↑(t * X(ω))) dν = 1 for all t ∈ ℝ,
+    then X = 0 ν-a.e.
+
+    Proof sketch: Re(1 - ∫ exp(itX)) = ∫ (1 - cos(tX)) = 0. Since 1 - cos ≥ 0,
+    cos(tX) = 1 a.e. for each t. Over countably many t ∈ ℚ simultaneously,
+    this forces X = 0. -/
+lemma ae_eq_zero_of_charfun_eq_one {Ω : Type*} [MeasurableSpace Ω]
+    {ν : Measure Ω} [IsProbabilityMeasure ν]
+    {X : Ω → ℝ} (hX : Measurable X)
+    (hcf : ∀ t : ℝ, ∫ ω, exp (I * ↑(t * X ω)) ∂ν = 1) :
+    ∀ᵐ ω ∂ν, X ω = 0 := by
+  -- Step 1: Show ν.map X = dirac 0 via charFun equality
+  have h_eq : ν.map X = Measure.dirac (0 : ℝ) := by
+    apply Measure.ext_of_charFun
+    funext t
+    rw [charFun_dirac]
+    simp only [inner_zero_left, zero_mul]
+    rw [charFun_apply, integral_map hX.aemeasurable
+      (by fun_prop : AEStronglyMeasurable (fun x => cexp (@inner ℝ ℝ _ x t * I)) _)]
+    have h_inner : ∀ ω, cexp (@inner ℝ ℝ _ (X ω) t * I) = exp (I * ↑(t * X ω)) := by
+      intro ω; congr 1
+      simp [RCLike.inner_apply, mul_comm I]
+    simp_rw [h_inner]
+    rw [hcf t]
+    simp [Complex.ofReal_zero, zero_mul, Complex.exp_zero]
+  -- Step 2: Deduce X = 0 a.e.
+  have h_ae : ∀ᵐ y ∂(ν.map X), y = 0 := by
+    rw [h_eq]; exact ae_dirac_iff (measurableSet_singleton 0) |>.mpr rfl
+  rw [show (∀ᵐ ω ∂ν, X ω = 0) ↔ ∀ᵐ y ∂(ν.map X), y = 0 from
+    (ae_map_iff hX.aemeasurable (measurableSet_singleton 0)).symm]
+  exact h_ae
+
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
 
@@ -140,6 +174,94 @@ lemma finset_sup_le_of_mono (p : ℕ → Seminorm ℝ E)
   apply Finset.sup_le
   intro n hn
   exact seminorm_mono_of_le p hp_hs (hm n hn)
+
+
+/-! ## Combined quadratic bound -/
+
+omit [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- **Combined quadratic bound** from CF continuity: for any ε > 0, there exist m₀ : ℕ
+    and K ≥ 0 such that `1 - Re(Φ(x)) ≤ ε + K · (p m₀)(x)²` for all x. -/
+lemma combined_quadratic_bound
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_cont : Continuous Φ) (h_normalized : Φ 0 = 1)
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
+    (hp_hs : ∀ n, (p (n + 1)).IsHilbertSchmidtEmbedding (p n))
+    (ε : ℝ) (hε : 0 < ε) :
+    ∃ (m₀ : ℕ) (K : ℝ), 0 ≤ K ∧
+      ∀ x : E, 1 - (Φ x).re ≤ ε + K * (p m₀) x ^ 2 := by
+  obtain ⟨s, r, hr, h_ball⟩ := cf_nhds_ball Φ h_cf_cont h_normalized p hp_top ε hε
+  have h_norm_le : ∀ x : E, ‖Φ x‖ ≤ 1 := cf_norm_le_one Φ ν h_cf_joint
+  set m₀ := s.sup id
+  have hm₀ : ∀ n ∈ s, n ≤ m₀ := fun n hn => Finset.le_sup (f := id) hn
+  have h_mono : s.sup p ≤ p m₀ := finset_sup_le_of_mono p hp_hs s m₀ hm₀
+  refine ⟨m₀, 2 / r ^ 2, by positivity, fun x => ?_⟩
+  by_cases hx : (s.sup p) x < r
+  · -- Inside ball: ‖1 - Φ(x)‖ < ε, so 1 - Re(Φ(x)) < ε
+    have h1 : 1 - (Φ x).re ≤ ‖1 - Φ x‖ := by
+      have := abs_re_le_norm (1 - Φ x)
+      simp only [Complex.sub_re, Complex.one_re] at this
+      linarith [abs_le.mp this]
+    have h3 : (0 : ℝ) ≤ 2 / r ^ 2 * (p m₀) x ^ 2 := by positivity
+    linarith [h_ball x hx]
+  · -- Outside ball: use quadratic_bound_outside with q = p m₀
+    push_neg at hx
+    have hx' : r ≤ (p m₀) x := le_trans hx (h_mono x)
+    have := quadratic_bound_outside Φ h_norm_le (p m₀) r hr x hx'
+    linarith
+
+
+/-! ## Linear combination a.e. from joint CF -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- If `x = ∑ j, β j • e j` in E (real coefficients), then `ω(x) = ∑ j, β j * ω(e j)`
+    for ν-a.e. ω. Uses `h_cf_joint` directly — no linearity of ω assumed.
+
+    This is the key trick: the joint CF condition forces the "linear decomposition"
+    to hold a.e. even for real (not just rational) coefficients. -/
+lemma linear_combination_ae
+    (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
+    (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
+      ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
+        Φ (∑ i, s i • x i))
+    (h_normalized : Φ 0 = 1)
+    {k : ℕ} (e : Fin k → E) (β : Fin k → ℝ) :
+    ∀ᵐ ω ∂ν, ω (∑ j, β j • e j) = ∑ j, β j * ω (e j) := by
+  set x := ∑ j, β j • e j with x_def
+  set X : (E → ℝ) → ℝ := fun ω => ω x - ∑ j, β j * ω (e j)
+  have hX_meas : Measurable X := by
+    apply Measurable.sub (measurable_pi_apply x)
+    exact Finset.measurable_sum _ (fun j _ => (measurable_pi_apply (e j)).const_mul _)
+  have hX_cf : ∀ t : ℝ, ∫ ω, exp (I * ↑(t * X ω)) ∂ν = 1 := by
+    intro t
+    let s' : Fin (k + 1) → ℝ := Fin.cons t (fun j => -t * β j)
+    let x' : Fin (k + 1) → E := Fin.cons x e
+    have h := h_cf_joint (k + 1) s' x'
+    have h_sum_x : ∑ i : Fin (k + 1), s' i • x' i = 0 := by
+      rw [Fin.sum_univ_succ]
+      simp only [Fin.cons_zero, Fin.cons_succ, s', x']
+      rw [show ∑ j : Fin k, (-t * β j) • e j = -(t • ∑ j, β j • e j) from by
+        rw [Finset.smul_sum, ← Finset.sum_neg_distrib]
+        congr 1; ext j; simp [neg_smul, neg_mul, smul_smul]]
+      simp [x_def]
+    have h_sum_ω : ∀ ω', (∑ i : Fin (k + 1), s' i * ω' (x' i)) = t * X ω' := by
+      intro ω'
+      rw [Fin.sum_univ_succ]
+      simp only [Fin.cons_zero, Fin.cons_succ, s', x', X, mul_sub]
+      congr 1
+      rw [show ∑ j : Fin k, -t * β j * ω' (e j) =
+          -(t * ∑ j, β j * ω' (e j)) from by
+        rw [Finset.mul_sum, ← Finset.sum_neg_distrib]; congr 1; ext j; ring]
+    rw [h_sum_x, h_normalized] at h
+    rw [show (fun ω' => exp (I * ↑(t * X ω'))) =
+      (fun ω' => exp (I * ↑(∑ i : Fin (k + 1), s' i * ω' (x' i)))) from by
+      funext ω'; congr 2; exact_mod_cast (h_sum_ω ω').symm]
+    exact h
+  have := ae_eq_zero_of_charfun_eq_one hX_meas hX_cf
+  filter_upwards [this] with ω hω
+  linarith [show X ω = 0 from hω]
 
 
 /-! ## Textbook axiom -/

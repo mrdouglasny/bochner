@@ -46,41 +46,7 @@ open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
 noncomputable section
 
-/-! ## Helper: CF constantly 1 implies random variable is 0 a.e. -/
-
-/-- If X : Ω → ℝ is measurable and ∫ exp(I * ↑(t * X(ω))) dν = 1 for all t ∈ ℝ,
-    then X = 0 ν-a.e.
-
-    Proof sketch: Re(1 - ∫ exp(itX)) = ∫ (1 - cos(tX)) = 0. Since 1 - cos ≥ 0,
-    cos(tX) = 1 a.e. for each t. Over countably many t ∈ ℚ simultaneously,
-    this forces X = 0. -/
-lemma ae_eq_zero_of_charfun_eq_one {Ω : Type*} [MeasurableSpace Ω]
-    {ν : Measure Ω} [IsProbabilityMeasure ν]
-    {X : Ω → ℝ} (hX : Measurable X)
-    (hcf : ∀ t : ℝ, ∫ ω, exp (I * ↑(t * X ω)) ∂ν = 1) :
-    ∀ᵐ ω ∂ν, X ω = 0 := by
-  -- Step 1: Show ν.map X = dirac 0 via charFun equality
-  have h_eq : ν.map X = Measure.dirac (0 : ℝ) := by
-    apply Measure.ext_of_charFun
-    funext t
-    rw [charFun_dirac]
-    simp only [inner_zero_left, zero_mul, exp_zero]
-    rw [charFun_apply, integral_map hX.aemeasurable
-      (by fun_prop : AEStronglyMeasurable (fun x => cexp (@inner ℝ ℝ _ x t * I)) _)]
-    -- Goal: ∫ ω, cexp(⟪X(ω), t⟫ * I) dν = 1
-    -- ⟪X(ω), t⟫_ℝ * I = I * ↑(t * X(ω))  (inner product on ℝ is multiplication)
-    have h_inner : ∀ ω, cexp (@inner ℝ ℝ _ (X ω) t * I) = exp (I * ↑(t * X ω)) := by
-      intro ω; congr 1
-      simp [RCLike.inner_apply, mul_comm I]
-    simp_rw [h_inner]
-    rw [hcf t]
-    simp [Complex.ofReal_zero, zero_mul, Complex.exp_zero]
-  -- Step 2: Deduce X = 0 a.e.
-  have h_ae : ∀ᵐ y ∂(ν.map X), y = 0 := by
-    rw [h_eq]; exact ae_dirac_iff (measurableSet_singleton 0) |>.mpr rfl
-  rw [show (∀ᵐ ω ∂ν, X ω = 0) ↔ ∀ᵐ y ∂(ν.map X), y = 0 from
-    (ae_map_iff hX.aemeasurable (measurableSet_singleton 0)).symm]
-  exact h_ae
+-- ae_eq_zero_of_charfun_eq_one is now in MinlosConcentration.lean
 
 variable {E : Type*} [AddCommGroup E] [Module ℝ E]
   [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
