@@ -215,6 +215,30 @@ lemma combined_quadratic_bound
     linarith
 
 
+/-! ## CF vanishes on seminorm kernel -/
+
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
+/-- If `q(z) = 0` and `q` dominates the CF near 0 (i.e., for any ε > 0, there's a q-ball
+    where `‖1 - Φ‖ < ε`), then `Φ(t • z) = 1` for all `t`.
+
+    Proof: `q(t•z) = |t| · q(z) = 0 < r` for any `r > 0`, so `‖1 - Φ(t•z)‖ < ε`
+    for all `ε > 0`. -/
+lemma cf_kernel_of_ball_bound
+    (Φ : E → ℂ)
+    (q : Seminorm ℝ E) (z : E) (hz : q z = 0)
+    (h_dom : ∀ ε > 0, ∃ r > 0, ∀ x, q x < r → ‖1 - Φ x‖ < ε) (t : ℝ) :
+    Φ (t • z) = 1 := by
+  by_contra h_ne
+  have h_pos : 0 < ‖1 - Φ (t • z)‖ :=
+    norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm h_ne))
+  obtain ⟨r, hr, h_bound⟩ := h_dom _ h_pos
+  have h_qtz : q (t • z) < r := by
+    calc q (t • z) = ‖t‖ * q z := map_smul_eq_mul q t z
+      _ = ‖t‖ * 0 := by rw [hz]
+      _ = 0 := mul_zero _
+      _ < r := hr
+  linarith [h_bound (t • z) h_qtz]
+
 /-! ## Linear combination a.e. from joint CF -/
 
 omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
@@ -463,10 +487,9 @@ omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 /-- For each N, the restricted bad set B_N has measure bounded by the tail probability
     of the squared evaluation norm on a p-ONB.
 
-    Key argument: on the a.e. set where ℚ-linearity holds AND the kernel evaluations
-    vanish AND each linear combination decomposes correctly, Cauchy-Schwarz + Parseval
-    gives |ω(x_c)| ≤ R · p(x_c). So B_N is contained in {Σ ω(eⱼ)² > R²} modulo a
-    null set. -/
+    Key argument: on the a.e. set where all decompositions hold,
+    Cauchy-Schwarz + Parseval gives |ω(x_c)| ≤ R · p(x_c) whenever Σ ω(eⱼ)² ≤ R².
+    So B_N ⊆ {Σ ω(eⱼ)² > R²} ∪ (null set). -/
 lemma concentrationBadSetN_measure_bound
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
@@ -474,6 +497,7 @@ lemma concentrationBadSetN_measure_bound
         Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1)
     (d : ℕ → E) (p : Seminorm ℝ E) (hp : p.IsHilbertian)
+    (h_cf_kernel : ∀ z, p z = 0 → ∀ t : ℝ, Φ (t • z) = 1)
     {k : ℕ} (e : Fin k → E) (he : p.IsOrthonormalSeq e)
     (h_decomp : ∀ c : ℕ →₀ ℚ, ∃ (α : Fin k → ℝ),
       p (c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j) = 0 ∧
@@ -481,44 +505,62 @@ lemma concentrationBadSetN_measure_bound
     (R : ℝ) (hR : 0 < R) (N : ℕ) :
     ν (concentrationBadSetN d p R N) ≤
       ν {ω : E → ℝ | R ^ 2 < ∑ j : Fin k, (ω (e j)) ^ 2} := by
-  -- Step 1: Build the a.e. set where all decompositions hold
-  -- For each c, linear_combination_ae + kernel_eval_ae_zero give a.e. equalities
-  have h_qlin := q_linear_ae_all Φ ν h_cf_joint h_normalized d
-  -- For each c, decompose and get a.e. linearity on the ONB part
-  -- We need: for a.e. ω, for all c with supp ⊆ range N:
-  --   ω(x_c) = ∑ α_j ω(e_j)  (where x_c = ∑ α_j e_j + z, p(z) = 0)
-  -- This uses: ω(x_c) = Σ c_i ω(d_i) a.e. (q_linear_ae_all)
-  --   and: ω(∑ α_j e_j) = Σ α_j ω(e_j) a.e. (linear_combination_ae)
-  --   and: ω(z) = 0 a.e. (kernel_eval_ae_zero)
-  -- Countable intersection over all c with supp ⊆ range N
-
-  -- For each c, get the linear_combination_ae for the e-decomposition
-  have h_decomp_ae : ∀ᵐ ω ∂ν, ∀ c : ℕ →₀ ℚ,
-      ∀ (α : Fin k → ℝ), p (c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j) = 0 →
-      ω (c.sum (fun i a => (a : ℝ) • d i)) = ∑ j, α j * ω (e j) := by
-    -- Countable intersection over c
+  -- Choose decomposition coefficients for each c
+  choose α hα_ker hα_parseval using h_decomp
+  -- Step 1: For a.e. ω, for all c, ω(x_c) = Σ α(c)_j ω(e_j)
+  have h_ae_decomp : ∀ᵐ ω ∂ν, ∀ c : ℕ →₀ ℚ,
+      ω (c.sum (fun i a => (a : ℝ) • d i)) = ∑ j, (α c) j * ω (e j) := by
     rw [eventually_countable_forall]; intro c
-    obtain ⟨α, hα_ker, _⟩ := h_decomp c
-    set z := c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j with z_def
-    -- ω(x_c) = Σ c_i ω(d_i) a.e. and ω(Σ α_j e_j + z) = Σ α_j ω(e_j) + ω(z) a.e.
-    have h_lin_e := linear_combination_ae Φ ν h_cf_joint h_normalized
-      (Fin.cons z e) (Fin.cons 1 α)
-    have h_ker_z : ∀ t : ℝ, Φ (t • z) = 1 := by
-      intro t
-      have : p (t • z) = 0 := by rw [map_smul_eq_mul]; simp [hα_ker]
-      -- CF at a kernel element is 1
-      -- From cf_nhds_ball or directly from combined_quadratic_bound
-      -- Actually we need this from the hypothesis. For now:
-      sorry
-    have h_z_zero := kernel_eval_ae_zero Φ ν h_cf_joint h_normalized p z hα_ker h_ker_z
-    have h_x_lin := linear_combination_ae Φ ν h_cf_joint h_normalized e α
-    filter_upwards [h_z_zero, h_x_lin] with ω hz hα_lin
-    intro α' hα'
-    -- We need: ω(x_c) = Σ α'_j ω(e_j) when p(x_c - Σ α'_j e_j) = 0
-    -- But we proved it for the specific α from h_decomp, not arbitrary α'
-    -- Actually, the α from h_decomp is the unique one (up to kernel)
-    sorry
-  sorry
+    -- z_c = x_c - Σ α_j e_j is in the kernel of p
+    set z_c := c.sum (fun i a => (a : ℝ) • d i) - ∑ j, (α c) j • e j
+    -- ω(z_c) = 0 a.e. via kernel_eval_ae_zero + h_cf_kernel
+    have h_z_zero := kernel_eval_ae_zero Φ ν h_cf_joint h_normalized p z_c
+      (hα_ker c) (h_cf_kernel z_c (hα_ker c))
+    -- x_c = z_c + Σ α_j e_j, so linear_combination_ae with (z_c, e₁,...,eₖ)
+    -- and coefficients (1, α₁,...,αₖ) gives ω(x_c) = ω(z_c) + Σ α_j ω(e_j) a.e.
+    let e' : Fin (k + 1) → E := Fin.cons z_c e
+    let β' : Fin (k + 1) → ℝ := Fin.cons 1 (α c)
+    have h_sum_eq : (∑ j, β' j • e' j) = c.sum (fun i a => (a : ℝ) • d i) := by
+      rw [Fin.sum_univ_succ]
+      simp only [e', β', Fin.cons_zero, Fin.cons_succ, one_smul]
+      exact sub_add_cancel _ _
+    have h_lin := linear_combination_ae Φ ν h_cf_joint h_normalized e' β'
+    filter_upwards [h_z_zero, h_lin] with ω h_z h_xc
+    -- h_xc: ω(Σ β'_j • e'_j) = Σ β'_j * ω(e'_j)
+    rw [h_sum_eq] at h_xc; rw [h_xc, Fin.sum_univ_succ]
+    simp only [e', β', Fin.cons_zero, Fin.cons_succ, one_mul, h_z, zero_add]
+  -- Step 2: concentrationBadSetN ⊆ {R² < Σ ω(e_j)²} ∪ (null set)
+  set tail := {ω : E → ℝ | R ^ 2 < ∑ j : Fin k, (ω (e j)) ^ 2}
+  set null_set := {ω : E → ℝ | ¬∀ c : ℕ →₀ ℚ,
+    ω (c.sum (fun i a => (a : ℝ) • d i)) = ∑ j, (α c) j * ω (e j)}
+  have h_null : ν null_set = 0 := ae_iff.mp h_ae_decomp
+  have h_sub : concentrationBadSetN d p R N ⊆ tail ∪ null_set := by
+    intro ω hω
+    by_contra h_not
+    simp only [Set.mem_union, not_or] at h_not
+    obtain ⟨h_not_tail, h_not_null⟩ := h_not
+    simp only [tail, null_set, Set.mem_setOf_eq, not_lt, not_not] at h_not_tail h_not_null
+    -- h_not_tail: Σ ω(e_j)² ≤ R²
+    -- h_not_null: ∀ c, ω(x_c) = Σ α(c)_j ω(e_j)
+    obtain ⟨c, _, hc_bad⟩ := hω
+    apply hc_bad
+    rw [h_not_null c]
+    -- |Σ α(c)_j ω(e_j)| ≤ R · p(x_c) by Cauchy-Schwarz + Parseval
+    have h_cs := Finset.sum_mul_sq_le_sq_mul_sq Finset.univ (α c) (fun j => ω (e j))
+    have h_sq : (∑ j, (α c) j * ω (e j)) ^ 2 ≤
+        (R * p (c.sum fun i a => (a : ℝ) • d i)) ^ 2 := by
+      calc (∑ j, (α c) j * ω (e j)) ^ 2
+          ≤ (∑ j, (α c) j ^ 2) * (∑ j, ω (e j) ^ 2) := h_cs
+        _ = p (c.sum fun i a => (a : ℝ) • d i) ^ 2 * (∑ j, ω (e j) ^ 2) := by
+            rw [hα_parseval c]
+        _ ≤ p (c.sum fun i a => (a : ℝ) • d i) ^ 2 * R ^ 2 :=
+            mul_le_mul_of_nonneg_left h_not_tail (sq_nonneg _)
+        _ = (R * p (c.sum fun i a => (a : ℝ) • d i)) ^ 2 := by ring
+    exact abs_le_of_sq_le_sq h_sq (by positivity)
+  calc ν (concentrationBadSetN d p R N)
+      ≤ ν (tail ∪ null_set) := measure_mono h_sub
+    _ ≤ ν tail + ν null_set := measure_union_le _ _
+    _ = ν tail := by rw [h_null, add_zero]
 
 
 /-! ## Textbook axiom -/
