@@ -1,6 +1,3 @@
-/-
-  Prove fubini_gaussian_charFun and gaussian_quadForm_integral_le.
--/
 import Bochner.Sazonov
 import Bochner.PositiveDefinite
 import Mathlib.MeasureTheory.Measure.CharacteristicFunction
@@ -11,6 +8,12 @@ import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 
 open MeasureTheory Complex Filter Topology Set InnerProductSpace Function
 open scoped Real FourierTransform
+
+/-! # TestFubini
+
+Auxiliary Fubini lemmas for Gaussian regularization, including Fubini identities for
+characteristic functions and second moment bounds on quadratic forms.
+-/
 
 noncomputable section
 

@@ -15,7 +15,7 @@ P : (E → ℝ) → WeakDual ℝ E that agrees with the identity on "good paths"
 ## Main definitions
 
 - `qLinearPaths` — set of ω that are ℚ-linear on the dense sequence (Finsupp version)
-- `boundedPaths` — set of ω bounded by a NuclearSpace seminorm (Finsupp version)
+- `boundedPaths` — set of ω bounded by a IsHilbertNuclear seminorm (Finsupp version)
 - `goodPaths` — intersection (measurable, full measure under ν)
 - `measurableProjection` — P : (E → ℝ) → WeakDual ℝ E
 - `weakDualEmbed` — the embedding WeakDual ℝ E → (E → ℝ)
@@ -145,7 +145,7 @@ lemma goodPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     3. **ℝ-linearity**: g(r•x) = r•g(x) for r ∈ ℝ by density of ℚ in ℝ.
 
     Ref: Rudin, *Functional Analysis*, Thm 1.18 (bounded linear extension). -/
-noncomputable def extensionFun [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+noncomputable def extensionFun [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (hω : ω ∈ goodPaths d p) : E → ℝ :=
   extendFrom (Set.range d) ω
@@ -153,7 +153,7 @@ noncomputable def extensionFun [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 private lemma extensionFun_eq (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ)
-    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     extensionFun d hd p ω hω (d n) = ω (d n) := by
   have h_cwat : ContinuousWithinAt ω (Set.range d) (d n) := by
     obtain ⟨hql, hbd⟩ := hω
@@ -208,7 +208,7 @@ private lemma extensionFun_eq (d : ℕ → E) (hd : DenseRange d)
 private lemma extensionFun_continuous (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
-    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     Continuous (extensionFun d hd p ω hω) := by
   apply continuous_extendFrom (show Dense (Set.range d) from hd)
   intro x
@@ -281,7 +281,7 @@ private lemma extensionFun_continuous (d : ℕ → E) (hd : DenseRange d)
 private lemma extensionFun_map_add (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
-    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     ∀ x y, extensionFun d hd p ω hω (x + y) =
       extensionFun d hd p ω hω x + extensionFun d hd p ω hω y := by
   set g := extensionFun d hd p ω hω
@@ -380,7 +380,7 @@ private lemma extensionFun_map_add (d : ℕ → E) (hd : DenseRange d)
 private lemma extensionFun_map_smul (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
-    [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+    [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     ∀ (r : ℝ) x, extensionFun d hd p ω hω (r • x) =
       r * extensionFun d hd p ω hω x := by
   set g := extensionFun d hd p ω hω
@@ -472,7 +472,7 @@ private lemma extensionFun_map_smul (d : ℕ → E) (hd : DenseRange d)
     (continuous_const.mul hg_cont)
     (fun z hz => by obtain ⟨n, rfl⟩ := hz; exact h_fix_x n r))
 
-noncomputable def extensionCLM [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+noncomputable def extensionCLM [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p) :
@@ -487,7 +487,7 @@ noncomputable def extensionCLM [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     Follows from the BLT construction: Dense.extend agrees with ω on range(d).
 
     Ref: follows from extensionCLM construction. -/
-theorem extensionCLM_eq_on_dense [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem extensionCLM_eq_on_dense [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ) :
@@ -497,7 +497,7 @@ theorem extensionCLM_eq_on_dense [SeparableSpace E] [NuclearSpace E] [Nonempty E
 /-- For a continuous linear functional l, embed(l) ∈ goodPaths.
     Proof: l is ℝ-linear (hence ℚ-linear on all Finsupp combinations),
     and bounded by continuity. -/
-lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+lemma embed_mem_goodPaths [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (d : ℕ → E) (p : ℕ → Seminorm ℝ E)
     (hp_top : WithSeminorms (fun n => p n))
     (l : WeakDual ℝ E) :
@@ -532,7 +532,7 @@ lemma embed_mem_goodPaths [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 /-- The extension of embed(l) recovers l.
     Proof: both are ContinuousLinearMaps that agree on the dense set D,
     hence they agree everywhere by uniqueness of continuous extension. -/
-lemma extensionCLM_embed [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+lemma extensionCLM_embed [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E)
     (hp_top : WithSeminorms (fun n => p n))
@@ -558,7 +558,7 @@ lemma extensionCLM_embed [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 
 /-- Auxiliary projection given explicit dense sequence and seminorms.
     On good paths, extends ω to a ContinuousLinearMap; on bad paths, returns 0. -/
-def measurableProjectionAux [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+def measurableProjectionAux [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n)) :
     (E → ℝ) → WeakDual ℝ E :=
@@ -571,22 +571,22 @@ def measurableProjectionAux [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 
     On good paths (ℚ-linear + bounded on dense sequence), P(ω) is the unique
     continuous linear extension of ω|_D. On bad paths, P(ω) = 0. -/
-def measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+def measurableProjection [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     (E → ℝ) → WeakDual ℝ E :=
   measurableProjectionAux (denseSeq E) (denseRange_denseSeq E)
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
 
 /-- For each f : E, the evaluation ω ↦ P(ω)(f) is measurable as a function (E → ℝ) → ℝ.
     On goodPaths, P(ω)(f) = lim ω(dₙ) for dₙ → f (pointwise limit of measurable functions).
     On badPaths, P(ω)(f) = 0 (constant, measurable). -/
 private lemma measurable_eval_comp_projection
-    [SeparableSpace E] [NuclearSpace E] [Nonempty E] (f : E) :
+    [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] (f : E) :
     Measurable (fun ω : E → ℝ => (measurableProjection (E := E) ω : E →L[ℝ] ℝ) f) := by
   set d := denseSeq E
-  set p := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  set p := (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose
   have hp_top : WithSeminorms (fun n => p n) :=
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
   haveI : FirstCountableTopology E := hp_top.firstCountableTopology
   -- Get a sequence d(φ(k)) → f from the dense set
   have hf_mem : f ∈ closure (Set.range d) :=
@@ -643,7 +643,7 @@ private lemma measurable_eval_comp_projection
     each composition eval_f ∘ P is measurable, which is measurable_eval_comp_projection.
 
     Ref: standard measurability of piecewise + pointwise limits (Billingsley, §13). -/
-theorem measurable_measurableProjection [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+theorem measurable_measurableProjection [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     Measurable (measurableProjection (E := E)) := by
   -- Measurable means: comap P (cylinder σ-algebra) ≤ MeasurableSpace.pi
   -- Cylinder = ⨆_f comap eval_f (borel ℝ)
@@ -660,25 +660,25 @@ theorem measurable_measurableProjection [SeparableSpace E] [NuclearSpace E] [Non
 /-- The projection composed with the embedding is the identity on WeakDual ℝ E.
     For l ∈ WeakDual ℝ E, embed(l) ∈ goodPaths (l is linear + bounded), and
     extensionCLM(embed(l)) = l by uniqueness of continuous extension from dense. -/
-lemma projection_embed_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E] :
+lemma projection_embed_eq [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E] :
     (measurableProjection (E := E)) ∘ weakDualEmbed E = id := by
   ext l
   simp only [Function.comp_apply, id_eq]
   -- embed(l) ∈ goodPaths
   have hp_top : WithSeminorms (fun n =>
-      (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose n) :=
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+      (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose n) :=
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
   -- Unfold to measurableProjectionAux
   show measurableProjectionAux (denseSeq E) (denseRange_denseSeq E)
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose hp_top
     (weakDualEmbed E l) = l
   have h_mem := embed_mem_goodPaths (denseSeq E)
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top l
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose hp_top l
   -- dite picks the "if" branch
   simp only [measurableProjectionAux, dif_pos h_mem]
   -- extensionCLM recovers l
   exact extensionCLM_embed (denseSeq E) (denseRange_denseSeq E)
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose hp_top l
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose hp_top l
 
 /-! ## Almost-everywhere properties
 
@@ -700,7 +700,7 @@ It is provable from the projective limit property. -/
     Countable intersection over c ∈ ℕ →₀ ℚ preserves full measure.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3. -/
-theorem qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem qLinearPaths_ae [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
@@ -780,7 +780,7 @@ theorem qLinearPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 -- Previously: axiom minlos_concentration
 -- Now imported from MinlosConcentration.lean
 
-private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+private lemma boundedPaths_tail_bound [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
@@ -793,8 +793,8 @@ private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonem
       ν {ω | ∃ c : ℕ →₀ ℚ,
         ¬ (|ω (c.sum fun i a => (a : ℝ) • d i)| ≤
           (C : ℝ) * (s.sup p) (c.sum fun i a => (a : ℝ) • d i))} < ENNReal.ofReal ε := by
-  set p' := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
-  have hp'_data := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec
+  set p' := (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose
+  have hp'_data := (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose_spec
   have hp'_hilb : ∀ n, (p' n).IsHilbertian := hp'_data.1
   have hp'_top : WithSeminorms (fun n => p' n) := hp'_data.2.1
   have hp'_hs : ∀ n, (p' (n + 1)).IsHilbertSchmidtEmbedding (p' n) := hp'_data.2.2
@@ -829,12 +829,12 @@ private lemma boundedPaths_tail_bound [SeparableSpace E] [NuclearSpace E] [Nonem
     For each element x in the ℚ-span, the Markov/Chebyshev inequality gives:
     P(|ω(x)| ≥ R) ≤ 2(1 - Re(Φ(tx))) for appropriate t.
     By continuity of Φ at 0, the numerator is small when x is in a seminorm ball.
-    NuclearSpace Hilbert-Schmidt embeddings give summability over countable
+    IsHilbertNuclear Hilbert-Schmidt embeddings give summability over countable
     ℚ-linear combinations, and Borel-Cantelli yields the result.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3;
     also Billingsley, "Convergence of Probability Measures", §6. -/
-theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem boundedPaths_ae [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_cont : Continuous Φ)
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
@@ -842,11 +842,11 @@ theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
         Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ boundedPaths (denseSeq E)
-      (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
+      (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose := by
   set d := denseSeq E
-  set p := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  set p := (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose
   have hp_top : WithSeminorms (fun n => p n) :=
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
   rw [ae_iff]
   by_contra h_pos
   rw [← Ne, ← pos_iff_ne_zero] at h_pos
@@ -869,7 +869,7 @@ theorem boundedPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
   exact absurd h_lt (lt_irrefl _)
 
 /-- The good paths have full ν-measure. Combines ℚ-linearity and boundedness a.e. -/
-lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+lemma goodPaths_ae [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
@@ -877,7 +877,7 @@ lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     (h_cf_cont : Continuous Φ)
     (h_normalized : Φ 0 = 1) :
     ∀ᵐ ω ∂ν, ω ∈ goodPaths (denseSeq E)
-      (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose := by
+      (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose := by
   have hq := qLinearPaths_ae Φ ν h_cf_joint h_normalized
   have hb := boundedPaths_ae Φ ν h_cf_cont h_cf_joint h_normalized
   filter_upwards [hq, hb] with ω h1 h2
@@ -893,7 +893,7 @@ lemma goodPaths_ae [SeparableSpace E] [NuclearSpace E] [Nonempty E]
     - A.s. + in-probability convergence to the same limit → P(ω)(f) = ω(f) a.e.
 
     Ref: Gel'fand-Vilenkin, "Generalized Functions" Vol. 4, Ch. IV, §3.3. -/
-theorem projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+theorem projection_ae_eq [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
@@ -904,9 +904,9 @@ theorem projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
   -- Strategy: Define Z(ω) = P(ω)(f) - ω(f), show its CF is constantly 1,
   -- then apply ae_eq_zero_of_charfun_eq_one to get Z = 0 a.e.
   set d := denseSeq E
-  set p := (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose
+  set p := (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose
   have hp_top : WithSeminorms (fun n => p n) :=
-    (NuclearSpace.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
+    (IsHilbertNuclear.nuclear_hilbert_embeddings (E := E)).choose_spec.2.1
   -- Step 0: Derive Φ(0) = 1 from h_cf_joint with n=1
   have h_normalized : Φ 0 = 1 := by
     have h1 := h_cf_joint 1 (fun _ => 0) (fun _ => (0 : E))
@@ -1005,13 +1005,13 @@ theorem projection_ae_eq [SeparableSpace E] [NuclearSpace E] [Nonempty E]
 /-! ## Derived Properties -/
 
 /-- The pushforward μ = ν.map P is a probability measure when P is measurable. -/
-lemma isProbabilityMeasure_map_projection [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+lemma isProbabilityMeasure_map_projection [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν] :
     IsProbabilityMeasure (ν.map (measurableProjection (E := E))) :=
   Measure.isProbabilityMeasure_map measurable_measurableProjection.aemeasurable
 
 /-- The characteristic functional of ν.map P equals Φ. -/
-lemma charFunctional_map_projection [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+lemma charFunctional_map_projection [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
@@ -1038,7 +1038,7 @@ lemma charFunctional_map_projection [SeparableSpace E] [NuclearSpace E] [Nonempt
       Complex.I |>.cexp).aestronglyMeasurable
 
 /-- Uniqueness via pushforward factoring: μ' = ν.map P. -/
-lemma uniqueness_via_projection [SeparableSpace E] [NuclearSpace E] [Nonempty E]
+lemma uniqueness_via_projection [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
     (Φ : E → ℂ) (h_continuous : Continuous Φ)
     (h_positive_definite : IsPositiveDefinite Φ) (h_normalized : Φ 0 = 1)
     (ν : Measure (E → ℝ)) [IsProbabilityMeasure ν]

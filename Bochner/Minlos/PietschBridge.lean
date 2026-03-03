@@ -2,10 +2,10 @@
 Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 
-# Bridge: Pietsch Nuclearity → Bochner NuclearSpace
+# Bridge: Pietsch Nuclearity → Bochner IsHilbertNuclear
 
 Proves that a locally convex space satisfying Pietsch's nuclear dominance condition
-is a `NuclearSpace` in the sense of Bochner/Minlos (Hilbertian seminorms with
+is a `IsHilbertNuclear` in the sense of Bochner/Minlos (Hilbertian seminorms with
 Hilbert-Schmidt embeddings).
 
 ## Strategy
@@ -42,7 +42,7 @@ variable {E : Type*} [AddCommGroup E] [Module ℝ E] [TopologicalSpace E]
 there exist CLFs `fₙ` and non-negative reals `cₙ` with `Σ cₙ < ∞`, and a
 continuous seminorm `q ≥ p`, such that `|fₙ(x)| ≤ q(x)` and
 `p(x) ≤ Σₙ |fₙ(x)| · cₙ`. -/
-def IsPietschNuclear (E : Type*) [AddCommGroup E] [Module ℝ E]
+def IsNuclear (E : Type*) [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] : Prop :=
   ∀ (p : Seminorm ℝ E), Continuous p →
     ∃ (q : Seminorm ℝ E), Continuous q ∧ (∀ x, p x ≤ q x) ∧
@@ -550,7 +550,7 @@ private lemma hilbertian_smul (K : NNReal) (R : Seminorm ℝ E) (hR : R.IsHilber
   nlinarith [hR x y, sq_nonneg (↑K : ℝ),
              mul_add ((↑K : ℝ) ^ 2) (R (x + y) ^ 2) (R (x - y) ^ 2)]
 
-/-- **Double Pietsch step**: Apply `IsPietschNuclear` twice to produce a Hilbertian
+/-- **Double Pietsch step**: Apply `IsNuclear` twice to produce a Hilbertian
 seminorm `r ≥ p` with a nuclear expansion whose functionals are bounded by `r`.
 
 This is the key construction: a single Pietsch application gives `|fₖ| ≤ q` but
@@ -558,7 +558,7 @@ we need `|fₖ| ≤ r` for the Hilbertian lift `r`. Applying Pietsch twice and s
 by `K = max(Σ cₖ, 1) · √(Σ dₖ)` achieves both `p ≤ r` and `|fₖ| ≤ r`. -/
 private lemma doublePietsch_step
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E) (p : Seminorm ℝ E) (hp : Continuous p) :
+    (hPN : IsNuclear E) (p : Seminorm ℝ E) (hp : Continuous p) :
     ∃ (r : Seminorm ℝ E),
       Continuous r ∧ r.IsHilbertian ∧ (∀ x, p x ≤ r x) ∧
       ∃ (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ → ℝ),
@@ -633,7 +633,7 @@ private theorem seminorm_continuous_sup [IsTopologicalAddGroup E]
 /-- Bundled recursive construction carrying continuity for the next step. -/
 private noncomputable def buildHilbertianBundle
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n)) :
     (n : ℕ) → { r : Seminorm ℝ E // Continuous r }
   | 0 =>
@@ -648,7 +648,7 @@ private noncomputable def buildHilbertianBundle
 /-- The recursive Hilbertian family. -/
 private noncomputable def buildHilbertianFamily
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n)) :
     ℕ → Seminorm ℝ E :=
   fun n => (buildHilbertianBundle hPN q₀ hq₀_cont n).val
@@ -656,14 +656,14 @@ private noncomputable def buildHilbertianFamily
 /-- Helper: the sup input at step n+1. -/
 private noncomputable abbrev buildInput
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : Seminorm ℝ E :=
   buildHilbertianFamily hPN q₀ hq₀_cont n ⊔ q₀ (n + 1)
 
 private theorem buildInput_continuous
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : Continuous (buildInput hPN q₀ hq₀_cont n) :=
   seminorm_continuous_sup _ _ (buildHilbertianBundle hPN q₀ hq₀_cont n).property (hq₀_cont (n + 1))
@@ -671,7 +671,7 @@ private theorem buildInput_continuous
 /-- Each family member is Hilbertian. -/
 private theorem buildHilbertianFamily_isHilbertian
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : (buildHilbertianFamily hPN q₀ hq₀_cont n).IsHilbertian := by
   cases n with
@@ -683,7 +683,7 @@ private theorem buildHilbertianFamily_isHilbertian
 /-- Each family member is continuous. -/
 private theorem buildHilbertianFamily_continuous
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : Continuous (buildHilbertianFamily hPN q₀ hq₀_cont n) :=
   (buildHilbertianBundle hPN q₀ hq₀_cont n).property
@@ -691,7 +691,7 @@ private theorem buildHilbertianFamily_continuous
 /-- Helper: the `doublePietsch_step` spec at step n+1. -/
 private theorem buildFamily_stepSucc_spec
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) :
     let r := buildHilbertianFamily hPN q₀ hq₀_cont (n + 1)
@@ -707,7 +707,7 @@ private theorem buildFamily_stepSucc_spec
 /-- `q₀(n) ≤ r(n)` pointwise. -/
 private theorem buildHilbertianFamily_dominates_q₀
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) (x : E) : q₀ n x ≤ buildHilbertianFamily hPN q₀ hq₀_cont n x := by
   cases n with
@@ -722,7 +722,7 @@ private theorem buildHilbertianFamily_dominates_q₀
 /-- `r(n) ≤ r(n+1)` pointwise (previous level is dominated by next). -/
 private theorem buildHilbertianFamily_monotone
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) (x : E) :
     buildHilbertianFamily hPN q₀ hq₀_cont n x ≤
@@ -736,7 +736,7 @@ private theorem buildHilbertianFamily_monotone
 /-- Consecutive family members have Hilbert-Schmidt embeddings. -/
 private theorem buildHilbertianFamily_hs
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (n : ℕ) : (buildHilbertianFamily hPN q₀ hq₀_cont (n + 1)).IsHilbertSchmidtEmbedding
       (buildHilbertianFamily hPN q₀ hq₀_cont n) := by
@@ -763,7 +763,7 @@ Uses `WithSeminorms.congr`: the two families are mutually bounded because
 `q₀(n) ≤ r(n)` and each `r(n)` is continuous in the `q₀`-topology. -/
 private theorem buildHilbertianFamily_withSeminorms
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀_cont : ∀ n, Continuous (q₀ n))
     (hq₀ : WithSeminorms q₀) :
     WithSeminorms (buildHilbertianFamily hPN q₀ hq₀_cont) := by
@@ -783,20 +783,20 @@ private theorem buildHilbertianFamily_withSeminorms
 
 /-! ### Main Bridge Theorem -/
 
-/-- **Pietsch nuclearity implies NuclearSpace.**
+/-- **Pietsch nuclearity implies IsHilbertNuclear.**
 
 A locally convex space satisfying Pietsch's nuclear dominance condition
 (every continuous seminorm is dominated by a nuclear expansion) is a
-`NuclearSpace` in the Hilbertian-seminorm sense.
+`IsHilbertNuclear` in the Hilbertian-seminorm sense.
 
 The proof constructs a recursive family of Hilbertian seminorms from the
 Pietsch factorizations and shows they have Hilbert-Schmidt embeddings. -/
-theorem nuclearSpace_of_pietsch
+theorem isHilbertNuclear_of_nuclear
     [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    (hPN : IsPietschNuclear E)
+    (hPN : IsNuclear E)
     (q₀ : ℕ → Seminorm ℝ E) (hq₀ : WithSeminorms q₀)
     (hq₀_cont : ∀ n, Continuous (q₀ n)) :
-    NuclearSpace E where
+    IsHilbertNuclear E where
   nuclear_hilbert_embeddings := by
     let r := buildHilbertianFamily hPN q₀ hq₀_cont
     refine ⟨r, ?_, ?_, ?_⟩

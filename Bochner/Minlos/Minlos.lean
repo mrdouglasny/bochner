@@ -65,7 +65,7 @@ private lemma trans_symm_apply_eq' {α β γ : Type*} [MeasurableSpace α] [Meas
     Degenne-Pfaffelhuber (KolmogorovExtension4). -/
 theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E] [SeparableSpace E] [Nonempty E] (Φ : E → ℂ)
+    [IsHilbertNuclear E] [SeparableSpace E] [Nonempty E] (Φ : E → ℂ)
     (h_continuous : Continuous Φ) (h_positive_definite : IsPositiveDefinite Φ)
     (h_normalized : Φ 0 = 1) :
     ∃! μ : ProbabilityMeasure (WeakDual ℝ E),
@@ -176,16 +176,15 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     have h_coord : ∀ k : Fin J.card,
         ξ k = ∑ i : Fin n, s i * if fi i = k then 1 else 0 := by
       intro k
-      simp [ξ_def, Finset.sum_apply', PiLp.smul_apply, smul_eq_mul,
-        EuclideanSpace.single_apply, Pi.single_apply, eq_comm]
+      simp [ξ_def, smul_eq_mul, Pi.single_apply, eq_comm]
     simp_rw [h_coord, Finset.sum_smul]
     -- Goal: ∑ k, ∑ i, (s i * ite (fi i = k) 1 0) • testVec k = ∑ i, s i • x i
     rw [Finset.sum_comm]
     -- Goal: ∑ i, ∑ k, (s i * ite (fi i = k) 1 0) • testVec k = ∑ i, s i • x i
     apply Finset.sum_congr rfl; intro i _
     simp only [mul_ite, mul_one, mul_zero, ite_smul, zero_smul,
-      Finset.sum_ite_eq', Finset.mem_univ, ite_true, finsetTestVectors]
-    congr 1; simp [fi_def]
+      finsetTestVectors]
+    simp [fi_def]
   -- Step 3: Push forward ν through measurable projection P to get μ on WeakDual ℝ E
   have h_prob_map : IsProbabilityMeasure (ν.map measurableProjection) :=
     isProbabilityMeasure_map_projection ν
@@ -207,7 +206,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     on a nuclear space must be equal. -/
 theorem minlos_uniqueness {E : Type*} [AddCommGroup E] [Module ℝ E]
     [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E]
-    [NuclearSpace E] [SeparableSpace E] [Nonempty E]
+    [IsHilbertNuclear E] [SeparableSpace E] [Nonempty E]
     {Φ : E → ℂ} (hΦ_cont : Continuous Φ)
     (hΦ_pd : IsPositiveDefinite Φ) (hΦ_norm : Φ 0 = 1)
     {μ₁ μ₂ : ProbabilityMeasure (WeakDual ℝ E)}

@@ -15,6 +15,24 @@ import Mathlib.MeasureTheory.Function.SpecialFunctions.RCLike
 open MeasureTheory Complex Filter Topology Set InnerProductSpace Function
 open scoped Real FourierTransform
 
+/-! # Sazonov Tightness
+
+This module establishes that Sazonov-continuous characteristic functions
+imply tightness of finite-dimensional marginals via Gaussian averaging,
+spectral decomposition, and Chebyshev inequalities.
+
+## Main definitions
+
+- `SazonovContinuousAt`: Characteristic function continuity in the Sazonov topology
+- `marginalFun`: Finite-dimensional marginal characteristic function
+
+## Main statements
+
+- `marginalFun_isPositiveDefinite`: Marginals of PD functions are PD
+- `sazonov_tight_marginals`: Sazonov CF continuity implies tight marginals
+- `sazonov_tight_marginals_apply`: Explicit tightness bound via Gaussian averaging
+-/
+
 noncomputable section
 
 variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H] [CompleteSpace H]
@@ -136,16 +154,16 @@ variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
   [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
   [SecondCountableTopology V]
 
-private abbrev gaussDensity (σ : ℝ) (x : V) : ℝ :=
+abbrev gaussDensity (σ : ℝ) (x : V) : ℝ :=
   Real.exp (-(1 / (2 * σ ^ 2)) * ‖x‖ ^ 2)
 
-private lemma gaussDensity_nonneg' (σ : ℝ) (x : V) : 0 ≤ gaussDensity σ x :=
+lemma gaussDensity_nonneg' (σ : ℝ) (x : V) : 0 ≤ gaussDensity σ x :=
   Real.exp_nonneg _
 
-private lemma gaussDensity_continuous' (σ : ℝ) : Continuous (gaussDensity (V := V) σ) := by
+lemma gaussDensity_continuous' (σ : ℝ) : Continuous (gaussDensity (V := V) σ) := by
   unfold gaussDensity; fun_prop
 
-private lemma gaussDensity_integrable' (σ : ℝ) (hσ : 0 < σ) :
+lemma gaussDensity_integrable' (σ : ℝ) (hσ : 0 < σ) :
     Integrable (gaussDensity σ) (volume : Measure V) := by
   set b : ℝ := 1 / (2 * σ ^ 2)
   have hb : 0 < b := by positivity
@@ -159,7 +177,7 @@ private lemma gaussDensity_integrable' (σ : ℝ) (hσ : 0 < σ) :
       mul_zero, sub_zero]; ring
   rw [heq]; exact hcint.norm
 
-private lemma gaussDensity_integral_pos' (σ : ℝ) (hσ : 0 < σ) :
+lemma gaussDensity_integral_pos' (σ : ℝ) (hσ : 0 < σ) :
     0 < ∫ x : V, gaussDensity σ x := by
   apply integral_pos_of_integrable_nonneg_nonzero (x := 0)
     (gaussDensity_continuous' σ) (gaussDensity_integrable' σ hσ)
@@ -210,7 +228,7 @@ private lemma cexp_neg_sq_integrable_prob' (μ : ProbabilityMeasure V) (σ : ℝ
   rw [this]
   exact (exp_neg_sq_integrable_prob' μ σ ‹_›).ofReal
 
-private lemma gaussDensity_mul_charFun_re_integrable' (μ : ProbabilityMeasure V)
+lemma gaussDensity_mul_charFun_re_integrable' (μ : ProbabilityMeasure V)
     (φ : V → ℂ) (hφ : ∀ t, charFun μ.toMeasure t = φ t) (σ : ℝ) (hσ : 0 < σ) :
     Integrable (fun x : V => gaussDensity σ x * (φ x).re) volume := by
   have heq : (fun x => gaussDensity σ x * (φ x).re) =
@@ -243,7 +261,7 @@ private lemma gaussDensity_mul_charFun_integrable' (μ : ProbabilityMeasure V)
 
 /-- Fubini identity for Gaussian averaging:
     ∫_μ (1-exp(-σ²‖y‖²/2)) = C⁻¹ ∫ exp(-b‖x‖²) Re(1-φ(x)) dx. -/
-private theorem fubini_gaussian_charFun
+theorem fubini_gaussian_charFun
     (μ : ProbabilityMeasure V) (φ : V → ℂ)
     (hφ : ∀ t, charFun μ.toMeasure t = φ t) (σ : ℝ) (hσ : 0 < σ) :
     ∫ y, (1 - Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) ∂μ.toMeasure =
@@ -522,7 +540,7 @@ private lemma gaussian_inner_sq_le' (σ : ℝ) (hσ : 0 < σ) (w : V) :
 /-- Gaussian second moment bound:
     C⁻¹ ∫ exp(-b‖x‖²) ⟪x,Sx⟫ dx ≤ σ²·Tr(S).
     Uses spectral decomposition to reduce to single-direction bounds. -/
-private theorem gaussian_quadForm_integral_le
+theorem gaussian_quadForm_integral_le
     (σ : ℝ) (hσ : 0 < σ)
     (S : V →L[ℝ] V) (hS : S.IsPositive)
     (T : ℝ) (_hT : 0 ≤ T)
@@ -596,7 +614,7 @@ private lemma mul_exp_neg_le_one' {t : ℝ} (ht : 0 ≤ t) : t * Real.exp (-t) �
   rw [Real.exp_neg, ← div_eq_mul_inv, div_le_one (Real.exp_pos t)]
   linarith [Real.add_one_le_exp t]
 
-private lemma gaussDensity_mul_quadForm_integrable' (σ : ℝ) (hσ : 0 < σ)
+lemma gaussDensity_mul_quadForm_integrable' (σ : ℝ) (hσ : 0 < σ)
     (S : V →L[ℝ] V) :
     Integrable (fun x => gaussDensity σ x * quadForm S x) volume := by
   set b := 1 / (2 * σ ^ 2) with hb_def

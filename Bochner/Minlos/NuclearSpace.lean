@@ -5,7 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 # Nuclear Operators and Nuclear Spaces
 
 Definitions of nuclear operators, Hilbertian seminorms, and nuclear spaces
-via Hilbert-Schmidt embeddings. Adapted from OSforGFF/NuclearSpace.lean.
+via Hilbert-Schmidt embeddings. Adapted from OSforGFF/IsHilbertNuclear.lean.
 
 ## References
 
@@ -71,7 +71,7 @@ def Seminorm.IsHilbertSchmidtEmbedding {E : Type*} [AddCommGroup E] [Module ℝ 
 
     **Reference:** Trèves, "Topological Vector Spaces", Ch. 50, Thm 50.1;
     Gel'fand-Vilenkin Vol. 4, Ch. 3-4. -/
-class NuclearSpace (E : Type*) [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] : Prop where
+class IsHilbertNuclear (E : Type*) [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] : Prop where
   nuclear_hilbert_embeddings :
     ∃ (p : ℕ → Seminorm ℝ E),
       (∀ n, (p n).IsHilbertian) ∧

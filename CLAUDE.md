@@ -37,16 +37,15 @@ Bochner/
     FinDimMarginals.lean         -- Finite-dimensional marginal measures
     ProjectiveFamily.lean        -- Kolmogorov projective family construction
     SazonovTightness.lean        -- Sazonov CF continuity → tightness
-    MinlosConcentration.lean     -- Concentration axiom + helper lemmas
+    MinlosConcentration.lean     -- Concentration theorem + Gaussian averaging lemmas
     MeasurableModification.lean  -- Measurable modification of cylindrical measure
     Minlos.lean                  -- Main Minlos theorem
-    PietschBridge.lean           -- Pietsch nuclearity → NuclearSpace
+    PietschBridge.lean           -- IsNuclear → IsHilbertNuclear bridge
 ```
 
 ## Proof Architecture (completed)
 
-1 custom axiom (`nuclear_cylindrical_concentration` in MinlosConcentration.lean).
-0 sorries.
+0 custom axioms. 0 sorries. All theorems fully proved.
 
 ### Bochner's Theorem (0 sorries, 0 axioms)
 
@@ -59,23 +58,22 @@ Bochner/
   (Prokhorov + weak convergence + charFun limit)
 - **Layer 5** (Bochner.lean): Uniqueness via `Measure.ext_of_charFun`
 
-### Minlos' Theorem (0 sorries, 1 axiom)
+### Minlos' Theorem (0 sorries, 0 axioms)
 
-- **SazonovTightness.lean**: Sazonov CF continuity → tightness of marginals
+- **SazonovTightness.lean**: Sazonov CF continuity --> tightness of marginals
   (Chebyshev + Gaussian averaging + spectral decomposition)
 - **ProjectiveFamily.lean**: Kolmogorov projective family from cylindrical measure
 - **FinDimMarginals.lean**: Finite-dimensional marginal consistency
 - **MeasurableModification.lean**: Measurable modification P of cylindrical paths
-  (extensionCLM + ℚ-linearity + boundedness a.e.)
+  (extensionCLM + Q-linearity + boundedness a.e.)
 - **Minlos.lean**: Main theorem (Kolmogorov extension + P pushforward + CF verification)
-- **MinlosConcentration.lean**: Helper lemmas + monotonicity + textbook axiom
-  `nuclear_cylindrical_concentration` (Gel'fand-Vilenkin Vol.4, Ch.IV §3.3)
-- **Axiom**: `nuclear_cylindrical_concentration` — Minlos concentration bound
-  via Gaussian averaging + HS summability + Chebyshev on ℚ-span
+- **MinlosConcentration.lean**: Concentration theorem `nuclear_cylindrical_concentration`
+  (Gel'fand-Vilenkin Vol.4, Ch.IV S3.3), fully proved via dimension-free Gaussian
+  averaging, Gram matrix construction, Parseval trace bound, and Chebyshev.
 
 ### PietschBridge (0 sorries, 0 axioms)
 
-- **PietschBridge.lean**: `IsPietschNuclear E → NuclearSpace E` via double Pietsch
+- **PietschBridge.lean**: `IsNuclear E → IsHilbertNuclear E` via double Pietsch
   construction, hilbertianLift, Bessel inequality, WithSeminorms.congr
 
 ## Key Mathlib Lemmas
