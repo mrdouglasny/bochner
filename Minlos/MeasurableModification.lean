@@ -35,8 +35,8 @@ P : (E → ℝ) → WeakDual ℝ E that agrees with the identity on "good paths"
 - Minlos, "Generalized random processes and their extension to measures" (1959)
 -/
 
-import Bochner.Minlos.ProjectiveFamily
-import Bochner.Minlos.MinlosConcentration
+import Minlos.ProjectiveFamily
+import Minlos.MinlosConcentration
 import Mathlib.Topology.Bases
 import Mathlib.Topology.ExtendFrom
 import Mathlib.Data.Finsupp.Basic

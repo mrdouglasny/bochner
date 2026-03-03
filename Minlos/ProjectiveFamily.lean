@@ -14,7 +14,7 @@ by `Finset E`), enabling application of the Kolmogorov extension theorem.
 - `marginalFamily_isProjective` — the family is projective (consistent under restriction)
 -/
 
-import Bochner.Minlos.FinDimMarginals
+import Minlos.FinDimMarginals
 import KolmogorovExtension4.KolmogorovExtension
 
 open BigOperators MeasureTheory Complex Classical

@@ -21,7 +21,7 @@ measure μ_F on ℝⁿ.
 -/
 
 import Bochner.Bochner
-import Bochner.Minlos.NuclearSpace
+import Minlos.NuclearSpace
 
 open BigOperators MeasureTheory Complex
 

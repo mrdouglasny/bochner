@@ -37,7 +37,7 @@ The 6 sorries are in MeasurableModification.lean:
 - Degenne-Pfaffelhuber, KolmogorovExtension4 (formalized Kolmogorov extension)
 -/
 
-import Bochner.Minlos.MeasurableModification
+import Minlos.MeasurableModification
 
 open BigOperators MeasureTheory Complex TopologicalSpace Classical
 

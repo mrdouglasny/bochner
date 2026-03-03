@@ -1,7 +1,7 @@
 import Lake
 open Lake DSL
 
-package «Bochner» where
+package «BochnerMinlos» where
   leanOptions := #[
     ⟨`pp.unicode.fun, true⟩
   ]
@@ -14,3 +14,7 @@ require kolmogorov_extension4 from git
 
 @[default_target]
 lean_lib «Bochner» where
+
+lean_lib «Minlos» where
+
+lean_lib «Test» where

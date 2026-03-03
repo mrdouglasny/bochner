@@ -27,7 +27,7 @@ expansion `p(x) ≤ Σₖ |fₖ(x)| · cₖ` with `|fₖ| ≤ q`), we:
 - Trèves, "Topological Vector Spaces", Ch. 50-51
 -/
 
-import Bochner.Minlos.NuclearSpace
+import Minlos.NuclearSpace
 import Mathlib.Topology.Instances.RealVectorSpace
 
 open scoped BigOperators

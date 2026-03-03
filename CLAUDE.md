@@ -14,7 +14,7 @@ The proof uses **Gaussian regularization**, avoiding Riesz-Markov-Kakutani.
 lake build
 ```
 
-Depends on Mathlib only (fetched automatically by lake).
+Package name: `BochnerMinlos`. Depends on Mathlib (fetched automatically by lake).
 
 ## Status Tracking
 
@@ -32,15 +32,17 @@ Bochner/
   Bochner.lean                   -- Main Bochner theorem (existence + uniqueness)
   Sazonov.lean                   -- Sazonov topology via trace-class seminorms
   TestFubini.lean                -- Auxiliary Fubini lemmas
-  Minlos/
-    NuclearSpace.lean            -- Nuclear space definitions (Hilbertian, HS embeddings)
-    FinDimMarginals.lean         -- Finite-dimensional marginal measures
-    ProjectiveFamily.lean        -- Kolmogorov projective family construction
-    SazonovTightness.lean        -- Sazonov CF continuity → tightness
-    MinlosConcentration.lean     -- Concentration theorem + Gaussian averaging lemmas
-    MeasurableModification.lean  -- Measurable modification of cylindrical measure
-    Minlos.lean                  -- Main Minlos theorem
-    PietschBridge.lean           -- IsNuclear → IsHilbertNuclear bridge
+Minlos/
+  NuclearSpace.lean              -- Nuclear space definitions (Hilbertian, HS embeddings)
+  FinDimMarginals.lean           -- Finite-dimensional marginal measures
+  ProjectiveFamily.lean          -- Kolmogorov projective family construction
+  SazonovTightness.lean          -- Sazonov CF continuity → tightness
+  MinlosConcentration.lean       -- Concentration theorem + Gaussian averaging lemmas
+  MeasurableModification.lean    -- Measurable modification of cylindrical measure
+  Minlos.lean                    -- Main Minlos theorem
+  PietschBridge.lean             -- IsNuclear → IsHilbertNuclear bridge
+Test/
+  WhiteNoise.lean                -- White noise on Schwartz space via Minlos
 ```
 
 ## Proof Architecture (completed)
