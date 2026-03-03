@@ -1,6 +1,6 @@
 import Bochner.PositiveDefinite
 import Bochner.FejerPD
-import Bochner.Bochner
+import Bochner.Main
 import Bochner.Sazonov
-import Bochner.Minlos.Minlos
-import Bochner.Minlos.PietschBridge
+import Minlos.Main
+import Minlos.PietschBridge

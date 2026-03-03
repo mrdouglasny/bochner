@@ -29,7 +29,7 @@ After filling sorries or making changes:
 Bochner/
   PositiveDefinite.lean          -- IsPositiveDefinite definition + Schur product
   FejerPD.lean                   -- Fejér-averaged PD integrals → 𝓕φ ≥ 0
-  Bochner.lean                   -- Main Bochner theorem (existence + uniqueness)
+  Main.lean                      -- Main Bochner theorem (existence + uniqueness)
   Sazonov.lean                   -- Sazonov topology via trace-class seminorms
   TestFubini.lean                -- Auxiliary Fubini lemmas
 Minlos/
@@ -39,7 +39,7 @@ Minlos/
   SazonovTightness.lean          -- Sazonov CF continuity → tightness
   MinlosConcentration.lean       -- Concentration theorem + Gaussian averaging lemmas
   MeasurableModification.lean    -- Measurable modification of cylindrical measure
-  Minlos.lean                    -- Main Minlos theorem
+  Main.lean                      -- Main Minlos theorem
   PietschBridge.lean             -- IsNuclear → IsHilbertNuclear bridge
 Test/
   WhiteNoise.lean                -- White noise on Schwartz space via Minlos

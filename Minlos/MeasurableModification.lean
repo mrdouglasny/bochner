@@ -776,7 +776,7 @@ theorem qLinearPaths_ae [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
   -- X(ω) = 0 means ω(y) = ∑ cᵢ * ω(dᵢ)
   linarith [show X ω = 0 from hω]
 
-/-- **Minlos concentration** — now proved in `Bochner.Minlos.MinlosConcentration`. -/
+/-- **Minlos concentration** — now proved in `Minlos.MinlosConcentration`. -/
 -- Previously: axiom minlos_concentration
 -- Now imported from MinlosConcentration.lean
 

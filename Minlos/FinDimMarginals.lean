@@ -20,7 +20,7 @@ measure μ_F on ℝⁿ.
 - `marginal_measure_exists` — Bochner gives a probability measure with matching CF
 -/
 
-import Bochner.Bochner
+import Bochner.Main
 import Minlos.NuclearSpace
 
 open BigOperators MeasureTheory Complex

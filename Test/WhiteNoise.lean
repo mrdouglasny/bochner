@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 # White Noise on Schwartz Space via Minlos' Theorem
 
-This test demonstrates that Minlos' theorem (from `Bochner.Minlos.Minlos`) can construct
+This test demonstrates that Minlos' theorem (from `Minlos.Main`) can construct
 **white noise** — the canonical Gaussian random generalized function on S'(ℝ) — as a
 probability measure on the dual of Schwartz space.
 
@@ -27,7 +27,7 @@ Four domain-specific axioms are used (all provable in gaussian-field):
 4. `whiteNoiseCF_pd` — exp(-½‖f‖²_L²) is positive definite (Gaussian kernel PD)
 -/
 
-import Minlos.Minlos
+import Minlos.Main
 import Bochner.PositiveDefinite
 import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
 
