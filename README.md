@@ -1,6 +1,6 @@
 # Bochner's and Minlos' Theorems in Lean 4
 
-Formal proofs of **Bochner's theorem** and **Minlos' theorem** in Lean 4 using Mathlib and [KolmogorovExtension4](https://github.com/remydegenne/kolmogorov_extension4) — the two foundational results characterizing when a function(al) is the Fourier transform of a probability measure.
+Formal proofs of **Bochner's theorem** and **Minlos' theorem** in Lean 4 — the two foundational results characterizing when a function(al) is the Fourier transform of a probability measure — using [Mathlib](https://github.com/leanprover-community/mathlib4) and [KolmogorovExtension4](https://github.com/remydegenne/kolmogorov_extension4).
 
 ## Bochner's theorem
 
