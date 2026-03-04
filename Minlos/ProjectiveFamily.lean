@@ -90,6 +90,8 @@ characteristic function as `P(J)`, namely `ξ ↦ Φ(∑_{j∈J} ξⱼ fⱼ)`. -
 private def finsetIndexInj (I J : Finset E) (hJI : J ⊆ I) (k : Fin J.card) : Fin I.card :=
   I.equivFin ⟨(J.equivFin.symm k : E), hJI (J.equivFin.symm k).prop⟩
 
+omit [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] [IsTopologicalAddGroup E]
+  [ContinuousSMul ℝ E] in
 private lemma finsetIndexInj_injective (I J : Finset E) (hJI : J ⊆ I) :
     Function.Injective (finsetIndexInj I J hJI) := by
   intro k₁ k₂ h
@@ -103,6 +105,8 @@ private def euclideanProject (I J : Finset E) (hJI : J ⊆ I) :
   fun x => (WithLp.equiv 2 _).symm
     (fun k => (WithLp.equiv 2 _ x) (finsetIndexInj I J hJI k))
 
+omit [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] [IsTopologicalAddGroup E]
+  [ContinuousSMul ℝ E] in
 private lemma euclideanProject_measurable (I J : Finset E) (hJI : J ⊆ I) :
     Measurable (euclideanProject I J hJI) := by
   apply (MeasurableEquiv.toLp 2 (Fin J.card → ℝ)).measurable.comp
@@ -114,6 +118,8 @@ private lemma trans_symm_apply_eq {α β γ : Type*} [MeasurableSpace α] [Measu
     [MeasurableSpace γ] (e₁ : α ≃ᵐ β) (e₂ : β ≃ᵐ γ) (z : γ) :
     (e₁.trans e₂).symm z = e₁.symm (e₂.symm z) := rfl
 
+omit [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] [IsTopologicalAddGroup E]
+  [ContinuousSMul ℝ E] in
 /-- `e_J.symm ∘ euclideanProject = restrict₂ ∘ e_I.symm` — relates the EuclideanSpace
     projection to the Pi-type restriction map. -/
 private lemma euclideanProject_restrict₂ (I J : Finset E) (hJI : J ⊆ I) :
@@ -122,10 +128,12 @@ private lemma euclideanProject_restrict₂ (I J : Finset E) (hJI : J ⊆ I) :
   ext x (k : ↥J)
   simp only [Function.comp_apply, Finset.restrict₂,
     finsetPiMeasEquiv, trans_symm_apply_eq, MeasurableEquiv.coe_toLp_symm]
-  simp only [finsetReindexEquiv, MeasurableEquiv.symm_mk, MeasurableEquiv.coe_mk, Equiv.coe_fn_mk]
-  simp only [euclideanProject, finsetIndexInj, WithLp.ofLp, WithLp.equiv]
+  simp only [finsetReindexEquiv, MeasurableEquiv.symm_mk, MeasurableEquiv.coe_mk]
+  simp only [euclideanProject, finsetIndexInj, WithLp.equiv]
   simp
 
+omit [AddCommGroup E] [Module ℝ E] [TopologicalSpace E] [IsTopologicalAddGroup E]
+  [ContinuousSMul ℝ E] in
 /-- Test vectors are compatible with the index injection: `testVec I (σ k) = testVec J k`. -/
 private lemma finsetTestVectors_comp_inj (I J : Finset E) (hJI : J ⊆ I) (k : Fin J.card) :
     finsetTestVectors I (finsetIndexInj I J hJI k) = finsetTestVectors J k := by
@@ -175,7 +183,7 @@ theorem marginalFamily_isProjective (Φ : E → ℂ) (hΦ_cont : Continuous Φ)
     rw [xi_ofLp]
     have hJ : (I.equivFin.symm (finsetIndexInj I J hJI k) : E) ∈ J := by
       simp [finsetIndexInj]
-    simp only [dif_pos hJ, finsetIndexInj]
+    simp only [finsetIndexInj]
     simp
   -- Inner product identity: ⟪euclideanProject y, ξ⟫ = ⟪y, xi⟫
   have h_inner : ∀ y : EuclideanSpace ℝ (Fin I.card),

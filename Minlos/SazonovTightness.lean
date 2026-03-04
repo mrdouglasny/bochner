@@ -157,12 +157,17 @@ variable {V : Type*} [NormedAddCommGroup V] [InnerProductSpace ℝ V]
 abbrev gaussDensity (σ : ℝ) (x : V) : ℝ :=
   Real.exp (-(1 / (2 * σ ^ 2)) * ‖x‖ ^ 2)
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+  [SecondCountableTopology V] in
 lemma gaussDensity_nonneg' (σ : ℝ) (x : V) : 0 ≤ gaussDensity σ x :=
   Real.exp_nonneg _
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [MeasurableSpace V] [BorelSpace V]
+  [SecondCountableTopology V] in
 lemma gaussDensity_continuous' (σ : ℝ) : Continuous (gaussDensity (V := V) σ) := by
   unfold gaussDensity; fun_prop
 
+omit [SecondCountableTopology V] in
 lemma gaussDensity_integrable' (σ : ℝ) (hσ : 0 < σ) :
     Integrable (gaussDensity σ) (volume : Measure V) := by
   set b : ℝ := 1 / (2 * σ ^ 2)
@@ -177,6 +182,7 @@ lemma gaussDensity_integrable' (σ : ℝ) (hσ : 0 < σ) :
       mul_zero, sub_zero]; ring
   rw [heq]; exact hcint.norm
 
+omit [SecondCountableTopology V] in
 lemma gaussDensity_integral_pos' (σ : ℝ) (hσ : 0 < σ) :
     0 < ∫ x : V, gaussDensity σ x := by
   apply integral_pos_of_integrable_nonneg_nonzero (x := 0)
@@ -184,6 +190,7 @@ lemma gaussDensity_integral_pos' (σ : ℝ) (hσ : 0 < σ) :
     (fun x => gaussDensity_nonneg' σ x)
     (ne_of_gt (Real.exp_pos _))
 
+omit [SecondCountableTopology V] in
 private lemma gaussian_fourier_eq' (σ : ℝ) (hσ : 0 < σ) (y : V) :
     ∫ x : V, (gaussDensity σ x : ℂ) * cexp (↑(@inner ℝ V _ y x) * I) =
     ↑(∫ x : V, gaussDensity σ x) * cexp (-(σ ^ 2 * ‖y‖ ^ 2 / 2 : ℝ)) := by
@@ -210,6 +217,7 @@ private lemma gaussian_fourier_eq' (σ : ℝ) (hσ : 0 < σ) (y : V) :
     rw [show (b : ℂ) = 1 / (2 * (σ : ℂ) ^ 2) from by rw [hb_def]; push_cast; ring]
     push_cast; field_simp; ring
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [SecondCountableTopology V] in
 private lemma exp_neg_sq_integrable_prob' (μ : ProbabilityMeasure V) (σ : ℝ) (_hσ : 0 < σ) :
     Integrable (fun y : V => Real.exp (-(σ ^ 2 * ‖y‖ ^ 2 / 2))) μ.toMeasure := by
   apply (integrable_const (1 : ℝ)).mono'
@@ -220,6 +228,7 @@ private lemma exp_neg_sq_integrable_prob' (μ : ProbabilityMeasure V) (σ : ℝ)
   rw [← Real.exp_zero]
   exact Real.exp_le_exp_of_le (by nlinarith [sq_nonneg σ, sq_nonneg ‖y‖])
 
+omit [InnerProductSpace ℝ V] [FiniteDimensional ℝ V] [SecondCountableTopology V] in
 private lemma cexp_neg_sq_integrable_prob' (μ : ProbabilityMeasure V) (σ : ℝ) (_hσ : 0 < σ) :
     Integrable (fun y : V => cexp (-(σ ^ 2 * ‖y‖ ^ 2 / 2 : ℝ))) μ.toMeasure := by
   have : (fun y : V => cexp (-(σ ^ 2 * ‖y‖ ^ 2 / 2 : ℝ))) =
@@ -337,6 +346,7 @@ theorem fubini_gaussian_charFun
         rw [integral_re_eq hgdphi_int]
         congr 1; ext x; exact re_ofReal_mul _ _
 
+omit [SecondCountableTopology V] in
 /-- The real Gaussian integral formula as a function of parameter c. -/
 private lemma gaussian_real_formula' (b : ℝ) (hb : 0 < b) (w : V) (c : ℝ) :
     ∫ x : V, Real.exp (-b * ‖x‖ ^ 2 + c * @inner ℝ V _ w x) =
@@ -394,6 +404,7 @@ private lemma half_sq_le_cosh_sub_one' (x : ℝ) : x ^ 2 / 2 ≤ Real.cosh x - 1
     have hb : Real.sinh t - t ≤ 0 := by linarith
     exact mul_nonneg_of_nonpos_of_nonpos ha hb
 
+omit [SecondCountableTopology V] in
 private lemma gaussDensity_mul_exp_inner_integrable' (σ : ℝ) (hσ : 0 < σ) (w : V) (c : ℝ) :
     Integrable (fun x : V => gaussDensity σ x * rexp (c * @inner ℝ V _ w x)) volume := by
   set b := 1 / (2 * σ ^ 2)
@@ -412,6 +423,7 @@ private lemma gaussDensity_mul_exp_inner_integrable' (σ : ℝ) (hσ : 0 < σ) (
     rw [this, Complex.ofReal_re]
   rw [this]; exact hci.norm
 
+omit [SecondCountableTopology V] in
 private lemma gaussDensity_exp_inner_integral' (σ : ℝ) (hσ : 0 < σ) (w : V) (c : ℝ) :
     ∫ x : V, gaussDensity σ x * rexp (c * @inner ℝ V _ w x) =
     (∫ x : V, gaussDensity σ x) * rexp (c ^ 2 * σ ^ 2 * ‖w‖ ^ 2 / 2) := by
@@ -434,11 +446,12 @@ private lemma tendsto_exp_slope' (A : ℝ) :
         ((hasDerivAt_id (0 : ℝ)).mul_const A)
       simp [zero_mul, Real.exp_zero] at this; exact this
     have h2 : HasDerivAt (fun _ : ℝ => (1 : ℝ)) 0 0 := hasDerivAt_const 0 1
-    convert h1.sub h2 using 1 <;> simp
+    convert h1.sub h2 using 1; simp
   have := hd.tendsto_slope_zero_right
   simp only [zero_add, zero_mul, Real.exp_zero, sub_self, sub_zero] at this
   exact this.congr fun t => by rw [smul_eq_mul, ← div_eq_inv_mul]
 
+omit [SecondCountableTopology V] in
 private lemma gaussDensity_mul_cosh_integrable' (σ : ℝ) (hσ : 0 < σ) (w : V) (c : ℝ) :
     Integrable (fun x : V => gaussDensity σ x * Real.cosh (c * @inner ℝ V _ w x)) volume := by
   have : (fun x : V => gaussDensity σ x * Real.cosh (c * @inner ℝ V _ w x)) =
@@ -451,11 +464,12 @@ private lemma gaussDensity_mul_cosh_integrable' (σ : ℝ) (hσ : 0 < σ) (w : V
       gaussDensity σ x * rexp (-(c * @inner ℝ V _ w x))) =
     fun x => gaussDensity σ x * rexp (c * @inner ℝ V _ w x) +
       gaussDensity σ x * rexp ((-c) * @inner ℝ V _ w x) := by
-    ext x; congr 1; congr 1; ring
+    ext x; congr 1; congr 1; ring_nf
   rw [this]
   exact (gaussDensity_mul_exp_inner_integrable' σ hσ w c).add
     (gaussDensity_mul_exp_inner_integrable' σ hσ w (-c))
 
+omit [SecondCountableTopology V] in
 private lemma gaussDensity_cosh_integral' (σ : ℝ) (hσ : 0 < σ) (w : V) (c : ℝ) :
     ∫ x : V, gaussDensity σ x * Real.cosh (c * @inner ℝ V _ w x) =
     (∫ x : V, gaussDensity σ x) * rexp (c ^ 2 * σ ^ 2 * ‖w‖ ^ 2 / 2) := by
@@ -466,12 +480,12 @@ private lemma gaussDensity_cosh_integral' (σ : ℝ) (hσ : 0 < σ) (w : V) (c :
   have hint_neg : Integrable (fun x : V => gaussDensity σ x *
       rexp (-(c * @inner ℝ V _ w x))) volume :=
     (gaussDensity_mul_exp_inner_integrable' σ hσ w (-c)).congr
-      (Eventually.of_forall fun x => by show _ = _; congr 1; ring)
+      (Eventually.of_forall fun x => by show _ = _; ring_nf)
   rw [step1, integral_div, integral_add
     (gaussDensity_mul_exp_inner_integrable' σ hσ w c) hint_neg]
   have hrw : ∫ x : V, gaussDensity σ x * rexp (-(c * @inner ℝ V _ w x)) =
       ∫ x : V, gaussDensity σ x * rexp ((-c) * @inner ℝ V _ w x) :=
-    integral_congr_ae (Eventually.of_forall fun x => by congr 1; ring)
+    integral_congr_ae (Eventually.of_forall fun x => by ring_nf)
   rw [gaussDensity_exp_inner_integral' σ hσ w c, hrw,
     gaussDensity_exp_inner_integral' σ hσ w (-c),
     show (-c) ^ 2 = c ^ 2 from by ring]; ring
@@ -610,10 +624,11 @@ theorem gaussian_quadForm_integral_le
             (fun i => @inner ℝ V _ (b i) (S (b i)))] at h
         exact mul_le_mul_of_nonneg_left htrace (sq_nonneg σ)
 
-private lemma mul_exp_neg_le_one' {t : ℝ} (ht : 0 ≤ t) : t * Real.exp (-t) ≤ 1 := by
+private lemma mul_exp_neg_le_one' {t : ℝ} (_ht : 0 ≤ t) : t * Real.exp (-t) ≤ 1 := by
   rw [Real.exp_neg, ← div_eq_mul_inv, div_le_one (Real.exp_pos t)]
   linarith [Real.add_one_le_exp t]
 
+omit [SecondCountableTopology V] in
 lemma gaussDensity_mul_quadForm_integrable' (σ : ℝ) (hσ : 0 < σ)
     (S : V →L[ℝ] V) :
     Integrable (fun x => gaussDensity σ x * quadForm S x) volume := by

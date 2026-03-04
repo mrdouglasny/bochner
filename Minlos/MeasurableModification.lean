@@ -88,6 +88,7 @@ def qLinearPaths (d : ℕ → E) : Set (E → ℝ) :=
     { ω | ω (c.sum fun i a => (a : ℝ) • d i) =
       c.sum fun i a => (a : ℝ) * ω (d i) }
 
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 lemma qLinearPaths_measurableSet (d : ℕ → E) :
     MeasurableSet (qLinearPaths d) := by
   apply MeasurableSet.iInter; intro c
@@ -113,6 +114,7 @@ def boundedPaths (d : ℕ → E) (p : ℕ → Seminorm ℝ E) : Set (E → ℝ) 
     { ω | |ω (c.sum fun i a => (a : ℝ) • d i)| ≤
         (C : ℝ) * (s.sup p) (c.sum fun i a => (a : ℝ) • d i) }
 
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 lemma boundedPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     MeasurableSet (boundedPaths d p) := by
   apply MeasurableSet.iUnion; intro s
@@ -126,6 +128,7 @@ lemma boundedPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
 def goodPaths (d : ℕ → E) (p : ℕ → Seminorm ℝ E) : Set (E → ℝ) :=
   qLinearPaths d ∩ boundedPaths d p
 
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 lemma goodPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
     MeasurableSet (goodPaths d p) :=
   (qLinearPaths_measurableSet d).inter (boundedPaths_measurableSet d p)
@@ -146,10 +149,11 @@ lemma goodPaths_measurableSet (d : ℕ → E) (p : ℕ → Seminorm ℝ E) :
 
     Ref: Rudin, *Functional Analysis*, Thm 1.18 (bounded linear extension). -/
 noncomputable def extensionFun [SeparableSpace E] [IsHilbertNuclear E] [Nonempty E]
-    (d : ℕ → E) (hd : DenseRange d)
-    (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (hω : ω ∈ goodPaths d p) : E → ℝ :=
+    (d : ℕ → E) (_hd : DenseRange d)
+    (p : ℕ → Seminorm ℝ E) (ω : E → ℝ) (_hω : ω ∈ goodPaths d p) : E → ℝ :=
   extendFrom (Set.range d) ω
 
+omit [ContinuousSMul ℝ E] in
 private lemma extensionFun_eq (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p) (n : ℕ)
@@ -205,6 +209,7 @@ private lemma extensionFun_eq (d : ℕ → E) (hd : DenseRange d)
       _ = ε := mul_div_cancel₀ ε (ne_of_gt hCε)
   exact extendFrom_eq (subset_closure (Set.mem_range_self n)) h_cwat
 
+omit [ContinuousSMul ℝ E] in
 private lemma extensionFun_continuous (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
@@ -278,6 +283,7 @@ private lemma extensionFun_continuous (d : ℕ → E) (hd : DenseRange d)
         _ = ε := by rw [hδ_def]; field_simp; ring⟩
   exact CompleteSpace.complete h_cauchy
 
+omit [ContinuousSMul ℝ E] in
 private lemma extensionFun_map_add (d : ℕ → E) (hd : DenseRange d)
     (p : ℕ → Seminorm ℝ E) (hp_top : WithSeminorms (fun n => p n))
     (ω : E → ℝ) (hω : ω ∈ goodPaths d p)
@@ -689,6 +695,7 @@ These axioms use the **joint characteristic function** hypothesis:
 This captures all finite-dimensional marginals of ν, not just the 1D marginals.
 It is provable from the projective limit property. -/
 
+omit [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 /-- ℚ-linearity holds ν-a.e.
 
     For fixed c : ℕ →₀ ℚ, the random variable

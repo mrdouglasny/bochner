@@ -315,6 +315,7 @@ lemma pushforward_charfun_eq
 
 /-! ## Concentration on good set via Cauchy-Schwarz + Parseval -/
 
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 /-- **Cauchy-Schwarz + Parseval concentration bound**: if ω is linear on combinations of
     a p-orthonormal sequence `{eⱼ}` and `∑ ω(eⱼ)² ≤ R²`, then for any linear combination
     `x = ∑ βⱼ eⱼ`, we have `|ω(x)| ≤ R · p(x)`.
@@ -357,8 +358,8 @@ lemma kernel_eval_ae_zero
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i))
-    (h_normalized : Φ 0 = 1)
-    (p : Seminorm ℝ E) (z : E) (hz : p z = 0)
+    (_h_normalized : Φ 0 = 1)
+    (p : Seminorm ℝ E) (z : E) (_hz : p z = 0)
     (h_cf_kernel : ∀ t : ℝ, Φ (t • z) = 1) :
     ∀ᵐ ω ∂ν, ω z = 0 := by
   apply ae_eq_zero_of_charfun_eq_one (measurable_pi_apply z)
@@ -468,6 +469,7 @@ section GramSchmidt
 variable {F : Type*} [AddCommGroup F] [Module ℝ F]
   [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F]
 
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 /-- If `p(z) = 0`, then `p(x + z) = p(x)`. -/
 private lemma gs_seminorm_add_kernel (p : Seminorm ℝ F) (x z : F) (hz : p z = 0) :
     p (x + z) = p x := by
@@ -478,32 +480,33 @@ private lemma gs_seminorm_add_kernel (p : Seminorm ℝ F) (x z : F) (hz : p z = 
     _ ≤ p (x + z) + p (-z) := map_add_le_add p _ _
     _ = p (x + z) := by rw [map_neg_eq_map, hz, add_zero]
 
-/-- If `p(z) = 0`, then `p(x - z) = p(x)`. -/
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 private lemma gs_seminorm_sub_kernel (p : Seminorm ℝ F) (x z : F) (hz : p z = 0) :
     p (x - z) = p x := by
   rw [sub_eq_add_neg]
   exact gs_seminorm_add_kernel p x (-z) (by rwa [map_neg_eq_map])
 
-/-- `ip(x₁ - x₂, y) = ip(x₁, y) - ip(x₂, y)` -/
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 private lemma gs_innerProd_sub_left (p : Seminorm ℝ F) (hp : p.IsHilbertian)
     (x₁ x₂ y : F) :
     p.innerProd (x₁ - x₂) y = p.innerProd x₁ y - p.innerProd x₂ y := by
   rw [sub_eq_add_neg, p.innerProd_add_left hp x₁ (-x₂) y, p.innerProd_neg_left]
   ring
 
-/-- `ip(x, a • y) = a * ip(x, y)` (right homogeneity). -/
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 private lemma gs_innerProd_smul_right (p : Seminorm ℝ F) (hp : p.IsHilbertian)
     (a : ℝ) (x y : F) :
     p.innerProd x (a • y) = a * p.innerProd x y := by
   rw [p.innerProd_comm, p.innerProd_smul_left hp, p.innerProd_comm]
 
-/-- `ip(x, ∑ⱼ f j) = ∑ⱼ ip(x, f j)` (right sum). -/
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 private lemma gs_innerProd_sum_right (p : Seminorm ℝ F) (hp : p.IsHilbertian)
     {ι : Type*} (s : Finset ι) (x : F) (f : ι → F) :
     p.innerProd x (∑ j ∈ s, f j) = ∑ j ∈ s, p.innerProd x (f j) := by
   rw [p.innerProd_comm, p.innerProd_sum_left hp]
   congr 1; ext j; rw [p.innerProd_comm]
 
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 /-- Pythagorean theorem: if `ip(x, y) = 0` then `p(x+y)^2 = p(x)^2 + p(y)^2`. -/
 private lemma gs_pythagoras (p : Seminorm ℝ F)
     (hp : p.IsHilbertian) (x y : F) (hxy : p.innerProd x y = 0) :
@@ -512,6 +515,7 @@ private lemma gs_pythagoras (p : Seminorm ℝ F)
     simp only [Seminorm.innerProd] at hxy; linarith
   linarith [hp x y]
 
+omit [TopologicalSpace F] [IsTopologicalAddGroup F] [ContinuousSMul ℝ F] in
 /-- **Gram-Schmidt for Hilbertian seminorms**: given N vectors in F and a Hilbertian
     seminorm p, there exist k orthonormal vectors such that every element of
     the span of the original vectors decomposes as a p-ONB combination plus a kernel
@@ -682,6 +686,7 @@ lemma gram_schmidt_seminorm_aux (p : Seminorm ℝ F) (hp : p.IsHilbertian)
 
 end GramSchmidt
 
+omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 lemma gram_schmidt_seminorm (p : Seminorm ℝ E) (hp : p.IsHilbertian)
     (N : ℕ) (d : Fin N → E) :
     ∃ (k : ℕ) (e : Fin k → E),
@@ -707,9 +712,9 @@ lemma concentrationBadSetN_measure_bound
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i))
     (h_normalized : Φ 0 = 1)
-    (d : ℕ → E) (p : Seminorm ℝ E) (hp : p.IsHilbertian)
+    (d : ℕ → E) (p : Seminorm ℝ E) (_hp : p.IsHilbertian)
     (h_cf_kernel : ∀ z, p z = 0 → ∀ t : ℝ, Φ (t • z) = 1)
-    {k : ℕ} (e : Fin k → E) (he : p.IsOrthonormalSeq e)
+    {k : ℕ} (e : Fin k → E) (_he : p.IsOrthonormalSeq e)
     (h_decomp : ∀ c : ℕ →₀ ℚ, ∃ (α : Fin k → ℝ),
       p (c.sum (fun i a => (a : ℝ) • d i) - ∑ j, α j • e j) = 0 ∧
       p (c.sum (fun i a => (a : ℝ) • d i)) ^ 2 = ∑ j, α j ^ 2)
@@ -815,7 +820,7 @@ private lemma joint_kernel_bound_finite
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i))
-    (h_normalized : Φ 0 = 1)
+    (_h_normalized : Φ 0 = 1)
     (ε_q : ℝ) (hε_q : 0 < ε_q)
     (n : ℕ) (z : Fin n → E)
     (h_cf_bound : ∀ t : Fin n → ℝ,
@@ -823,7 +828,7 @@ private lemma joint_kernel_bound_finite
     ν {ω : E → ℝ | ∃ i : Fin n, ω (z i) ≠ 0} ≤ ENNReal.ofReal ε_q := by
   -- Case n = 0: the set is empty
   rcases n with _ | n
-  · simp [show ∀ ω : E → ℝ, ¬∃ i : Fin 0, ω (z i) ≠ 0 from fun ω ⟨i, _⟩ => Fin.elim0 i]
+  · simp
   -- Strategy: pushforward ν to EuclideanSpace, apply fubini_gaussian_charFun,
   -- bound by ε_q using CF bound, then monotone convergence.
   --
@@ -949,7 +954,7 @@ private lemma joint_kernel_bound_finite
         apply (integrable_const (1 : ℝ)).mono'
         · exact ((measurable_const.mul h_S_meas |>.div_const 2 |>.neg).exp.aestronglyMeasurable)
         · filter_upwards with ω
-          simp only [Real.norm_eq_abs, abs_of_nonneg (Real.exp_nonneg _), norm_one]
+          simp only [Real.norm_eq_abs, abs_of_nonneg (Real.exp_nonneg _)]
           exact Real.exp_le_one_iff.mpr (by
             nlinarith [sq_nonneg σ,
               Finset.sum_nonneg (fun i (_ : i ∈ Finset.univ) => sq_nonneg (ω (z i)))])
@@ -1231,7 +1236,7 @@ private lemma tail_bound_uniform
     (h_cf_joint : ∀ (n : ℕ) (s : Fin n → ℝ) (x : Fin n → E),
       ∫ ω : E → ℝ, exp (I * ↑(∑ i, s i * ω (x i))) ∂ν =
         Φ (∑ i, s i • x i))
-    (h_norm_le : ∀ x : E, ‖Φ x‖ ≤ 1)
+    (_h_norm_le : ∀ x : E, ‖Φ x‖ ≤ 1)
     (p_inner : Seminorm ℝ E) (hp_inner : p_inner.IsHilbertian)
     (ε_q K : ℝ) (hε_q : 0 < ε_q) (hK : 0 ≤ K)
     (h_quad : ∀ x : E, 1 - (Φ x).re ≤ ε_q + K * p_inner x ^ 2)
@@ -1347,7 +1352,7 @@ private lemma tail_bound_uniform
         rw [this]; ring
       · -- Nonneg: re⟨Sv, v⟩ = p_inner(...)² ≥ 0
         have : 0 ≤ quadForm S v := by rw [h_qf]; positivity
-        simp only [quadForm, Complex.ofReal_re] at this ⊢
+        simp only [quadForm] at this ⊢
         rwa [real_inner_comm] at this
     -- Step G: Trace bound for any ONB b of V
     have h_trace : ∀ (ι : Type) [Fintype ι] (b : OrthonormalBasis ι ℝ V),
@@ -1403,7 +1408,7 @@ private lemma tail_bound_uniform
             if j = l then Mij j l else 0 := by
           intro l; rw [h_parseval j l]; split_ifs <;> simp [*]
         simp only [h_collapse_j]
-        simp [Finset.sum_ite_eq']
+        simp
       simp_rw [show ∀ j : Fin (k + 1), Mij j j = p_inner (e j) ^ 2 from
         fun j => Seminorm.innerProd_self p_inner (e j)]
       exact h_HS (k + 1) e he
