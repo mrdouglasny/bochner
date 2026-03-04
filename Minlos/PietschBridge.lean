@@ -268,8 +268,10 @@ theorem hilbertianLift_le_dominator (f : ℕ → (E →L[ℝ] ℝ)) (c : ℕ →
 
 /-! ### Bilinearity of Polarization Inner Product (Jordan-von Neumann) -/
 
+omit [TopologicalSpace E] in
 private lemma R_congr' (R : Seminorm ℝ E) {x y : E} (h : x = y) : R x = R y := by rw [h]
 
+omit [TopologicalSpace E] in
 /-- `ip(x, x) = R(x)²`. -/
 lemma Seminorm.innerProd_self (R : Seminorm ℝ E) (x : E) :
     R.innerProd x x = R x ^ 2 := by
@@ -277,6 +279,7 @@ lemma Seminorm.innerProd_self (R : Seminorm ℝ E) (x : E) :
   rw [show x + x = (2 : ℝ) • x from by rw [two_smul], map_smul_eq_mul]
   simp; ring
 
+omit [TopologicalSpace E] in
 /-- `ip(x, y) = ip(y, x)` (symmetry). -/
 lemma Seminorm.innerProd_comm (R : Seminorm ℝ E) (x y : E) :
     R.innerProd x y = R.innerProd y x := by
@@ -286,6 +289,7 @@ lemma Seminorm.innerProd_comm (R : Seminorm ℝ E) (x y : E) :
     rw [show x - y = -(y - x) from by abel, map_neg_eq_map]
   rw [h1, h2]
 
+omit [TopologicalSpace E] in
 /-- `ip(-x, y) = -ip(x, y)`. -/
 lemma Seminorm.innerProd_neg_left (R : Seminorm ℝ E) (x y : E) :
     R.innerProd (-x) y = -R.innerProd x y := by
@@ -296,6 +300,7 @@ lemma Seminorm.innerProd_neg_left (R : Seminorm ℝ E) (x y : E) :
     rw [show -x - y = -(x + y) from by abel, map_neg_eq_map]
   rw [h1, h2]; ring
 
+omit [TopologicalSpace E] in
 /-- `ip(x₁ + x₂, y) = ip(x₁, y) + ip(x₂, y)` (additivity from parallelogram law).
 
 Uses four applications of the parallelogram identity with different argument pairs,
@@ -315,6 +320,7 @@ lemma Seminorm.innerProd_add_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) (x�
   rw [show x₂ - y - x₁ = -(x₁ - x₂ + y) from by abel, map_neg_eq_map] at p4
   linarith
 
+omit [TopologicalSpace E] in
 /-- `ip(∑ xⱼ, y) = ∑ ip(xⱼ, y)` (finite sum in first argument). -/
 lemma Seminorm.innerProd_sum_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) {ι : Type*}
     (s : Finset ι) (f : ι → E) (y : E) :
@@ -323,6 +329,7 @@ lemma Seminorm.innerProd_sum_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) {ι
   | empty => simp [Seminorm.innerProd, map_neg_eq_map]
   | cons a s has ih => rw [Finset.sum_cons, R.innerProd_add_left hR, ih, Finset.sum_cons]
 
+omit [TopologicalSpace E] in
 /-- Continuity of `t ↦ R(t • x + y)` as a function `ℝ → ℝ` (Lipschitz with constant `R(x)`). -/
 private lemma Seminorm.continuous_smul_add (R : Seminorm ℝ E) (x y : E) :
     Continuous (fun t : ℝ => R (t • x + y)) := by
@@ -344,6 +351,7 @@ private lemma Seminorm.continuous_smul_add (R : Seminorm ℝ E) (x y : E) :
                 mul_lt_mul_of_pos_right hst' (lt_of_le_of_ne (apply_nonneg R x) (Ne.symm hRx))
             _ = ε := div_mul_cancel₀ ε hRx
 
+omit [TopologicalSpace E] in
 /-- `ip(a • x, y) = a * ip(x, y)` (real homogeneity).
 
 Proof: `t ↦ ip(t•x, y)` is additive (from `innerProd_add_left`) and continuous
@@ -367,6 +375,7 @@ lemma Seminorm.innerProd_smul_left (R : Seminorm ℝ E) (hR : R.IsHilbertian) (a
 
 /-! ### Bessel Inequality for Hilbertian Seminorms -/
 
+omit [TopologicalSpace E] in
 /-- Pythagorean theorem: if `ip(x, y) = 0` then `R(x+y)² = R(x)² + R(y)²`. -/
 private lemma Seminorm.sq_add_of_innerProd_eq_zero (R : Seminorm ℝ E)
     (hR : R.IsHilbertian) (x y : E) (hxy : R.innerProd x y = 0) :
@@ -375,12 +384,14 @@ private lemma Seminorm.sq_add_of_innerProd_eq_zero (R : Seminorm ℝ E)
     simp only [Seminorm.innerProd] at hxy; linarith
   linarith [hR x y]
 
+omit [TopologicalSpace E] in
 /-- `R(vⱼ) = 1` for an R-orthonormal sequence. -/
 private lemma R_orthonormal_norm (R : Seminorm ℝ E) {N : ℕ} (v : Fin N → E)
     (hv : R.IsOrthonormalSeq v) (j : Fin N) : R (v j) = 1 := by
   have h := hv j j; simp at h; rw [R.innerProd_self] at h
   nlinarith [apply_nonneg R (v j)]
 
+omit [TopologicalSpace E] in
 /-- `R(∑ⱼ aⱼ • vⱼ)² = ∑ⱼ aⱼ²` for R-orthonormal `{vⱼ}` (by induction using Pythagoras). -/
 lemma Seminorm.sq_sum_orthonormal (R : Seminorm ℝ E) (hR : R.IsHilbertian)
     {N : ℕ} (v : Fin N → E) (hv : R.IsOrthonormalSeq v) (a : Fin N → ℝ) :
@@ -538,6 +549,7 @@ private lemma nuclear_le_sumC_mul_Q
         h1.tsum_mono (hC_sum.mul_left _) (fun n => mul_le_mul_of_nonneg_right (hFQ n x) (hC_nn n))
     _ = (∑' n, C n) * Q x := by rw [tsum_mul_left]; ring
 
+omit [TopologicalSpace E] in
 /-- Scaling a Hilbertian seminorm by `K : NNReal` preserves the parallelogram law. -/
 private lemma hilbertian_smul (K : NNReal) (R : Seminorm ℝ E) (hR : R.IsHilbertian) :
     (K • R).IsHilbertian := by
