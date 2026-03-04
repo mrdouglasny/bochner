@@ -1,3 +1,5 @@
 .lake/
 build/
 .claude/
+CLAUDE.md
+EXPORTS.md
