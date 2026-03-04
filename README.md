@@ -125,7 +125,7 @@ Minlos' theorem, nuclear spaces, and concentration bounds.
 
 ### Test — `Test/`
 
-Integration tests using axioms for Schwartz space properties.
+Integration tests using axioms for Schwartz space properties. The [gaussian-field](https://github.com/YulinGu-Fly/OSforGFF) project proves that Schwartz space is nuclear (via Hermite–Sobolev norms and the Dynin-Mityagin characterization); here we axiomatize this and other Schwartz properties to demonstrate Minlos' theorem constructing white noise on S'(ℝ).
 
 | File | Contents |
 |------|----------|

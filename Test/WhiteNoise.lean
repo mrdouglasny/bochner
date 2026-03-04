@@ -30,7 +30,8 @@ gaussian-field's axiomatized version.
 ## Axioms
 
 Four domain-specific axioms (all provable from Hermite basis theory):
-1. `schwartz_isHilbertNuclear` — Schwartz space is nuclear
+1. `schwartz_isHilbertNuclear` — Schwartz space is nuclear (proved in gaussian-field
+   via Hermite–Sobolev norms and Dynin-Mityagin characterization)
 2. `schwartz_separableSpace` — Schwartz space is separable
 3. `schwartzMap_l2Norm_continuous` — L² seminorm continuous on Schwartz topology
 4. `whiteNoiseCF_pd` — exp(-½‖f‖²_L²) is positive definite (Gaussian kernel)
@@ -47,16 +48,18 @@ noncomputable section
 /-! ## Axioms
 
 These results hold for Schwartz space but are axiomatized here since neither
-Mathlib nor this project proves them. The gaussian-field project axiomatizes
-the same facts under different class names (`NuclearSpace`, `schwartz_nuclear`). -/
+Mathlib nor this project proves them. The [gaussian-field](https://github.com/YulinGu-Fly/OSforGFF)
+project proves that Schwartz space is nuclear (via Hermite–Sobolev norms and the
+Dynin-Mityagin characterization) under its `NuclearSpace` class. -/
 
 /-- Schwartz space S(ℝ) is separable: the Hermite basis provides a countable dense set. -/
 axiom schwartz_separableSpace : SeparableSpace (SchwartzMap ℝ ℝ)
 
 /-- Schwartz space S(ℝ) is nuclear in the Hilbertian sense.
-Proof: Hermite–Sobolev norms ‖f‖_k² = ∑ (1+n)^{2k} |⟨f,hₙ⟩|² are Hilbertian,
-generate the Schwartz topology, and consecutive inclusions are Hilbert-Schmidt
-since ∑ (1+n)^{-2} < ∞. -/
+Proved in gaussian-field via `DyninMityaginSpace.toNuclearSpace` and the bridge
+`isHilbertNuclear_of_nuclear`. The proof uses Hermite–Sobolev norms
+‖f‖_k² = ∑ (1+n)^{2k} |⟨f,hₙ⟩|² which are Hilbertian, generate the Schwartz
+topology, and have Hilbert-Schmidt consecutive inclusions since ∑ (1+n)^{-2} < ∞. -/
 axiom schwartz_isHilbertNuclear : IsHilbertNuclear (SchwartzMap ℝ ℝ)
 
 /-- The L² seminorm ‖f‖²_L² = ∫ (f x)² dx is continuous on the Schwartz topology.
