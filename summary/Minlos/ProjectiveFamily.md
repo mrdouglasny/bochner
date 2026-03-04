@@ -1,6 +1,6 @@
 # `ProjectiveFamily.lean` — Informal Summary
 
-> **Source**: [`Bochner/Minlos/ProjectiveFamily.lean`](../../../Bochner/Minlos/ProjectiveFamily.lean)
+> **Source**: [`Minlos/ProjectiveFamily.lean`](../../../Minlos/ProjectiveFamily.lean)
 > **Generated**: 2026-03-03
 
 ## Overview
@@ -16,13 +16,13 @@ This file bridges finite-dimensional Bochner marginals (measures on `EuclideanSp
 
 ### Transport Equivalence
 
-#### [finsetReindexEquiv](../../../Bochner/Minlos/ProjectiveFamily.lean#L30)
+#### [finsetReindexEquiv](../../../Minlos/ProjectiveFamily.lean#L30)
 
 **Signature**: `finsetReindexEquiv (J : Finset E) : (↥J → ℝ) ≃ᵐ (Fin J.card → ℝ)`
 
 Measurable equivalence between `∀ j : J, ℝ` and `Fin |J| → ℝ` via reindexing with `J.equivFin`.
 
-#### [finsetPiMeasEquiv](../../../Bochner/Minlos/ProjectiveFamily.lean#L42)
+#### [finsetPiMeasEquiv](../../../Minlos/ProjectiveFamily.lean#L42)
 
 **Signature**: `finsetPiMeasEquiv (J : Finset E) : (↥J → ℝ) ≃ᵐ EuclideanSpace ℝ (Fin J.card)`
 
@@ -30,41 +30,41 @@ Measurable equivalence between `∀ j : J, ℝ` and `EuclideanSpace ℝ (Fin |J|
 
 ### Marginal Family
 
-#### [finsetTestVectors](../../../Bochner/Minlos/ProjectiveFamily.lean#L49)
+#### [finsetTestVectors](../../../Minlos/ProjectiveFamily.lean#L49)
 
 **Signature**: `finsetTestVectors (J : Finset E) : Fin J.card → E`
 
 The test vectors for a finset `J`, selecting from `J` in order via `J.equivFin.symm`.
 
-#### [marginalMeasure](../../../Bochner/Minlos/ProjectiveFamily.lean#L53)
+#### [marginalMeasure](../../../Minlos/ProjectiveFamily.lean#L53)
 
 **Signature**: `marginalMeasure (Φ : E → ℂ) (hΦ_cont : Continuous Φ) (hΦ_pd : IsPositiveDefinite Φ) (hΦ_norm : Φ 0 = 1) (J : Finset E) : ProbabilityMeasure (EuclideanSpace ℝ (Fin J.card))`
 
 The unique Bochner marginal measure on `EuclideanSpace ℝ (Fin |J|)` for test vectors from finset `J`, obtained by applying the existence theorem from `FinDimMarginals` and extracting the witness.
 
-#### [marginalMeasure_charFun](../../../Bochner/Minlos/ProjectiveFamily.lean#L58)
+#### [marginalMeasure_charFun](../../../Minlos/ProjectiveFamily.lean#L58)
 
 **Theorem**: For each test vector finset $J \subseteq E$ and spatial frequency $\xi$ on the finite-dimensional space, the characteristic function of the marginal measure equals $\Phi$ applied to the linear combination $\sum_{j \in J} \xi_j \cdot v_j$ where $v_j$ are the test vectors.
 
 **Proof uses**: `marginal_measure_exists`, characteristic function definition.
 
-#### [marginalFamily](../../../Bochner/Minlos/ProjectiveFamily.lean#L67)
+#### [marginalFamily](../../../Minlos/ProjectiveFamily.lean#L67)
 
 **Signature**: `marginalFamily (Φ : E → ℂ) (hΦ_cont : Continuous Φ) (hΦ_pd : IsPositiveDefinite Φ) (hΦ_norm : Φ 0 = 1) : ∀ J : Finset E, Measure (∀ j : ↥J, (fun (_ : E) => ℝ) ↑j)`
 
 The projective family of probability measures indexed by `Finset E`. For each `J`, we take the Bochner marginal on `EuclideanSpace ℝ (Fin |J|)` and transport it to the Pi-type `∀ j : J, ℝ` via `finsetPiMeasEquiv`.
 
-#### [marginalFamily_isFiniteMeasure](../../../Bochner/Minlos/ProjectiveFamily.lean#L73)
+#### [marginalFamily_isFiniteMeasure](../../../Minlos/ProjectiveFamily.lean#L73)
 
 **Instance**: The marginal family carries a finite measure instance on each `J` via pushforward of the finite Bochner marginal.
 
-#### [marginalFamily_isProbabilityMeasure](../../../Bochner/Minlos/ProjectiveFamily.lean#L78)
+#### [marginalFamily_isProbabilityMeasure](../../../Minlos/ProjectiveFamily.lean#L78)
 
 **Instance**: Each marginal in the family is a probability measure (weight 1) by preservation under measurable pushforward.
 
 ### Projectivity
 
-#### [marginalFamily_isProjective](../../../Bochner/Minlos/ProjectiveFamily.lean#L136)
+#### [marginalFamily_isProjective](../../../Minlos/ProjectiveFamily.lean#L136)
 
 **Theorem**: For $J \subseteq I$, the restriction of the marginal measure on $I$ to $J$-coordinates (via `Finset.restrict₂`) equals the marginal measure on $J$. In other words, $\pi_J^\#(P_I) = P_J$.
 
@@ -79,23 +79,23 @@ The key insight is proving the inner product identity $\langle \text{euclideanPr
 
 ### Application of Kolmogorov Extension
 
-#### [marginalProjectiveLimit](../../../Bochner/Minlos/ProjectiveFamily.lean#L232)
+#### [marginalProjectiveLimit](../../../Minlos/ProjectiveFamily.lean#L232)
 
 **Signature**: `marginalProjectiveLimit (Φ : E → ℂ) (hΦ_cont : Continuous Φ) (hΦ_pd : IsPositiveDefinite Φ) (hΦ_norm : Φ 0 = 1) [Nonempty E] : Measure (E → ℝ)`
 
 The Kolmogorov projective limit of the marginal family, a measure on the full space `E → ℝ` constructed via the Kolmogorov extension theorem applied to the projective family.
 
-#### [marginalProjectiveLimit_isProbability](../../../Bochner/Minlos/ProjectiveFamily.lean#L239)
+#### [marginalProjectiveLimit_isProbability](../../../Minlos/ProjectiveFamily.lean#L239)
 
 **Instance**: The projective limit is a probability measure, following from general projectivity of probability measures under Kolmogorov extension.
 
-#### [marginalProjectiveLimit_isProjectiveLimit](../../../Bochner/Minlos/ProjectiveFamily.lean#L247)
+#### [marginalProjectiveLimit_isProjectiveLimit](../../../Minlos/ProjectiveFamily.lean#L247)
 
 **Theorem**: The projective limit satisfies the universal property: it projects correctly onto each finite-dimensional marginal, i.e., $\pi_J^\#(\mu_{\text{limit}}) = P_J$.
 
 **Proof uses**: `isProjectiveLimit_projectiveLimit` from Kolmogorov extension API.
 
-#### [marginalProjectiveLimit_unique](../../../Bochner/Minlos/ProjectiveFamily.lean#L255)
+#### [marginalProjectiveLimit_unique](../../../Minlos/ProjectiveFamily.lean#L255)
 
 **Theorem**: If a measure $\nu$ on `E → ℝ` satisfies the projective limit property, then $\nu = \mu_{\text{limit}}$ (uniqueness of the Kolmogorov extension).
 

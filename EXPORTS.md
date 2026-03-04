@@ -6,7 +6,7 @@ Public definitions, theorems, and classes exported by this project.
 
 | Name | File | Type Signature |
 |------|------|---------------|
-| `bochner_theorem` | Bochner.lean | `(φ : V → ℂ) → Continuous φ → IsPositiveDefinite φ → φ 0 = 1 → ∃! μ : ProbabilityMeasure V, ∀ ξ, charFun μ ξ = φ ξ` |
+| `bochner_theorem` | Main.lean | `(φ : V → ℂ) → Continuous φ → IsPositiveDefinite φ → φ 0 = 1 → ∃! μ : ProbabilityMeasure V, ∀ ξ, charFun μ ξ = φ ξ` |
 | `minlos_theorem` | Minlos.lean | `[IsHilbertNuclear E] [SeparableSpace E] → (Φ : E → ℂ) → Continuous Φ → IsPositiveDefinite Φ → Φ 0 = 1 → ∃! μ : ProbabilityMeasure (WeakDual ℝ E), ∀ f, Φ f = ∫ ω, exp(I * ω f) ∂μ` |
 | `isHilbertNuclear_of_nuclear` | PietschBridge.lean | `IsNuclear E → IsHilbertNuclear E` |
 
@@ -41,7 +41,7 @@ Public definitions, theorems, and classes exported by this project.
 |------|-----------|
 | `pd_l1_fourier_re_nonneg_theorem` | `PD φ → Integrable φ → Continuous φ → 0 ≤ (𝓕φ ξ).re` |
 
-## Bochner.lean
+## Main.lean
 
 | Name | Signature |
 |------|-----------|
@@ -152,7 +152,7 @@ Public definitions, theorems, and classes exported by this project.
 | `qLinearPaths_ae` | ℚ-linearity a.e. |
 | `boundedPaths_ae` | Boundedness a.e. |
 
-## Minlos/Minlos.lean
+## Minlos/Main.lean
 
 | Name | Signature |
 |------|-----------|

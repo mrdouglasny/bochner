@@ -1,6 +1,6 @@
 # `FinDimMarginals.lean` — Informal Summary
 
-> **Source**: [`Bochner/Minlos/FinDimMarginals.lean`](../../../Bochner/Minlos/FinDimMarginals.lean)
+> **Source**: [`Minlos/FinDimMarginals.lean`](../../../Minlos/FinDimMarginals.lean)
 > **Generated**: 2026-03-03
 
 ## Overview
@@ -14,7 +14,7 @@ For a continuous positive-definite normalized functional $\Phi : E \to \mathbb{C
 
 ---
 
-### [marginalCF](../../../Bochner/Minlos/FinDimMarginals.lean#L36)
+### [marginalCF](../../../Minlos/FinDimMarginals.lean#L36)
 
 ```lean
 def marginalCF {E : Type*} [AddCommGroup E] [Module ℝ E]
@@ -24,7 +24,7 @@ def marginalCF {E : Type*} [AddCommGroup E] [Module ℝ E]
 
 The finite-dimensional marginal CF: $\Phi_F(t) = \Phi\left(\sum_{i} t_i \cdot f_i\right)$, defined on `EuclideanSpace ℝ (Fin n)` so that Bochner's theorem applies.
 
-### [marginalCF_continuous](../../../Bochner/Minlos/FinDimMarginals.lean#L46)
+### [marginalCF_continuous](../../../Minlos/FinDimMarginals.lean#L46)
 
 ```lean
 theorem marginalCF_continuous {E : Type*} [AddCommGroup E] [Module ℝ E]
@@ -35,7 +35,7 @@ theorem marginalCF_continuous {E : Type*} [AddCommGroup E] [Module ℝ E]
 
 The marginal CF is continuous. Proof uses: finite sum of continuous scalar multiplications, composed with continuous $\Phi$.
 
-### [marginalCF_pd](../../../Bochner/Minlos/FinDimMarginals.lean#L68)
+### [marginalCF_pd](../../../Minlos/FinDimMarginals.lean#L68)
 
 ```lean
 theorem marginalCF_pd {E : Type*} [AddCommGroup E] [Module ℝ E]
@@ -43,9 +43,9 @@ theorem marginalCF_pd {E : Type*} [AddCommGroup E] [Module ℝ E]
     (hPD : IsPositiveDefinite Φ) : IsPositiveDefinite (marginalCF Φ f)
 ```
 
-The marginal CF is positive definite. Proof uses: [`isPositiveDefinite_precomp_linear`](../../../Bochner/Minlos/FinDimMarginals.lean#L71) — if $\Phi$ is PD and $T : V \to E$ is linear, then $\Phi \circ T$ is PD.
+The marginal CF is positive definite. Proof uses: [`isPositiveDefinite_precomp_linear`](../../../Minlos/FinDimMarginals.lean#L71) — if $\Phi$ is PD and $T : V \to E$ is linear, then $\Phi \circ T$ is PD.
 
-### [marginalCF_normalized](../../../Bochner/Minlos/FinDimMarginals.lean#L74)
+### [marginalCF_normalized](../../../Minlos/FinDimMarginals.lean#L74)
 
 ```lean
 theorem marginalCF_normalized {E : Type*} [AddCommGroup E] [Module ℝ E]
@@ -55,7 +55,7 @@ theorem marginalCF_normalized {E : Type*} [AddCommGroup E] [Module ℝ E]
 
 The marginal CF is normalized: $\Phi_F(0) = \Phi(0) = 1$.
 
-### [marginal_measure_exists](../../../Bochner/Minlos/FinDimMarginals.lean#L84)
+### [marginal_measure_exists](../../../Minlos/FinDimMarginals.lean#L84)
 
 ```lean
 theorem marginal_measure_exists {E : Type*} [AddCommGroup E] [Module ℝ E]
@@ -67,7 +67,7 @@ theorem marginal_measure_exists {E : Type*} [AddCommGroup E] [Module ℝ E]
         marginalCF Φ f ξ
 ```
 
-For each finite set of test vectors, Bochner's theorem gives a unique probability measure on $\mathbb{R}^n$ whose characteristic function equals the marginal CF. Proof uses: [`bochner_theorem`](../../../Bochner/Minlos/FinDimMarginals.lean#L91) applied to `marginalCF_continuous`, `marginalCF_pd`, and `marginalCF_normalized`.
+For each finite set of test vectors, Bochner's theorem gives a unique probability measure on $\mathbb{R}^n$ whose characteristic function equals the marginal CF. Proof uses: [`bochner_theorem`](../../../Minlos/FinDimMarginals.lean#L91) applied to `marginalCF_continuous`, `marginalCF_pd`, and `marginalCF_normalized`.
 
 ---
 

@@ -1,6 +1,6 @@
 # `PietschBridge.lean` — Informal Summary
 
-> **Source**: [`Bochner/Minlos/PietschBridge.lean`](../../Bochner/Minlos/PietschBridge.lean)
+> **Source**: [`Minlos/PietschBridge.lean`](../../Minlos/PietschBridge.lean)
 > **Generated**: 2026-03-03
 
 ## Overview

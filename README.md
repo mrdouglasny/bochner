@@ -91,30 +91,32 @@ The bridge constructs Hilbertian seminorms via a **Hilbertian lift** r(x) = √(
 ## File structure
 
 ```
-Bochner/
-  PositiveDefinite.lean        -- IsPositiveDefinite definition, Schur product theorem
-  FejerPD.lean                 -- Fourier positivity: Re(𝓕φ) ≥ 0 via Fejér averages
-  Bochner.lean                 -- Bochner's theorem: Gaussian regularization + Prokhorov
-  Sazonov.lean                 -- Sazonov topology via trace-class seminorms
-  TestFubini.lean              -- Auxiliary Fubini lemmas for Gaussian regularization
-  Minlos/
-    NuclearSpace.lean           -- IsHilbertNuclear class, IsHilbertian, IsHilbertSchmidtEmbedding
-    PietschBridge.lean          -- IsNuclear, bridge to IsHilbertNuclear
-    FinDimMarginals.lean        -- Finite-dimensional marginal measures via Bochner
-    ProjectiveFamily.lean       -- Projective family construction
-    SazonovTightness.lean       -- Sazonov tightness for nuclear spaces
-    MinlosConcentration.lean    -- Concentration theorem + helper lemmas
-    MeasurableModification.lean -- Measurable projection from (E → ℝ) to WeakDual
-    Minlos.lean                 -- Minlos' theorem (main assembly)
+Bochner/                         -- lean_lib «Bochner»
+  PositiveDefinite.lean          -- IsPositiveDefinite definition, Schur product theorem
+  FejerPD.lean                   -- Fourier positivity: Re(𝓕φ) ≥ 0 via Fejér averages
+  Main.lean                      -- Bochner's theorem: Gaussian regularization + Prokhorov
+  Sazonov.lean                   -- Sazonov topology via trace-class seminorms
+  TestFubini.lean                -- Auxiliary Fubini lemmas for Gaussian regularization
+Minlos/                          -- lean_lib «Minlos»
+  NuclearSpace.lean              -- IsHilbertNuclear class, IsHilbertian, IsHilbertSchmidtEmbedding
+  PietschBridge.lean             -- IsNuclear, bridge to IsHilbertNuclear
+  FinDimMarginals.lean           -- Finite-dimensional marginal measures via Bochner
+  ProjectiveFamily.lean          -- Projective family construction
+  SazonovTightness.lean          -- Sazonov tightness for nuclear spaces
+  MinlosConcentration.lean       -- Concentration theorem + helper lemmas
+  MeasurableModification.lean    -- Measurable projection from (E → ℝ) to WeakDual
+  Main.lean                      -- Minlos' theorem (main assembly)
+Test/                            -- lean_lib «Test»
+  WhiteNoise.lean                -- White noise on Schwartz space via Minlos
 ```
 
 | File | Lines | Axioms | Sorries |
 |------|-------|--------|---------|
-| PositiveDefinite.lean | 200 | 0 | 0 |
-| FejerPD.lean | 612 | 0 | 0 |
-| Bochner.lean | 1297 | 0 | 0 |
-| Sazonov.lean | 193 | 0 | 0 |
-| TestFubini.lean | 518 | 0 | 0 |
+| Bochner/PositiveDefinite.lean | 200 | 0 | 0 |
+| Bochner/FejerPD.lean | 612 | 0 | 0 |
+| Bochner/Main.lean | 1297 | 0 | 0 |
+| Bochner/Sazonov.lean | 193 | 0 | 0 |
+| Bochner/TestFubini.lean | 518 | 0 | 0 |
 | Minlos/NuclearSpace.lean | 99 | 0 | 0 |
 | Minlos/PietschBridge.lean | 810 | 0 | 0 |
 | Minlos/FinDimMarginals.lean | 96 | 0 | 0 |
@@ -122,7 +124,7 @@ Bochner/
 | Minlos/SazonovTightness.lean | 1079 | 0 | 0 |
 | Minlos/MinlosConcentration.lean | 1831 | 0 | 0 |
 | Minlos/MeasurableModification.lean | 1101 | 0 | 0 |
-| Minlos/Minlos.lean | 220 | 0 | 0 |
+| Minlos/Main.lean | 220 | 0 | 0 |
 | **Total** | **8318** | **0** | **0** |
 
 ## Building
