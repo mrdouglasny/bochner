@@ -88,44 +88,48 @@ theorem isHilbertNuclear_of_nuclear [IsTopologicalAddGroup E] [ContinuousSMul �
 
 The bridge constructs Hilbertian seminorms via a **Hilbertian lift** r(x) = √(Σₖ fₖ(x)² · cₖ) from each nuclear expansion, then shows the inclusions are Hilbert-Schmidt using a Bessel inequality argument. **Fully proved** (0 sorries, 0 axioms).
 
-## File structure
+## Project structure
 
-```
-Bochner/                         -- lean_lib «Bochner»
-  PositiveDefinite.lean          -- IsPositiveDefinite definition, Schur product theorem
-  FejerPD.lean                   -- Fourier positivity: Re(𝓕φ) ≥ 0 via Fejér averages
-  Main.lean                      -- Bochner's theorem: Gaussian regularization + Prokhorov
-  Sazonov.lean                   -- Sazonov topology via trace-class seminorms
-  TestFubini.lean                -- Auxiliary Fubini lemmas for Gaussian regularization
-Minlos/                          -- lean_lib «Minlos»
-  NuclearSpace.lean              -- IsHilbertNuclear class, IsHilbertian, IsHilbertSchmidtEmbedding
-  PietschBridge.lean             -- IsNuclear, bridge to IsHilbertNuclear
-  FinDimMarginals.lean           -- Finite-dimensional marginal measures via Bochner
-  ProjectiveFamily.lean          -- Projective family construction
-  SazonovTightness.lean          -- Sazonov tightness for nuclear spaces
-  MinlosConcentration.lean       -- Concentration theorem + helper lemmas
-  MeasurableModification.lean    -- Measurable projection from (E → ℝ) to WeakDual
-  Main.lean                      -- Minlos' theorem (main assembly)
-Test/                            -- lean_lib «Test»
-  WhiteNoise.lean                -- White noise on Schwartz space via Minlos
-```
+Three Lean libraries (~8300 lines, 0 sorries, 0 custom axioms):
 
-| File | Lines | Axioms | Sorries |
-|------|-------|--------|---------|
-| Bochner/PositiveDefinite.lean | 200 | 0 | 0 |
-| Bochner/FejerPD.lean | 612 | 0 | 0 |
-| Bochner/Main.lean | 1297 | 0 | 0 |
-| Bochner/Sazonov.lean | 193 | 0 | 0 |
-| Bochner/TestFubini.lean | 518 | 0 | 0 |
-| Minlos/NuclearSpace.lean | 99 | 0 | 0 |
-| Minlos/PietschBridge.lean | 810 | 0 | 0 |
-| Minlos/FinDimMarginals.lean | 96 | 0 | 0 |
-| Minlos/ProjectiveFamily.lean | 262 | 0 | 0 |
-| Minlos/SazonovTightness.lean | 1079 | 0 | 0 |
-| Minlos/MinlosConcentration.lean | 1831 | 0 | 0 |
-| Minlos/MeasurableModification.lean | 1101 | 0 | 0 |
-| Minlos/Main.lean | 220 | 0 | 0 |
-| **Total** | **8318** | **0** | **0** |
+### Bochner — `Bochner/`
+
+Bochner's theorem and supporting infrastructure.
+
+| File | Contents |
+|------|----------|
+| [PositiveDefinite](Bochner/PositiveDefinite.lean) | [IsPositiveDefinite, Schur product theorem, precomp with linear maps](summary/Bochner/PositiveDefinite.md) |
+| [FejerPD](Bochner/FejerPD.lean) | [Fourier positivity: Re(𝓕φ) ≥ 0 via Fejér averaging](summary/Bochner/FejerPD.md) |
+| [Main](Bochner/Main.lean) | [Bochner's theorem: Gaussian regularization, Prokhorov, uniqueness](summary/Bochner/Main.md) |
+| [Sazonov](Bochner/Sazonov.lean) | [Sazonov topology via trace-class seminorms](summary/Bochner/Sazonov.md) |
+| [TestFubini](Bochner/TestFubini.lean) | [Fubini lemmas for Gaussian regularization integrals](summary/Bochner/TestFubini.md) |
+
+---
+
+### Minlos — `Minlos/`
+
+Minlos' theorem, nuclear spaces, and concentration bounds.
+
+| File | Contents |
+|------|----------|
+| [NuclearSpace](Minlos/NuclearSpace.lean) | [IsHilbertNuclear class, Hilbertian seminorms, HS embeddings](summary/Minlos/NuclearSpace.md) |
+| [PietschBridge](Minlos/PietschBridge.lean) | [IsNuclear → IsHilbertNuclear via hilbertianLift + Bessel inequality](summary/Minlos/PietschBridge.md) |
+| [SazonovTightness](Minlos/SazonovTightness.lean) | [Sazonov CF continuity → tightness of finite-dim marginals](summary/Minlos/SazonovTightness.md) |
+| [MinlosConcentration](Minlos/MinlosConcentration.lean) | [Concentration theorem: Gaussian averaging, Gram matrix, Chebyshev](summary/Minlos/MinlosConcentration.md) |
+| [FinDimMarginals](Minlos/FinDimMarginals.lean) | [Finite-dimensional marginal measures via Bochner's theorem](summary/Minlos/FinDimMarginals.md) |
+| [ProjectiveFamily](Minlos/ProjectiveFamily.lean) | [Kolmogorov projective family + extension to E → ℝ](summary/Minlos/ProjectiveFamily.md) |
+| [MeasurableModification](Minlos/MeasurableModification.lean) | [Measurable projection P : (E → ℝ) → WeakDual ℝ E](summary/Minlos/MeasurableModification.md) |
+| [Main](Minlos/Main.lean) | [Minlos' theorem: existence + uniqueness on nuclear spaces](summary/Minlos/Main.md) |
+
+---
+
+### Test — `Test/`
+
+Integration tests using axioms for Schwartz space properties.
+
+| File | Contents |
+|------|----------|
+| [WhiteNoise](Test/WhiteNoise.lean) | White noise measure on S'(ℝ) via Minlos, bridge theorem with gaussian-field |
 
 ## Building
 
