@@ -41,7 +41,7 @@ On a nuclear, separable, locally convex space E, a continuous positive-definite 
 
 ## Nuclear spaces
 
-The project formalizes two equivalent characterizations of nuclear spaces and proves one implies the other.
+The project formalizes two characterizations of nuclear spaces and proves the Pietsch characterization implies the Hilbertian one. The [gaussian-field](https://github.com/YulinGu-Fly/OSforGFF) project independently defines `NuclearSpace` using the same Pietsch characterization; our `IsNuclear` matches it, and the bridge `isHilbertNuclear_of_nuclear` completes the chain to `IsHilbertNuclear` used by Minlos' theorem.
 
 ### Hilbertian characterization (used by Minlos)
 
@@ -161,3 +161,4 @@ Requires Lean v4.28.0-rc1 and Mathlib.
 - Gel'fand and Vilenkin, *Generalized Functions* Vol. 4, Chapters 3-4
 - Trèves, *Topological Vector Spaces*, Chapters 50-51
 - Pietsch, *Nuclear Locally Convex Spaces* (1972)
+- Degenne, Ledvinka, Marion, Pfaffelhuber, *Formalization of Brownian motion in Lean* (2025), [arXiv:2511.20118](https://arxiv.org/abs/2511.20118)

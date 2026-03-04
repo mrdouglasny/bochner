@@ -10,31 +10,37 @@ probability measure on the dual of Schwartz space.
 
 ## Bridge with gaussian-field
 
-The `gaussian-field` project (OSforGFF) constructs Gaussian measures on S'(ℝ) via an
-axiomatized Minlos theorem using its own `NuclearSpace` class. The CF it produces is
-`gaussian_characteristic_functional C f = exp(-½ C(f,f))`, which for the L² covariance
-`C(f,f) = ∫ (f x)² dx` is definitionally equal to our `whiteNoiseCF`.
+The `gaussian-field` project (OSforGFF) constructs Gaussian measures on E' = WeakDual ℝ E
+via nuclear factorization and iid Gaussian noise (no Minlos). Its `GaussianField.charFun`
+proves `∫ ω, exp(i ω(f)) dμ = exp(-½ ⟨Tf, Tf⟩_H)` for a CLM T : E → H. When T is the
+inclusion S(ℝ) → L²(ℝ), this gives `exp(-½ ∫ f²)`, equal to our `whiteNoiseCF`.
 
-The two nuclear space classes differ only cosmetically:
-- **gaussian-field**: `NuclearSpace E` — `∀ n, ∃ m, n < m ∧ HS(p m, p n)`
-- **BochnerMinlos**: `IsHilbertNuclear E` — `∀ n, HS(p (n+1), p n)` (consecutive)
+The two projects use different characterizations of nuclearity:
+- **gaussian-field**: `NuclearSpace E` — Pietsch nuclear dominance
+  (`∀ p continuous, ∃ nuclear expansion Σ |fₙ(x)| · cₙ ≥ p(x)`)
+- **BochnerMinlos**: `IsNuclear E` — same Pietsch condition (in `PietschBridge.lean`)
+- **BochnerMinlos**: `IsHilbertNuclear E` — Hilbertian HS embeddings (used by Minlos)
 
-Both are axiomatized for `SchwartzMap ℝ ℝ`. The bridge is `white_noise_unique` below:
-regardless of *how* a probability measure on S'(ℝ) is constructed — by our proved Minlos
-theorem, by gaussian-field's axiomatized Minlos, or by any other method — if it has CF
-`exp(-½‖f‖²_L²)`, it must equal the measure from `white_noise_measure_exists`.
+The bridge chain is: gaussian-field proves `DyninMityaginSpace → NuclearSpace` (Pietsch).
+Our `IsNuclear` matches `NuclearSpace`, and `isHilbertNuclear_of_nuclear` (proved,
+0 axioms) completes the chain to `IsHilbertNuclear`.
 
-This uniqueness comes from our *proved* (0-axiom) `minlos_uniqueness`, not from
-gaussian-field's axiomatized version.
+The bridge theorem is `white_noise_unique` below: regardless of *how* a probability
+measure on S'(ℝ) is constructed — by our Minlos theorem, by gaussian-field's nuclear
+factorization, or by any other method — if it has CF `exp(-½‖f‖²_L²)`, it must equal
+the measure from `white_noise_measure_exists`.
+
+This uniqueness comes from our *proved* (0-axiom) `minlos_uniqueness`.
 
 ## Axioms
 
 Four domain-specific axioms (all provable from Hermite basis theory):
-1. `schwartz_isHilbertNuclear` — Schwartz space is nuclear (proved in gaussian-field
-   via Hermite–Sobolev norms and Dynin-Mityagin characterization)
-2. `schwartz_separableSpace` — Schwartz space is separable
+1. `schwartz_isHilbertNuclear` — Schwartz space is Hilbert-nuclear (derivable from
+   gaussian-field's `NuclearSpace` proof via our `isHilbertNuclear_of_nuclear` bridge)
+2. `schwartz_separableSpace` — Schwartz space is separable (Hermite functions are dense)
 3. `schwartzMap_l2Norm_continuous` — L² seminorm continuous on Schwartz topology
-4. `whiteNoiseCF_pd` — exp(-½‖f‖²_L²) is positive definite (Gaussian kernel)
+4. `whiteNoiseCF_pd` — exp(-½‖f‖²_L²) is positive definite (derivable from
+   gaussian-field's `GaussianField.charFun`: CF of a probability measure is PD)
 -/
 
 import Minlos.Main
@@ -50,31 +56,36 @@ noncomputable section
 These results hold for Schwartz space but are axiomatized here since neither
 Mathlib nor this project proves them. The [gaussian-field](https://github.com/YulinGu-Fly/OSforGFF)
 project proves that Schwartz space is nuclear (via Hermite–Sobolev norms and the
-Dynin-Mityagin characterization) under its `NuclearSpace` class. -/
+Dynin-Mityagin characterization) under its `NuclearSpace` class (Pietsch nuclear
+dominance). The bridge `isHilbertNuclear_of_nuclear` in `PietschBridge.lean` connects
+this to our `IsHilbertNuclear` used by Minlos' theorem. -/
 
 /-- Schwartz space S(ℝ) is separable: the Hermite basis provides a countable dense set. -/
 axiom schwartz_separableSpace : SeparableSpace (SchwartzMap ℝ ℝ)
 
 /-- Schwartz space S(ℝ) is nuclear in the Hilbertian sense.
-Proved in gaussian-field via `DyninMityaginSpace.toNuclearSpace` and the bridge
-`isHilbertNuclear_of_nuclear`. The proof uses Hermite–Sobolev norms
-‖f‖_k² = ∑ (1+n)^{2k} |⟨f,hₙ⟩|² which are Hilbertian, generate the Schwartz
-topology, and have Hilbert-Schmidt consecutive inclusions since ∑ (1+n)^{-2} < ∞. -/
+The gaussian-field project proves `DyninMityaginSpace → NuclearSpace` (Pietsch) using
+Hermite–Sobolev norms. Our `IsNuclear` matches gaussian-field's `NuclearSpace`, and
+`isHilbertNuclear_of_nuclear` (proved, 0 axioms) bridges Pietsch → Hilbertian HS.
+The Hermite–Sobolev norms ‖f‖_k² = ∑ (1+n)^{2k} |⟨f,hₙ⟩|² are Hilbertian, generate
+the Schwartz topology, and have HS consecutive inclusions since ∑ (1+n)^{-2} < ∞. -/
 axiom schwartz_isHilbertNuclear : IsHilbertNuclear (SchwartzMap ℝ ℝ)
 
 /-- The L² seminorm ‖f‖²_L² = ∫ (f x)² dx is continuous on the Schwartz topology.
-Dominated by the S_{0,0} Schwartz seminorm. -/
+Follows from rapid decay: ∫ f² dx ≤ (∫ (1+x²)⁻¹ dx) · sup_x (1+x²)|f(x)|², so the
+L² norm is dominated by Schwartz seminorms of the form ‖x^α f‖_∞. -/
 axiom schwartzMap_l2Norm_continuous :
     Continuous (fun f : SchwartzMap ℝ ℝ => ∫ x : ℝ, (f x) ^ 2)
 
+-- Register Schwartz space instances so `minlos_theorem` can find them.
 attribute [instance] schwartz_separableSpace schwartz_isHilbertNuclear
 
 /-! ## White Noise Characteristic Functional -/
 
 /-- The white noise characteristic functional Φ(f) = exp(-½‖f‖²_L²).
 
-This equals gaussian-field's `gaussian_characteristic_functional C` when
-`C(f,f) = ∫ (f x)² dx` (the L² covariance form). -/
+When gaussian-field's `GaussianField.measure` is applied with T = inclusion S(ℝ) → L²(ℝ),
+the resulting CF `exp(-½ ⟨Tf, Tf⟩_{L²}) = exp(-½ ∫ f²)` is definitionally equal. -/
 def whiteNoiseCF : SchwartzMap ℝ ℝ → ℂ :=
   fun f => exp (-(1 / 2 : ℂ) * ↑(∫ x : ℝ, (f x) ^ 2))
 
@@ -90,8 +101,10 @@ theorem whiteNoiseCF_continuous : Continuous whiteNoiseCF := by
     (continuous_const.mul (continuous_ofReal.comp schwartzMap_l2Norm_continuous))
 
 /-- Φ(f) = exp(-½‖f‖²_L²) is positive definite (Gaussian kernel PD).
-Proved in gaussian-field as `gaussian_rbf_pd_innerProduct` composed with
-the inclusion S(ℝ) →ₗ[ℝ] L²(ℝ) via `isPositiveDefinite_precomp_linear`. -/
+Derivable from gaussian-field's `GaussianField.charFun`: the CF of any probability
+measure is PD, and `charFun` with T = inclusion S(ℝ) → L²(ℝ) gives exactly this CF.
+Alternatively, provable directly from Schoenberg's theorem (the Gaussian RBF e^{-½‖x‖²}
+is PD on any inner product space) pulled back via `isPositiveDefinite_precomp_linear`. -/
 axiom whiteNoiseCF_pd : IsPositiveDefinite whiteNoiseCF
 
 /-! ## Main Results -/
