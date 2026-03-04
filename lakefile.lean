@@ -18,3 +18,10 @@ lean_lib «Bochner» where
 lean_lib «Minlos» where
 
 lean_lib «Test» where
+
+lean_lib «CertificateSchema» where
+  srcDir := "certificates"
+
+lean_lib «export» where
+  srcDir := "certificates"
+  roots := #[`export.MinlosTheorem, `export.MinlosUniqueness]
