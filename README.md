@@ -162,3 +162,11 @@ Requires Lean v4.28.0-rc1 and Mathlib.
 - Trèves, *Topological Vector Spaces*, Chapters 50-51
 - Pietsch, *Nuclear Locally Convex Spaces* (1972)
 - Degenne, Ledvinka, Marion, Pfaffelhuber, *Formalization of Brownian motion in Lean* (2025), [arXiv:2511.20118](https://arxiv.org/abs/2511.20118)
+
+## Author
+
+Michael R. Douglas
+
+## License
+
+Copyright (c) 2026 Michael R. Douglas. Released under the Apache 2.0 license.
