@@ -1,6 +1,6 @@
 import Bochner.Sazonov
 import Bochner.PositiveDefinite
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction
+import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 import Mathlib.MeasureTheory.Measure.Tight
 import Mathlib.Analysis.InnerProductSpace.PiL2
 import Mathlib.Analysis.InnerProductSpace.Adjoint

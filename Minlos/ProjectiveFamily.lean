@@ -148,7 +148,7 @@ theorem marginalFamily_isProjective (Φ : E → ℂ) (hΦ_cont : Continuous Φ)
   intro I J hJI
   -- Unfold marginalFamily and compose maps on RHS
   simp only [marginalFamily]
-  rw [Measure.map_map (Finset.measurable_restrict₂ hJI)
+  conv_rhs => rw [Measure.map_map (Finset.measurable_restrict₂ hJI)
     (finsetPiMeasEquiv I).symm.measurable]
   -- Suffices: on EuclideanSpace, μ_J = μ_I.map (euclideanProject)
   suffices key : (marginalMeasure Φ hΦ_cont hΦ_pd hΦ_norm J : Measure _) =
