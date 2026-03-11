@@ -102,8 +102,8 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     have h_inner : ∀ y : EuclideanSpace ℝ (Fin ({f} : Finset E).card),
         (y idx : ℝ) = @inner ℝ _ _ y (EuclideanSpace.single idx 1) := by
       intro y
-      simp [PiLp.inner_apply, EuclideanSpace.single_apply,
-        RCLike.inner_apply, conj_trivial]
+      change _ = @inner ℝ (EuclideanSpace ℝ _) _ y (EuclideanSpace.single idx 1)
+      erw [EuclideanSpace.inner_single_right]; simp
     simp_rw [h_inner, ← charFun_apply, marginalMeasure_charFun]
     -- Step 5: Simplify marginalCF for singleton
     simp [marginalCF, finsetTestVectors, EuclideanSpace.single_apply, idx_def]
@@ -151,8 +151,11 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
     have h_inner : ∀ y : EuclideanSpace ℝ (Fin J.card),
         (∑ i : Fin n, s i * y (fi i) : ℝ) = @inner ℝ _ _ y ξ := by
       intro y
-      simp only [ξ_def, inner_sum, inner_smul_right, EuclideanSpace.inner_single_right,
-        RCLike.conj_to_real, one_mul]
+      simp only [ξ_def, inner_sum, inner_smul_right]
+      congr 1; ext i
+      have : @inner ℝ (EuclideanSpace ℝ _) _ y (EuclideanSpace.single (fi i) 1) = y (fi i) := by
+        erw [EuclideanSpace.inner_single_right]; simp
+      rw [this]
     simp_rw [h_inner, ← charFun_apply, marginalMeasure_charFun]
     -- Step 4: Unfold marginalCF and show sum equality
     simp only [marginalCF]

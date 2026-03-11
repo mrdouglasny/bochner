@@ -1081,13 +1081,14 @@ lemma uniqueness_via_projection [SeparableSpace E] [IsHilbertNuclear E] [Nonempt
           weakDualEmbed E) l) ξ =
         l (∑ k : Fin J.card, (ξ k) • finsetTestVectors J k) := by
       intro l
-      simp only [PiLp.inner_apply, RCLike.inner_apply, conj_trivial,
+      simp only [PiLp.inner_apply,
         finsetPiMeasEquiv, finsetReindexEquiv, finsetTestVectors,
         MeasurableEquiv.trans_apply, MeasurableEquiv.coe_mk, Equiv.coe_fn_mk,
         MeasurableEquiv.coe_toLp, Function.comp_apply, Finset.restrict,
         weakDualEmbed]
-      rw [map_sum]
-      simp_rw [map_smul, smul_eq_mul]
+      simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+        fun a b => RCLike.inner_apply a b]
+      rw [map_sum]; simp_rw [map_smul, smul_eq_mul]
     simp_rw [h_inner_eq, mul_comm _ Complex.I]
     rw [← hμ']
     rfl

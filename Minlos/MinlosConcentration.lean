@@ -63,8 +63,10 @@ lemma ae_eq_zero_of_charfun_eq_one {Ω : Type*} [MeasurableSpace Ω]
     rw [charFun_apply, integral_map hX.aemeasurable
       (by fun_prop : AEStronglyMeasurable (fun x => cexp (@inner ℝ ℝ _ x t * I)) _)]
     have h_inner : ∀ ω, cexp (@inner ℝ ℝ _ (X ω) t * I) = exp (I * ↑(t * X ω)) := by
-      intro ω; congr 1
-      simp [RCLike.inner_apply, mul_comm I]
+      intro ω
+      have : @inner ℝ ℝ _ (X ω) t = t * X ω := by
+        change t * starRingEnd ℝ (X ω) = t * X ω; simp
+      rw [this]; push_cast; ring
     simp_rw [h_inner]
     rw [hcf t]
     simp [Complex.ofReal_zero, zero_mul, Complex.exp_zero]
@@ -145,7 +147,7 @@ lemma cf_nhds_ball
   rw [ContinuousAt, h_normalized] at h_cont_at
   have h_nhds : {x | ‖1 - Φ x‖ < ε} ∈ nhds (0 : E) := by
     have hsub : Φ ⁻¹' Metric.ball 1 ε ⊆ {x : E | ‖1 - Φ x‖ < ε} := by
-      intro x hx; simp only [Set.mem_preimage, Metric.mem_ball] at hx
+      intro x hx; simp only [Set.mem_preimage, Metric.mem_ball, dist_eq_norm] at hx
       simp only [Set.mem_setOf_eq]; rwa [norm_sub_rev]
     exact Filter.mem_of_superset
       (h_cont_at (Metric.isOpen_ball.mem_nhds (by simp [Metric.mem_ball, dist_self, hε]))) hsub
@@ -848,9 +850,9 @@ private lemma joint_kernel_bound_finite
   -- Step 2: Inner product on V: ⟨eval_z(ω), v⟩ = ∑ j, v j * ω(z j)
   have h_inner : ∀ (ω : E → ℝ) (v : V),
       @inner ℝ V _ (eval_z ω) v = ∑ j, v j * ω (z j) := by
-    intro ω v
-    rw [PiLp.inner_apply]
-    simp only [RCLike.inner_apply, RCLike.conj_to_real, h_coord, mul_comm]
+    intro ω v; erw [PiLp.inner_apply]
+    simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+      fun a b => RCLike.inner_apply a b, h_coord]
   -- Step 3: CF of μ' equals v ↦ Φ(∑ vⱼ zⱼ)
   have h_cf : ∀ v : V, charFun μ'.toMeasure v = Φ (∑ i, v i • z i) := by
     intro v; rw [charFun_apply]
@@ -1278,8 +1280,9 @@ private lemma tail_bound_uniform
     have h_coord : ∀ (ω : E → ℝ) (i : Fin (k + 1)), (eval_e ω) i = ω (e i) := fun _ _ => rfl
     have h_inner_V : ∀ (ω : E → ℝ) (v : V),
         @inner ℝ V _ (eval_e ω) v = ∑ j, v j * ω (e j) := by
-      intro ω v; rw [PiLp.inner_apply]
-      simp only [RCLike.inner_apply, RCLike.conj_to_real, h_coord, mul_comm]
+      intro ω v; erw [PiLp.inner_apply]
+      simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+        fun a b => RCLike.inner_apply a b, h_coord]
     -- Step B: CF of μ'
     have h_cf : ∀ v : V, charFun μ'.toMeasure v = Φ (∑ i, v i • e i) := by
       intro v; rw [charFun_apply]
@@ -1325,8 +1328,9 @@ private lemma tail_bound_uniform
     have h_qf : ∀ v : V, quadForm S v = p_inner (∑ i, v i • e i) ^ 2 := by
       intro v
       show @inner ℝ V _ v (S_fun v) = _
-      rw [PiLp.inner_apply]
-      simp_rw [RCLike.inner_apply, RCLike.conj_to_real, hS_coord', Finset.sum_mul]
+      erw [PiLp.inner_apply]
+      simp_rw [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+        fun a b => RCLike.inner_apply a b, hS_coord', Finset.sum_mul]
       rw [← Seminorm.innerProd_self p_inner, p_inner.innerProd_sum_left hp_inner]
       simp_rw [gs_innerProd_sum_right p_inner hp_inner,
         p_inner.innerProd_smul_left hp_inner, gs_innerProd_smul_right p_inner hp_inner]
@@ -1339,8 +1343,9 @@ private lemma tail_bound_uniform
         -- Compute both to ∑_j ∑_l Mij j l * v l * w j
         have h_expand_inner : ∀ (a b : V),
             @inner ℝ V _ (S_fun a) b = ∑ j, ∑ l, Mij j l * a l * b j := by
-          intro a b; rw [PiLp.inner_apply]
-          simp_rw [RCLike.inner_apply, RCLike.conj_to_real, hS_coord', Finset.mul_sum]
+          intro a b; erw [PiLp.inner_apply]
+          simp_rw [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+            fun a b => RCLike.inner_apply a b, hS_coord', Finset.mul_sum]
           congr 1; ext j; congr 1; ext l; ring
         rw [h_expand_inner]
         rw [show @inner ℝ V _ v (S_fun w) = @inner ℝ V _ (S_fun w) v from
@@ -1386,16 +1391,19 @@ private lemma tail_bound_uniform
         intro j l
         have key := b.sum_inner_mul_inner
           (EuclideanSpace.single j (1 : ℝ)) (EuclideanSpace.single l 1)
-        rw [EuclideanSpace.inner_single_left] at key
-        simp only [map_one, one_mul, EuclideanSpace.single_apply] at key
-        have h_inner_bi : ∀ i,
-            @inner ℝ V _ (EuclideanSpace.single j 1) (b i) *
-            @inner ℝ V _ (b i) (EuclideanSpace.single l 1) =
-            (b i) j * (b i) l := by
-          intro i
-          rw [EuclideanSpace.inner_single_left, EuclideanSpace.inner_single_right]
-          simp only [map_one, one_mul, RCLike.conj_to_real]
-        simp_rw [h_inner_bi] at key
+        have h_single_left : ∀ (v : V),
+            @inner ℝ V _ (EuclideanSpace.single j 1) v = v j := by
+          intro v; erw [PiLp.inner_apply]
+          simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+            fun a b => RCLike.inner_apply a b]
+          simp [EuclideanSpace.single_apply]
+        have h_single_right : ∀ (v : V),
+            @inner ℝ V _ v (EuclideanSpace.single l 1) = v l := by
+          intro v; erw [PiLp.inner_apply]
+          simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
+            fun a b => RCLike.inner_apply a b]
+          simp [EuclideanSpace.single_apply]
+        simp only [h_single_left, h_single_right, EuclideanSpace.single_apply] at key
         exact key.symm.symm
       -- Apply Parseval and collapse: use convert to handle ofLp coercion
       -- Goal: ∑_j ∑_l Mij j l * (∑_i (b i).ofLp j * (b i).ofLp l) ≤ C_HS
