@@ -322,12 +322,17 @@ theorem fubini_gaussian_charFun
   have fubini := integral_integral_swap hprod
   have lhs_eq : ∫ y, (∫ x, (gaussDensity σ x : ℂ) * cexp (↑⟪y, x⟫_ℝ * I)) ∂μ.toMeasure =
       ↑C * ∫ y, cexp (-(σ ^ 2 * ‖y‖ ^ 2 / 2 : ℝ)) ∂μ.toMeasure := by
-    rw [← integral_const_mul]; congr 1; ext y; exact gaussian_fourier_eq' σ hσ y
+    trans ∫ y, (↑C : ℂ) * cexp (-(σ ^ 2 * ‖y‖ ^ 2 / 2 : ℝ)) ∂μ.toMeasure
+    · congr 1; ext y; exact gaussian_fourier_eq' σ hσ y
+    · exact integral_const_mul _ _
   have rhs_eq : ∫ x, (∫ y, (gaussDensity σ x : ℂ) * cexp (↑⟪y, x⟫_ℝ * I) ∂μ.toMeasure) =
       ∫ x, (gaussDensity σ x : ℂ) * φ x := by
-    congr 1; ext x; rw [integral_const_mul]; congr 1
-    show ∫ y, cexp (↑⟪y, x⟫_ℝ * I) ∂μ.toMeasure = φ x
-    rw [← hφ x]; rfl
+    congr 1; ext x
+    trans (↑(gaussDensity σ x) : ℂ) * ∫ y, cexp (↑⟪y, x⟫_ℝ * I) ∂μ.toMeasure
+    · exact integral_const_mul _ _
+    · congr 1
+      show ∫ y, cexp (↑⟪y, x⟫_ℝ * I) ∂μ.toMeasure = φ x
+      rw [← hφ x]; rfl
   have key_complex : ↑C * ∫ y, cexp (-(σ ^ 2 * ‖y‖ ^ 2 / 2 : ℝ)) ∂μ.toMeasure =
       ∫ x, (gaussDensity σ x : ℂ) * φ x := by
     rw [← lhs_eq, fubini, rhs_eq]
@@ -845,7 +850,8 @@ lemma restrictOp_quadForm (S : H →L[ℝ] H) {n : ℕ} (v : Fin n → H)
     quadForm (restrictOp S v) t = quadForm S (∑ i, t i • v i) := by
   simp only [quadForm]
   rw [PiLp.inner_apply]
-  simp only [RCLike.inner_apply, RCLike.conj_to_real, restrictOp_apply]
+  simp only [restrictOp_apply]
+  simp_rw [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from fun a b => RCLike.inner_apply a b]
   rw [sum_inner]
   simp only [inner_smul_left, RCLike.conj_to_real]
   congr 1; ext i; ring
@@ -865,7 +871,8 @@ lemma restrictOp_isPositive (S : H →L[ℝ] H) (hS : S.IsPositive)
   · intro x y
     simp only [ContinuousLinearMap.coe_coe]
     rw [PiLp.inner_apply, PiLp.inner_apply]
-    simp only [RCLike.inner_apply, RCLike.conj_to_real, restrictOp_apply]
+    simp only [restrictOp_apply]
+    simp_rw [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from fun a b => RCLike.inner_apply a b]
     trans @inner ℝ H _ (∑ i, y i • v i) (S (∑ j, x j • v j))
     · rw [sum_inner]; congr 1; ext i; rw [inner_smul_left, RCLike.conj_to_real]
     trans @inner ℝ H _ (∑ i, x i • v i) (S (∑ j, y j • v j))
@@ -981,7 +988,7 @@ lemma restrictOp_trace_eq_diag (S : H →L[ℝ] H) {n : ℕ} (v : Fin n → H)
     change @inner ℝ (EuclideanSpace ℝ (Fin n)) _
       (EuclideanSpace.single j 1) (restrictOp S v (EuclideanSpace.single j 1)) = _
     rw [PiLp.inner_apply]
-    simp only [RCLike.inner_apply, RCLike.conj_to_real]
+    simp_rw [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from fun a b => RCLike.inner_apply a b]
     have h_app : ∀ i, (restrictOp S v (EuclideanSpace.single j 1)) i =
         @inner ℝ H _ (v i) (S (v j)) := by
       intro i; rw [restrictOp_apply]
