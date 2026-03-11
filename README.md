@@ -129,7 +129,7 @@ Integration tests using axioms for Schwartz space properties. The [gaussian-fiel
 
 | File | Contents |
 |------|----------|
-| [WhiteNoise](Test/WhiteNoise.lean) | White noise measure on S'(ℝ) via Minlos, bridge theorem with gaussian-field |
+| [WhiteNoise](Test/WhiteNoise.lean) | [White noise measure on S'(ℝ) via Minlos, bridge theorem with gaussian-field](summary/Test/WhiteNoise.md) |
 
 ## Building
 
