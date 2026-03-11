@@ -66,7 +66,7 @@ lemma ae_eq_zero_of_charfun_eq_one {Ω : Type*} [MeasurableSpace Ω]
       intro ω
       have : @inner ℝ ℝ _ (X ω) t = t * X ω := by
         change t * starRingEnd ℝ (X ω) = t * X ω; simp
-      rw [this]; push_cast; ring
+      rw [this]; push_cast; ring_nf
     simp_rw [h_inner]
     rw [hcf t]
     simp [Complex.ofReal_zero, zero_mul, Complex.exp_zero]
