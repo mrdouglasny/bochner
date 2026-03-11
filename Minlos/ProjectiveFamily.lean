@@ -189,7 +189,7 @@ theorem marginalFamily_isProjective (Φ : E → ℂ) (hΦ_cont : Continuous Φ)
   have h_inner : ∀ y : EuclideanSpace ℝ (Fin I.card),
       @inner ℝ _ _ (euclideanProject I J hJI y) ξ = @inner ℝ _ _ y xi := by
     intro y
-    simp only [PiLp.inner_apply, RCLike.inner_apply, conj_trivial]
+    simp only [PiLp.inner_apply]
     -- LHS: ∑ k, (euclideanProject y).ofLp k * ξ.ofLp k
     -- RHS: ∑ i, y.ofLp i * xi.ofLp i
     -- RHS has zero terms outside image of σ
