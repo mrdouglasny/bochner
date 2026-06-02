@@ -116,7 +116,7 @@ private lemma integral_simpleFunc_comp (sn : SimpleFunc V V) (g : V → ℂ)
     simp_rw [eq_comm (a := sn x)]
     rw [Finset.sum_ite_eq' sn.range (sn x) (fun u => g u)]; simp
   simp_rw [hpw]
-  rw [integral_finset_sum _ (fun u _ => (integrable_const _).indicator
+  rw [integral_finsetSum _ (fun u _ => (integrable_const _).indicator
     (sn.measurableSet_preimage _))]
   congr 1; ext u
   rw [integral_indicator (sn.measurableSet_preimage _), setIntegral_const]; rfl
@@ -208,7 +208,7 @@ private lemma pd_double_integral_re_nonneg (ψ : V → ℂ) (hpd : IsPositiveDef
         fun x => integral_simpleFunc_comp sn (fun v => ψ (sn x - v)) μ
       simp_rw [h_inner, Complex.real_smul]
       -- Swap integral and finite sum
-      rw [integral_finset_sum _ (fun v _ => ?_)]
+      rw [integral_finsetSum _ (fun v _ => ?_)]
       · -- Expand outer integral via integral_simpleFunc_comp
         have h_expand : ∀ v, ∫ a, (↑(μ (⇑sn ⁻¹' {v})).toReal : ℂ) * ψ (sn a - v) ∂μ =
             ∑ u ∈ R, (μ (⇑sn ⁻¹' {u})).toReal •

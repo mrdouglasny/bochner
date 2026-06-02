@@ -592,7 +592,7 @@ theorem gaussian_quadForm_integral_le
   have hint_eq : ∫ x, gaussDensity σ x * quadForm S x =
       ∑ i, ev i * ∫ x, gaussDensity σ x * (@inner ℝ V _ (b i) x) ^ 2 := by
     simp_rw [hqf, Finset.mul_sum]
-    rw [integral_finset_sum]
+    rw [integral_finsetSum]
     · congr 1; ext i; rw [← integral_const_mul]; congr 1; ext x; ring
     · intro i _
       exact (gaussDensity_mul_inner_sq_integrable' σ hσ (b i)).const_mul (ev i) |>.congr
@@ -993,8 +993,8 @@ lemma restrictOp_trace_eq_diag (S : H →L[ℝ] H) {n : ℕ} (v : Fin n → H)
         @inner ℝ H _ (v i) (S (v j)) := by
       intro i; rw [restrictOp_apply]
       congr 1
-      simp [EuclideanSpace.single_apply, ite_smul, Finset.sum_ite_eq']
-    simp_rw [h_app, EuclideanSpace.single_apply]
+      simp [PiLp.single_apply, ite_smul, Finset.sum_ite_eq']
+    simp_rw [h_app, PiLp.single_apply]
     simp [Finset.sum_ite_eq']
   exact lhs_eq.trans ((h1.symm.trans h2).trans rhs_eq)
 

@@ -7,10 +7,10 @@ package «BochnerMinlos» where
   ]
 
 require kolmogorov_extension4 from git
-  "https://github.com/remydegenne/kolmogorov_extension4.git"
+  "https://github.com/mrdouglasny/kolmogorov_extension4.git" @ "2761d4e"
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git"
+  "https://github.com/leanprover-community/mathlib4.git" @ "v4.30.0"
 
 @[default_target]
 lean_lib «Bochner» where

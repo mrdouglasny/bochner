@@ -473,7 +473,7 @@ private lemma gaussian_quadForm_integral_le'
   have hint_eq : ∫ x, gaussDensity σ x * quadForm S x =
       ∑ i, ev i * ∫ x, gaussDensity σ x * (@inner ℝ V _ (b i) x) ^ 2 := by
     simp_rw [hqf, Finset.mul_sum]
-    rw [integral_finset_sum]
+    rw [integral_finsetSum]
     · congr 1; ext i; rw [← integral_const_mul]; congr 1; ext x; ring
     · intro i _
       exact (gaussDensity_mul_inner_sq_integrable σ hσ (b i)).const_mul (ev i) |>.congr

@@ -15,7 +15,7 @@ via Hilbert-Schmidt embeddings. Adapted from OSforGFF/IsHilbertNuclear.lean.
 -/
 
 import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Topology.Algebra.Module.WeakDual
+import Mathlib.Topology.Algebra.Module.Spaces.WeakDual
 import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
 import Mathlib.Analysis.Distribution.SchwartzSpace.Deriv
 

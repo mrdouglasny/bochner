@@ -106,7 +106,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
       erw [EuclideanSpace.inner_single_right]; simp
     simp_rw [h_inner, ← charFun_apply, marginalMeasure_charFun]
     -- Step 5: Simplify marginalCF for singleton
-    simp [marginalCF, finsetTestVectors, EuclideanSpace.single_apply, idx_def]
+    simp [marginalCF, finsetTestVectors, PiLp.single_apply, idx_def]
   -- Step 2b: Joint characteristic function (generalizes h_cf_eq to n-point marginals)
   -- For any finite collection of test vectors and scalars, the joint CF equals Φ
   -- applied to the linear combination. Proved from the projective limit property

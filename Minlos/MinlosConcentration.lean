@@ -1396,14 +1396,14 @@ private lemma tail_bound_uniform
           intro v; erw [PiLp.inner_apply]
           simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
             fun a b => RCLike.inner_apply a b]
-          simp [EuclideanSpace.single_apply]
+          simp [PiLp.single_apply]
         have h_single_right : ∀ (v : V),
             @inner ℝ V _ v (EuclideanSpace.single l 1) = v l := by
           intro v; erw [PiLp.inner_apply]
           simp only [show ∀ (a b : ℝ), @inner ℝ ℝ _ a b = b * a from
             fun a b => RCLike.inner_apply a b]
-          simp [EuclideanSpace.single_apply]
-        simp only [h_single_left, h_single_right, EuclideanSpace.single_apply] at key
+          simp [PiLp.single_apply]
+        simp only [h_single_left, h_single_right, PiLp.single_apply] at key
         exact key.symm.symm
       -- Apply Parseval and collapse: use convert to handle ofLp coercion
       -- Goal: ∑_j ∑_l Mij j l * (∑_i (b i).ofLp j * (b i).ofLp l) ≤ C_HS
