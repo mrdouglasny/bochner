@@ -1,0 +1,159 @@
+# formalization.yaml — https://github.com/mathlib-initiative/formalization.yaml (v0.3)
+# Describes the `main` branch state (0 sorries, 0 main-library axioms;
+# 4 instance-provider axioms confined to the Test/ white-noise demo).
+version: "v0.3"
+
+project:
+  name: "bochner"
+  authors: ["Michael R. Douglas"]
+  license: "Apache-2.0"
+
+sources:
+  - title: "Generalized Functions, Volume 4: Applications of Harmonic Analysis"
+    authors: ["I. M. Gel'fand", "N. Ya. Vilenkin"]
+    id: "ISBN:978-1-4704-2662-5"
+    type: "textbook"
+    license: "proprietary"
+    note: "Nuclear spaces (Hilbertian seminorm characterization) and Minlos' theorem; Chapters 3-4."
+  - title: "Generalized random processes and their extension to a measure"
+    authors: ["R. A. Minlos"]
+    id: "ISBN:978-0-8218-1054-5"
+    type: "paper"
+    license: "proprietary"
+    note: >
+      Original 1959 Minlos paper (Trudy Moskov. Mat. Obshch. 8, 497-518).
+      No DOI located; using Bogachev 'Gaussian Measures' ISBN as the
+      durable bibkey for the Minlos/characteristic-functional material it covers.
+  - title: "Topological Vector Spaces, Distributions and Kernels"
+    authors: ["François Trèves"]
+    id: "ISBN:978-0-486-45352-1"
+    type: "textbook"
+    license: "proprietary"
+    note: "Nuclear spaces, Chapters 50-51 (Hilbert-Schmidt seminorm inclusions)."
+  - title: "Methods of Modern Mathematical Physics I: Functional Analysis"
+    authors: ["Michael Reed", "Barry Simon"]
+    id: "ISBN:978-0-12-585050-6"
+    type: "textbook"
+    license: "proprietary"
+    note: "Bochner's theorem and Minlos' theorem, Section IX.9."
+  - title: "Formalization of Brownian motion in Lean"
+    authors: ["Rémy Degenne", "Josef Ledvinka", "Glenn Marion", "Peter Pfaffelhuber"]
+    id: "arXiv:2511.20118"
+    type: "preprint"
+    license: "proprietary"
+    note: "KolmogorovExtension4 (projective limits of measures), used for the Kolmogorov extension step in Minlos."
+
+status:
+  scope: >
+    Lean 4 / Mathlib proofs of (1) Bochner's theorem on a finite-dimensional
+    real inner product space — a continuous positive-definite normalized
+    function is the characteristic function of a unique probability measure,
+    proved via Gaussian regularization, Fejér-averaged Fourier positivity, and
+    Prokhorov's theorem (no Riesz-Markov); and (2) Minlos' theorem — a
+    continuous positive-definite normalized functional on a separable Hilbert-
+    nuclear space E is the characteristic functional of a unique probability
+    measure on the weak dual WeakDual ℝ E, via finite-dimensional marginals,
+    a Kolmogorov projective limit (KolmogorovExtension4), and a measurable
+    modification. Also: two nuclear-space characterizations (Pietsch IsNuclear,
+    Hilbertian IsHilbertNuclear) with the bridge IsNuclear → IsHilbertNuclear.
+    A Test/ white-noise-on-S'(ℝ) demo instantiates Minlos using axiomatized
+    Schwartz-space properties (those properties are proved in the separate
+    gaussian-field / OSforGFF project).
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: []                       # main library (Bochner/, Minlos/): zero custom axioms
+  main_results:
+    - declaration: "bochner_theorem"
+      file: "Bochner/Main.lean"
+      sorry_count: 0
+      axioms: []
+      literature_dependencies:
+        - statement: "A continuous positive-definite normalized function on a finite-dimensional inner product space is the characteristic function of a unique probability measure."
+          source: "ISBN:978-0-12-585050-6"
+    - declaration: "minlos_theorem"
+      file: "Minlos/Main.lean"
+      sorry_count: 0
+      axioms: []
+      literature_dependencies:
+        - statement: "A continuous positive-definite normalized functional on a separable nuclear space is the characteristic functional of a unique probability measure on its dual."
+          source: "ISBN:978-1-4704-2662-5"
+        - statement: "Kolmogorov extension / projective limit of a consistent family of finite-dimensional measures."
+          source: "arXiv:2511.20118"
+    - declaration: "isHilbertNuclear_of_nuclear"
+      file: "Minlos/PietschBridge.lean"
+      sorry_count: 0
+      axioms: []
+      literature_dependencies:
+        - statement: "The Pietsch (nuclear-expansion) characterization of a nuclear space implies the Hilbertian (Hilbert-Schmidt seminorm inclusion) characterization."
+          source: "ISBN:978-0-486-45352-1"
+    - declaration: "white_noise_measure_exists"
+      file: "Test/WhiteNoise.lean"
+      sorry_count: 0
+      axioms:
+        - schwartz_separableSpace
+        - schwartz_isHilbertNuclear
+        - schwartzMap_l2Norm_continuous
+        - whiteNoiseCF_pd
+      literature_dependencies:
+        - statement: "Existence of white noise as the characteristic-functional measure exp(-½‖f‖²_{L²}) on S'(ℝ) via Minlos' theorem (demo; Schwartz-space inputs axiomatized here, proved in gaussian-field)."
+          source: "ISBN:978-1-4704-2662-5"
+
+automation:
+  methods:
+    - method: "agent"
+      models: ["claude-opus-4-8", "claude-opus-4-7", "claude-opus-4-6", "claude-sonnet-4-6"]
+      framework: "Claude Code"
+      prompting_notes: >
+        Primary (and sole) prover: cycle-by-cycle proving with compiler-guided
+        repair. Bulk of commits co-authored by Claude Opus 4.6; later commits
+        by Opus 4.7/4.8. One Sonnet 4.6 commit. Per commit co-author trailers.
+  notes: >
+    No AGENTS.md or GEMINI.md present and no Codex/GPT/Gemini co-author trailers
+    detected, so only Claude is listed. AXIOM_AUDIT.md mentions Gemini deep-think
+    vetting of the Test/ demo axioms, but that is not part of the proving pipeline.
+
+fidelity:
+  divergences: >
+    Bochner is stated on a general finite-dimensional real inner product space
+    rather than ℝⁿ. Minlos uses the Hilbertian (Hilbert-Schmidt seminorm)
+    nuclearity class IsHilbertNuclear plus SeparableSpace and Nonempty, and
+    targets the weak dual WeakDual ℝ E. The Test/ white-noise construction
+    axiomatizes Schwartz-space separability, Hilbert-nuclearity, L²-norm
+    continuity, and positive-definiteness of the white-noise functional; these
+    are proved independently in gaussian-field and are out of scope here.
+
+review:
+  status: "self-assessed"
+  reviewers: []
+  notes: >
+    0 sorries and 0 custom axioms across the main libraries (Bochner/, Minlos/);
+    `#print axioms` on the two headline theorems shows only propext,
+    Classical.choice, Quot.sound. The 4 remaining axioms are confined to
+    Test/WhiteNoise.lean (instance providers for the demo, not load-bearing for
+    the headline theorems). See AXIOM_AUDIT.md.
+
+alignment:
+  namespace: ""   # headline declarations live in the root namespace
+  statements:
+    - source: "ISBN:978-0-12-585050-6"
+      lean: "bochner_theorem"
+      module: "Bochner.Main"
+      status: "proved"
+      note: "Gaussian regularization + Fejér Fourier positivity + Prokhorov; uniqueness via Measure.ext_of_charFun."
+    - source: "ISBN:978-1-4704-2662-5"
+      lean: "minlos_theorem"
+      module: "Minlos.Main"
+      status: "proved"
+      note: "Marginals via Bochner → Kolmogorov projective limit → measurable modification on WeakDual ℝ E."
+    - source: "ISBN:978-0-486-45352-1"
+      lean: "isHilbertNuclear_of_nuclear"
+      module: "Minlos.PietschBridge"
+      status: "proved"
+      note: "Pietsch nuclear expansion → Hilbertian seminorms via a Hilbertian lift + Bessel inequality."
+    - source: "ISBN:978-1-4704-2662-5"
+      lean: "white_noise_measure_exists"
+      module: "Test.WhiteNoise"
+      status: "proved"
+      note: "Demo: Minlos applied to white-noise CF on S'(ℝ); depends on 4 Test-only Schwartz axioms."
+
+acknowledgements: ""
