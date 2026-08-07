@@ -1,6 +1,6 @@
 import Bochner.Sazonov
 import Bochner.PositiveDefinite
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction
+import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.MeasureTheory.Integral.Prod
 import Mathlib.MeasureTheory.Function.SpecialFunctions.RCLike
@@ -108,7 +108,7 @@ private lemma gaussDensity_mul_charFun_re_integrable (μ : ProbabilityMeasure V)
     (((by fun_prop : Measurable (gaussDensity (V := V) σ)).mul
       (Measurable.re measurable_charFun)).aestronglyMeasurable)
   filter_upwards with x
-  rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (gaussDensity_nonneg σ x)]
+  rw [Real.norm_eq_abs, Pi.mul_apply, abs_mul, abs_of_nonneg (gaussDensity_nonneg σ x)]
   exact mul_le_of_le_one_right (gaussDensity_nonneg σ x)
     (abs_re_le_norm _ |>.trans (norm_charFun_le_one (μ := μ.toMeasure) x))
 
@@ -123,7 +123,7 @@ private lemma gaussDensity_mul_charFun_integrable (μ : ProbabilityMeasure V)
     ((Complex.measurable_ofReal.comp (by fun_prop : Measurable (gaussDensity (V := V) σ))
       |>.mul measurable_charFun).aestronglyMeasurable)
   filter_upwards with x
-  simp only [Function.comp_apply, norm_mul, Complex.norm_real, Real.norm_eq_abs,
+  simp only [Pi.mul_apply, Function.comp_apply, norm_mul, Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (gaussDensity_nonneg σ x)]
   exact mul_le_of_le_one_right (gaussDensity_nonneg σ x)
     (norm_charFun_le_one (μ := μ.toMeasure) x)
@@ -233,12 +233,12 @@ private lemma gaussian_real_formula (b : ℝ) (hb : 0 < b) (w : V) (c : ℝ) :
       ∫ x : V, cexp (-(b : ℂ) * ‖x‖ ^ 2 + ↑c * ↑⟪w, x⟫_ℝ) := by
     change ofRealLI (∫ x, _) = _
     rw [← ofRealLI.integral_comp_comm]
-    congr 1; ext x; simp [ofRealLI, Complex.ofReal_exp]
+    congr 1; ext x; simp [Complex.ofRealLI_apply, ← Complex.ofReal_exp]; push_cast; ring
   have lift0 : (↑(∫ x : V, rexp (-b * ‖x‖ ^ 2)) : ℂ) =
       ∫ x : V, cexp (-(b : ℂ) * ‖x‖ ^ 2) := by
     change ofRealLI (∫ x, _) = _
     rw [← ofRealLI.integral_comp_comm]
-    congr 1; ext x; simp [ofRealLI, Complex.ofReal_exp]
+    congr 1; ext x; simp [Complex.ofRealLI_apply, ← Complex.ofReal_exp]; push_cast; ring
   rw [lift1, lift0]
   -- Apply complex Gaussian formulas
   rw [GaussianFourier.integral_cexp_neg_mul_sq_norm_add hb_re (c : ℂ) w,
@@ -332,7 +332,8 @@ private lemma tendsto_exp_slope (A : ℝ) :
         ((hasDerivAt_id (0 : ℝ)).mul_const A)
       simp [zero_mul, Real.exp_zero] at this; exact this
     have h2 : HasDerivAt (fun _ : ℝ => (1 : ℝ)) 0 0 := hasDerivAt_const 0 1
-    convert h1.sub h2 using 1 <;> simp
+    -- v4.33: `convert` now surfaces instance-equality goals (AddCommGroup/Module paths)
+    exact (h1.sub h2).congr_deriv (by ring)
   have := hd.tendsto_slope_zero_right
   simp only [zero_add, zero_mul, Real.exp_zero, sub_self, sub_zero] at this
   exact this.congr fun t => by rw [smul_eq_mul, ← div_eq_inv_mul]
