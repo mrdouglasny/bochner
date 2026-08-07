@@ -1,6 +1,6 @@
 import Bochner.Sazonov
 import Bochner.PositiveDefinite
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction
+import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
 import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
 import Mathlib.MeasureTheory.Integral.Prod
 import Mathlib.MeasureTheory.Function.SpecialFunctions.RCLike
@@ -108,7 +108,7 @@ private lemma gaussDensity_mul_charFun_re_integrable (μ : ProbabilityMeasure V)
     (((by fun_prop : Measurable (gaussDensity (V := V) σ)).mul
       (Measurable.re measurable_charFun)).aestronglyMeasurable)
   filter_upwards with x
-  rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (gaussDensity_nonneg σ x)]
+  rw [Real.norm_eq_abs, Pi.mul_apply, abs_mul, abs_of_nonneg (gaussDensity_nonneg σ x)]
   exact mul_le_of_le_one_right (gaussDensity_nonneg σ x)
     (abs_re_le_norm _ |>.trans (norm_charFun_le_one (μ := μ.toMeasure) x))
 
