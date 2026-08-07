@@ -748,8 +748,10 @@ private lemma parseval_l1 (f g : V → ℂ) (hf : Integrable f) (hg : Integrable
     Real.continuous_fourierChar hL hf hg
     (ν := volume) (μ := volume) (F := ℂ)
   simp only [smul_eq_mul] at h
-  convert h using 2
-  · ext x; congr 1; rw [flip_innerₗ]; rfl
+  -- v4.33: `convert … using 2` now surfaces instance-equality subgoals
+  -- (NormedSpace.complexToReal vs the InnerProductSpace path); rewrite instead.
+  rw [flip_innerₗ] at h
+  exact h
 
 /-- Gaussian x ↦ cexp(-t‖x‖²) is integrable for t > 0. -/
 private lemma gaussian_cexp_integrable (t : ℝ) (ht : 0 < t) :
