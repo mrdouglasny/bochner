@@ -962,9 +962,16 @@ theorem orthonormal_diag_le_hilbert_trace (S : H →L[ℝ] H) (hS : S.IsPositive
       (∑' k, @inner ℝ H _ (b k) (S (b k)) -
        ∑ j, @inner ℝ H _ (v j) (S (v j))) := by
     have h := ((hsum.hasSum.sub (hA.add hA)).add hB)
-    convert h using 1
-    · ext k; ring
-    · ring
+    -- v4.33: `convert` emits AddCommMonoid instance goals here, so match h
+    -- syntactically instead: two_mul fixes the summand, ring the total.
+    simp only [two_mul]
+    have hval : (∑' (k : ι), @inner ℝ H _ (b k) (S (b k))) - ∑ j, @inner ℝ H _ (v j) (S (v j))
+        = (∑' (k : ι), @inner ℝ H _ (b k) (S (b k)))
+          - (∑ j, @inner ℝ H _ (v j) (S (v j)) + ∑ j, @inner ℝ H _ (v j) (S (v j)))
+          + ∑ j, @inner ℝ H _ (v j) (S (v j)) := by ring
+    rw [hval]
+    exact h
+  linarith [hQ.tsum_eq]
 
 omit [CompleteSpace H] in
 /-- The trace of restrictOp in any ONB of EuclideanSpace equals ∑ⱼ ⟪vⱼ, S(vⱼ)⟫.
