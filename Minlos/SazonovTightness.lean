@@ -362,12 +362,12 @@ private lemma gaussian_real_formula' (b : ℝ) (hb : 0 < b) (w : V) (c : ℝ) :
       ∫ x : V, cexp (-(b : ℂ) * ‖x‖ ^ 2 + ↑c * ↑⟪w, x⟫_ℝ) := by
     change ofRealLI (∫ x, _) = _
     rw [← ofRealLI.integral_comp_comm]
-    congr 1; ext x; simp [Complex.ofRealLI_apply, ← Complex.ofReal_exp]; push_cast; ring
+    congr 1; ext x; simp [Complex.ofRealLI_apply]
   have lift0 : (↑(∫ x : V, rexp (-b * ‖x‖ ^ 2)) : ℂ) =
       ∫ x : V, cexp (-(b : ℂ) * ‖x‖ ^ 2) := by
     change ofRealLI (∫ x, _) = _
     rw [← ofRealLI.integral_comp_comm]
-    congr 1; ext x; simp [Complex.ofRealLI_apply, ← Complex.ofReal_exp]; push_cast; ring
+    congr 1; ext x; simp [Complex.ofRealLI_apply]
   rw [lift1, lift0]
   rw [GaussianFourier.integral_cexp_neg_mul_sq_norm_add hb_re (c : ℂ) w,
     GaussianFourier.integral_cexp_neg_mul_sq_norm hb_re]
@@ -398,7 +398,7 @@ private lemma half_sq_le_cosh_sub_one' (x : ℝ) : x ^ 2 / 2 ≤ Real.cosh x - 1
   by_cases ht : 0 ≤ t
   · have h1 := id_le_sinh' ht
     exact mul_nonneg (by linarith) (by linarith)
-  · push_neg at ht
+  · push Not at ht
     have h1 : Real.sinh t ≤ t := by
       have := id_le_sinh' (by linarith : 0 ≤ -t)
       rw [Real.sinh_neg] at this; linarith
@@ -728,7 +728,7 @@ theorem gaussian_averaging_bound
           _ ≤ |(1 - φ x).re| := le_abs_self _
           _ ≤ ‖1 - φ x‖ := abs_re_le_norm _
       linarith [h_bound x hqf, quadForm_nonneg hS x]
-    · push_neg at hqf
+    · push Not at hqf
       have hre_le : (φ x).re ≤ ‖φ x‖ := le_trans (le_abs_self _) (abs_re_le_norm _)
       have hnorm_le : ‖φ x‖ ≤ 1 := by
         rw [← hφ]; haveI : IsProbabilityMeasure μ.toMeasure := inferInstance
