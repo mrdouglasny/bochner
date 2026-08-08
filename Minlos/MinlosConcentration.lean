@@ -214,7 +214,7 @@ lemma combined_quadratic_bound
     have h3 : (0 : ℝ) ≤ 2 / r ^ 2 * (p m₀) x ^ 2 := by positivity
     linarith [h_ball x hx]
   · -- Outside ball: use quadratic_bound_outside with q = p m₀
-    push_neg at hx
+    push Not at hx
     have hx' : r ≤ (p m₀) x := le_trans hx (h_mono x)
     have := quadratic_bound_outside Φ h_norm_le (p m₀) r hr x hx'
     linarith
@@ -912,7 +912,7 @@ private lemma joint_kernel_bound_finite
     constructor
     · rintro ⟨i, hi⟩
       exact Finset.sum_pos' (fun j _ => sq_nonneg _) ⟨i, Finset.mem_univ _, by positivity⟩
-    · intro hS; by_contra h_all; push_neg at h_all
+    · intro hS; by_contra h_all; push Not at h_all
       exact absurd (Finset.sum_eq_zero (fun i _ => by rw [h_all i, sq, mul_zero])) (ne_of_gt hS)
   have h_union : {ω : E → ℝ | 0 < S ω} =
       ⋃ m : ℕ, {ω | (1 : ℝ) / (↑m + 1) ≤ S ω} := by

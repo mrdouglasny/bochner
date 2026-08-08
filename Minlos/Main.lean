@@ -127,7 +127,7 @@ theorem minlos_theorem {E : Type*} [AddCommGroup E] [Module ℝ E]
       Complex.exp (Complex.I * ↑(∑ i, s i * y ⟨x i, hx_mem i⟩))
     have hg_cont : Continuous g :=
       Complex.continuous_exp.comp (continuous_const.mul (continuous_ofReal.comp
-        (continuous_finset_sum _ (fun i _ => continuous_const.mul (continuous_apply _)))))
+        (continuous_finsetSum _ (fun i _ => continuous_const.mul (continuous_apply _)))))
     -- Step 1: Factor through J.restrict and use projective limit
     change ∫ ω, g (J.restrict ω) ∂ν = Φ (∑ i, s i • x i)
     rw [← integral_map (Finset.measurable_restrict J).aemeasurable

@@ -16,5 +16,7 @@ require mathlib from git
 lean_lib «Bochner» where
 
 lean_lib «Minlos» where
+  globs := #[.submodules `Minlos]
 
 lean_lib «Test» where
+  globs := #[.submodules `Test]

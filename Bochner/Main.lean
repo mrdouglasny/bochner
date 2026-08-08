@@ -1081,7 +1081,7 @@ theorem gaussianRegularize_measures_tight (φ : V → ℂ)
   intro y
   -- Need: Tendsto (fun r ↦ ⨆ μ ∈ S, μ {x | r < ‖⟪y, x⟫_ℝ‖}) atTop (𝓝 0)
   -- Show via tendsto_order: for all a > 0, eventually the iSup < a
-  refine tendsto_order.mpr ⟨fun a ha => absurd ha (not_lt.mpr zero_le'), fun a ha => ?_⟩
+  refine tendsto_order.mpr ⟨fun a ha => absurd ha (not_lt.mpr zero_le), fun a ha => ?_⟩
   -- Given a > 0 in ENNReal, need: ∀ᶠ r in atTop, ⨆ μ ∈ S, μ {x | r < ‖⟪y,x⟫_ℝ‖} < a
   -- Step 1: Get a real δ > 0 with ENNReal.ofReal δ < a
   obtain ⟨δ, hδ_pos, hδ_lt⟩ : ∃ δ : ℝ, 0 < δ ∧ ENNReal.ofReal δ < a := by
