@@ -3,13 +3,14 @@ Copyright (c) 2026 Michael R. Douglas. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Michael R. Douglas
 -/
+module
 
-import Bochner.PositiveDefinite
-import Mathlib.Analysis.Fourier.FourierTransform
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
-import Mathlib.MeasureTheory.Measure.Prod
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Bochner.PositiveDefinite
+public import Mathlib.Analysis.Fourier.FourierTransform
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
+public import Mathlib.MeasureTheory.Measure.Prod
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
 
 /-!
 # Fourier transform of L¹ positive-definite functions is nonneg
@@ -38,6 +39,8 @@ The kernel → 1 pointwise and is bounded by 1, so DCT gives J_R → ∫ ψ.
 - Rudin, *Fourier Analysis on Groups*, Theorem 1.4.3
 - Folland, *A Course in Abstract Harmonic Analysis*, §4.2, Lemma 4.8
 -/
+
+@[expose] public section
 
 open MeasureTheory Complex Filter Topology BigOperators
 open scoped Real FourierTransform InnerProductSpace
@@ -351,7 +354,7 @@ private lemma overlapRatio_tendsto_one (v : V) :
           ne_of_lt measure_closedBall_lt_top
         have hvol_toReal_pos : 0 < (volume (Metric.closedBall (0 : V) (↑n))).toReal :=
           ENNReal.toReal_pos (ne_of_gt hvol_pos) hvol_ne_top
-        unfold overlapRatio; rw [if_neg (ne_of_gt hvol_toReal_pos)]
+        unfold overlapRatio; rw [ite_eq_right (ne_of_gt hvol_toReal_pos)]
         have hball_pos : 0 < (volume (Metric.ball (0 : V) 1)).toReal :=
           ENNReal.toReal_pos (ne_of_gt (Metric.measure_ball_pos volume 0 one_pos))
             (ne_of_lt measure_ball_lt_top)
@@ -432,7 +435,7 @@ private lemma integrable_indicator_prod (ψ : V → ℂ) (hcont : Continuous ψ)
     ext ⟨x, v⟩
     simp only [Function.uncurry, Set.indicator,
       Metric.mem_closedBall, Set.mem_inter_iff, Function.comp, dist_zero_right, S,
-      Set.mem_setOf_eq]
+      Set.mem_ofPred_eq]
   rw [hfeq]
   have hS_closed : IsClosed S :=
     (Metric.isClosed_closedBall.preimage continuous_fst).inter
@@ -502,7 +505,7 @@ private lemma fejer_avg_eq_integral (ψ : V → ℂ) (hcont : Continuous ψ)
           congr 1; funext v
           rw [smul_comm, ← smul_assoc, Complex.real_smul]
           congr 1; rw [Complex.ofReal_inj]
-          simp only [B]; rw [overlapRatio, if_neg hvol_ne, div_eq_mul_inv,
+          simp only [B]; rw [overlapRatio, ite_eq_right hvol_ne, div_eq_mul_inv,
             smul_eq_mul]
   -- Prove h_fubini: Fubini via indicators
   rw [h_to_ind]
@@ -545,7 +548,7 @@ private lemma pd_integral_re_nonneg (ψ : V → ℂ) (hpd : IsPositiveDefinite �
         Filter.atTop (nhds (∫ x, ψ x)) by
       apply h.congr'
       filter_upwards [Filter.eventually_ne_atTop 0] with n hn
-      simp only [J, if_neg hn]
+      simp only [J, ite_eq_right hn]
       exact (fejer_avg_eq_integral ψ hcont hint n (Nat.cast_pos.mpr (Nat.pos_of_ne_zero hn))).symm
     -- Now apply DCT: h_n(v) * ψ(v) → 1 * ψ(v) = ψ(v), with bound |ψ|
     rw [show (∫ x, ψ x) = ∫ x, (1 : ℂ) * ψ x by simp]

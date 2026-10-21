@@ -1,10 +1,14 @@
-import Bochner.Sazonov
-import Bochner.PositiveDefinite
-import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Function.SpecialFunctions.RCLike
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+module
+
+public import Bochner.Sazonov
+public import Bochner.PositiveDefinite
+public import Mathlib.MeasureTheory.Measure.CharacteristicFunction.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Function.SpecialFunctions.RCLike
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
+
+@[expose] public section
 
 open MeasureTheory Complex Filter Topology Set InnerProductSpace Function
 open scoped Real FourierTransform

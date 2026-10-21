@@ -28,8 +28,11 @@ probability measure on the topological dual E' = WeakDual ℝ E.
 - Billingsley, "Convergence of Probability Measures", Thm 36.1
 - Degenne-Pfaffelhuber, KolmogorovExtension4 (formalized Kolmogorov extension)
 -/
+module
 
-import Minlos.MeasurableModification
+public import Minlos.MeasurableModification
+
+@[expose] public section
 
 open BigOperators MeasureTheory Complex TopologicalSpace Classical
 

@@ -31,11 +31,14 @@ nuclear cylindrical measures. `minlos_concentration` is a convenience wrapper.
 - Bogachev, "Gaussian Measures", Ch. 2-3
 - Trèves, "Topological Vector Spaces", Ch. 50-51
 -/
+module
 
-import Minlos.SazonovTightness
-import Minlos.NuclearSpace
-import Minlos.PietschBridge
-import Mathlib.Data.Finsupp.Encodable
+public import Minlos.SazonovTightness
+public import Minlos.NuclearSpace
+public import Minlos.PietschBridge
+public import Mathlib.Data.Finsupp.Encodable
+
+@[expose] public section
 
 open BigOperators MeasureTheory Complex TopologicalSpace Classical Finsupp
 
@@ -148,7 +151,7 @@ lemma cf_nhds_ball
   have h_nhds : {x | ‖1 - Φ x‖ < ε} ∈ nhds (0 : E) := by
     have hsub : Φ ⁻¹' Metric.ball 1 ε ⊆ {x : E | ‖1 - Φ x‖ < ε} := by
       intro x hx; simp only [Set.mem_preimage, Metric.mem_ball, dist_eq_norm] at hx
-      simp only [Set.mem_setOf_eq]; rwa [norm_sub_rev]
+      simp only [Set.mem_ofPred_eq]; rwa [norm_sub_rev]
     exact Filter.mem_of_superset
       (h_cont_at (Metric.isOpen_ball.mem_nhds (by simp [Metric.mem_ball, dist_self, hε]))) hsub
   rw [hp_top.hasBasis_zero_ball.mem_iff] at h_nhds
@@ -310,7 +313,7 @@ lemma pushforward_charfun_eq
     ∫ y : Fin k → ℝ, exp (I * ↑(∑ j, v j * y j))
       ∂(ν.map (fun ω j => ω (e j))) = Φ (∑ j, v j • e j) := by
   have hg : Measurable (fun ω : E → ℝ => (fun j => ω (e j) : Fin k → ℝ)) :=
-    measurable_pi_lambda _ (fun j => measurable_pi_apply (e j))
+    Measurable.of_eval (fun j => measurable_pi_apply (e j))
   rw [integral_map hg.aemeasurable (Continuous.aestronglyMeasurable (by fun_prop))]
   exact h_cf_joint k v e
 
@@ -441,7 +444,7 @@ omit [TopologicalSpace E] [IsTopologicalAddGroup E] [ContinuousSMul ℝ E] in
 lemma concentrationBadSet_eq_iUnion (d : ℕ → E) (p : Seminorm ℝ E) (C : ℝ) :
     concentrationBadSet d p C = ⋃ N, concentrationBadSetN d p C N := by
   ext ω
-  simp only [concentrationBadSet, concentrationBadSetN, Set.mem_setOf_eq, Set.mem_iUnion]
+  simp only [concentrationBadSet, concentrationBadSetN, Set.mem_ofPred_eq, Set.mem_iUnion]
   constructor
   · rintro ⟨c, hc⟩
     refine ⟨c.support.sup id + 1, c, ?_, hc⟩
@@ -630,13 +633,13 @@ lemma gram_schmidt_seminorm_aux (p : Seminorm ℝ F) (hp : p.IsHilbertian)
         refine Fin.cases ?_ (fun i' => ?_) i <;> refine Fin.cases ?_ (fun j' => ?_) j
         · -- (0,0)
           show p.innerProd e_new e_new = if (0 : Fin (k + 1)) = 0 then 1 else 0
-          rw [if_pos rfl, p.innerProd_self, he_new_norm, one_pow]
+          rw [ite_eq_left rfl, p.innerProd_self, he_new_norm, one_pow]
         · -- (0, succ j')
           show p.innerProd e_new (e j') = if (0 : Fin (k + 1)) = j'.succ then 1 else 0
-          rw [if_neg (Fin.succ_ne_zero j').symm, he_new_orth_e j']
+          rw [ite_eq_right (Fin.succ_ne_zero j').symm, he_new_orth_e j']
         · -- (succ i', 0)
           show p.innerProd (e i') e_new = if i'.succ = (0 : Fin (k + 1)) then 1 else 0
-          rw [if_neg (Fin.succ_ne_zero i'), p.innerProd_comm, he_new_orth_e i']
+          rw [ite_eq_right (Fin.succ_ne_zero i'), p.innerProd_comm, he_new_orth_e i']
         · -- (succ i', succ j')
           show p.innerProd (e i') (e j') = if i'.succ = j'.succ then 1 else 0
           rw [show (if i'.succ = j'.succ then (1:ℝ) else 0) =
@@ -757,7 +760,7 @@ lemma concentrationBadSetN_measure_bound
     by_contra h_not
     simp only [Set.mem_union, not_or] at h_not
     obtain ⟨h_not_tail, h_not_null⟩ := h_not
-    simp only [tail, null_set, Set.mem_setOf_eq, not_lt, not_not] at h_not_tail h_not_null
+    simp only [tail, null_set, Set.mem_ofPred_eq, not_lt, not_not] at h_not_tail h_not_null
     -- h_not_tail: Σ ω(e_j)² ≤ R²
     -- h_not_null: ∀ c, ω(x_c) = Σ α(c)_j ω(e_j)
     obtain ⟨c, _, hc_bad⟩ := hω
@@ -839,10 +842,10 @@ private lemma joint_kernel_bound_finite
   let toLp := MeasurableEquiv.toLp (p := 2) (X := Fin (n + 1) → ℝ)
   let eval_z : (E → ℝ) → V := fun ω => toLp (fun j => ω (z j))
   have h_meas_z : Measurable eval_z :=
-    toLp.measurable.comp (measurable_pi_lambda _ (fun j => measurable_pi_apply (z j)))
+    toLp.measurable.comp (Measurable.of_eval (fun j => measurable_pi_apply (z j)))
   let μ := ν.map eval_z
   haveI h_prob : IsProbabilityMeasure μ :=
-    Measure.isProbabilityMeasure_map h_meas_z.aemeasurable
+    inferInstance
   let μ' : ProbabilityMeasure V := ⟨μ, h_prob⟩
   -- Step 1: Coordinate access: (eval_z ω) i = ω (z i)
   have h_coord : ∀ (ω : E → ℝ) (i : Fin (n + 1)), (eval_z ω) i = ω (z i) := by
@@ -908,7 +911,7 @@ private lemma joint_kernel_bound_finite
   -- Step 7: Conclude via level sets + Chebyshev + continuity from below
   set S : (E → ℝ) → ℝ := fun ω => ∑ i, ω (z i) ^ 2
   have h_bad_eq : {ω : E → ℝ | ∃ i, ω (z i) ≠ 0} = {ω | 0 < S ω} := by
-    ext ω; simp only [S, Set.mem_setOf_eq]
+    ext ω; simp only [S, Set.mem_ofPred_eq]
     constructor
     · rintro ⟨i, hi⟩
       exact Finset.sum_pos' (fun j _ => sq_nonneg _) ⟨i, Finset.mem_univ _, by positivity⟩
@@ -916,7 +919,7 @@ private lemma joint_kernel_bound_finite
       exact absurd (Finset.sum_eq_zero (fun i _ => by rw [h_all i, sq, mul_zero])) (ne_of_gt hS)
   have h_union : {ω : E → ℝ | 0 < S ω} =
       ⋃ m : ℕ, {ω | (1 : ℝ) / (↑m + 1) ≤ S ω} := by
-    ext ω; simp only [Set.mem_setOf_eq, Set.mem_iUnion]
+    ext ω; simp only [Set.mem_ofPred_eq, Set.mem_iUnion]
     constructor
     · intro hS
       obtain ⟨m, hm⟩ := exists_nat_gt (1 / S ω)
@@ -926,7 +929,7 @@ private lemma joint_kernel_bound_finite
       linarith
     · rintro ⟨m, hm⟩; exact lt_of_lt_of_le (by positivity) hm
   have h_mono : Monotone (fun m : ℕ => {ω : E → ℝ | (1 : ℝ) / (↑m + 1) ≤ S ω}) := by
-    intro m₁ m₂ h ω hω; simp only [Set.mem_setOf_eq] at hω ⊢
+    intro m₁ m₂ h ω hω; simp only [Set.mem_ofPred_eq] at hω ⊢
     exact le_trans (div_le_div_of_nonneg_left zero_le_one (by positivity : (0 : ℝ) < ↑m₁ + 1)
       (by exact_mod_cast Nat.add_le_add_right h 1)) hω
   have h_level : ∀ m : ℕ,
@@ -969,7 +972,7 @@ private lemma joint_kernel_bound_finite
             apply setIntegral_mono_on (integrable_const _) h_f_int.integrableOn
               (measurableSet_le measurable_const h_S_meas)
               fun ω hω => by
-                simp only [Set.mem_setOf_eq] at hω
+                simp only [Set.mem_ofPred_eq] at hω
                 have : Real.exp (-(σ ^ 2 * (S ω) / 2)) ≤ Real.exp (-(σ ^ 2 * δ / 2)) :=
                   Real.exp_le_exp_of_le (by nlinarith [sq_nonneg σ])
                 linarith
@@ -1170,7 +1173,7 @@ private lemma kernel_concentration_bound
     -- z_bad = ⋃_M S_M
     have h_union : z_bad = ⋃ M, S M := by
       ext ω
-      simp only [z_bad, S, Set.mem_setOf_eq, Set.mem_iUnion]
+      simp only [z_bad, S, Set.mem_ofPred_eq, Set.mem_iUnion]
       constructor
       · rintro ⟨c, hsupp, hne⟩
         obtain ⟨i, rfl⟩ := hf_surj c
@@ -1186,7 +1189,7 @@ private lemma kernel_concentration_bound
       -- S M = {∃ i ∈ good, ω(z(f i)) ≠ 0}
       have h_S_eq : S M = {ω | ∃ i ∈ good, ω (z (f i)) ≠ 0} := by
         ext ω
-        simp only [S, good, Set.mem_setOf_eq, Finset.mem_filter, Finset.mem_univ,
+        simp only [S, good, Set.mem_ofPred_eq, Finset.mem_filter, Finset.mem_univ,
           true_and]
       rw [h_S_eq]
       -- Now apply h_finite_bound with the filtered list
@@ -1201,7 +1204,7 @@ private lemma kernel_concentration_bound
       have h_set_eq : {ω : E → ℝ | ∃ i ∈ good, ω (z (f i)) ≠ 0} =
           {ω | ∃ j : Fin n, ω (z (c_list j)) ≠ 0} := by
         ext ω
-        simp only [Set.mem_setOf_eq, c_list]
+        simp only [Set.mem_ofPred_eq, c_list]
         constructor
         · rintro ⟨i, hi, hne⟩
           exact ⟨good.equivFin ⟨i, hi⟩, by rwa [Equiv.symm_apply_apply]⟩
@@ -1272,10 +1275,10 @@ private lemma tail_bound_uniform
     let toLp := MeasurableEquiv.toLp (p := 2) (X := Fin (k + 1) → ℝ)
     let eval_e : (E → ℝ) → V := fun ω => toLp (fun j => ω (e j))
     have h_meas_e : Measurable eval_e :=
-      toLp.measurable.comp (measurable_pi_lambda _ (fun j => measurable_pi_apply (e j)))
+      toLp.measurable.comp (Measurable.of_eval (fun j => measurable_pi_apply (e j)))
     let μ := ν.map eval_e
     haveI h_prob : IsProbabilityMeasure μ :=
-      Measure.isProbabilityMeasure_map h_meas_e.aemeasurable
+      inferInstance
     let μ' : ProbabilityMeasure V := ⟨μ, h_prob⟩
     have h_coord : ∀ (ω : E → ℝ) (i : Fin (k + 1)), (eval_e ω) i = ω (e i) := fun _ _ => rfl
     have h_inner_V : ∀ (ω : E → ℝ) (v : V),
@@ -1572,7 +1575,7 @@ private lemma tail_bound_uniform
           apply setIntegral_mono_on (integrable_const _) h_f_int.integrableOn
             (measurableSet_le measurable_const h_T_meas)
             fun ω hω => by
-              simp only [Set.mem_setOf_eq] at hω
+              simp only [Set.mem_ofPred_eq] at hω
               have : Real.exp (-(σ₀ ^ 2 * (T ω) / 2)) ≤ Real.exp (-(σ₀ ^ 2 * R ^ 2 / 2)) :=
                 Real.exp_le_exp_of_le (by nlinarith [sq_nonneg σ₀])
               linarith
@@ -1644,7 +1647,7 @@ private lemma badSetN_bound_with_kernel
     by_contra h_not
     simp only [Set.mem_union, not_or] at h_not
     obtain ⟨h_not_tail, h_not_ker⟩ := h_not
-    simp only [tail, kernel_bad, Set.mem_setOf_eq, not_lt, not_exists, not_and,
+    simp only [tail, kernel_bad, Set.mem_ofPred_eq, not_lt, not_exists, not_and,
       ne_eq, not_not] at h_not_tail h_not_ker
     -- h_not_tail: ∑ ω(e_j)² ≤ R²
     -- h_not_ker: ∀ c, c.support ⊆ range N → ω(x_c) = ∑ α_j(c) ω(e_j)

@@ -29,13 +29,16 @@ whenever √⟪x-y, S(x-y)⟫ < 1.
 * Sazonov, "A remark on characteristic functionals" (1958)
 * Da Prato-Zabczyk, "Stochastic Equations in Infinite Dimensions", §1.2
 -/
+module
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+
+@[expose] public section
 
 open MeasureTheory Complex Filter Topology Set InnerProductSpace
 open scoped Real

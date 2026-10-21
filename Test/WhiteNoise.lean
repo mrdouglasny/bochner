@@ -42,10 +42,13 @@ Four domain-specific axioms (all provable from Hermite basis theory):
 4. `whiteNoiseCF_pd` — exp(-½‖f‖²_L²) is positive definite (derivable from
    gaussian-field's `GaussianField.charFun`: CF of a probability measure is PD)
 -/
+module
 
-import Minlos.Main
-import Bochner.PositiveDefinite
-import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+public import Minlos.Main
+public import Bochner.PositiveDefinite
+public import Mathlib.Analysis.Distribution.SchwartzSpace.Basic
+
+@[expose] public section
 
 open Complex MeasureTheory BigOperators TopologicalSpace
 

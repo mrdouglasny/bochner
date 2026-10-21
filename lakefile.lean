@@ -6,11 +6,11 @@ package «BochnerMinlos» where
     ⟨`pp.unicode.fun, true⟩
   ]
 
-require kolmogorov_extension4 from git
-  "https://github.com/mrdouglasny/kolmogorov_extension4.git" @ "45b4694"
+-- Local branch only: points at the sibling port of kolmogorov_extension4 (pin-v4.34.1).
+require kolmogorov_extension4 from "../kolmogorov_extension4"
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git" @ "v4.33.0-rc1"
+  "https://github.com/leanprover-community/mathlib4.git" @ "v4.34.1"
 
 @[default_target]
 lean_lib «Bochner» where

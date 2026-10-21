@@ -19,9 +19,12 @@ measure μ_F on ℝⁿ.
 - `marginalCF_normalized` — marginalCF(0) = 1
 - `marginal_measure_exists` — Bochner gives a probability measure with matching CF
 -/
+module
 
-import Bochner.Main
-import Minlos.NuclearSpace
+public import Bochner.Main
+public import Minlos.NuclearSpace
+
+@[expose] public section
 
 open BigOperators MeasureTheory Complex
 
